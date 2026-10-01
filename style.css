@@ -2,43 +2,52 @@
     box-sizing: border-box;
 }
 
-body {
-    margin: 0;
-    background: #111315;
-    color: #d8dadd;
-    font-family: Arial, Helvetica, sans-serif;
+html {
+    scroll-behavior: smooth;
 }
 
-/* HEADER */
+body {
+    margin: 0;
+    background: #101214;
+    color: #d7d9dc;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+}
+
+/* =========================
+   HEADER
+========================= */
 
 header {
-    background: #181a1d;
-    border-bottom: 1px solid #292c30;
+    height: 62px;
+    background: #181b1e;
+    border-bottom: 1px solid #2b2f33;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .18);
 }
 
 .header-inner {
-    width: 1100px;
-    max-width: calc(100% - 40px);
+    width: 1080px;
+    max-width: calc(100% - 36px);
+    height: 100%;
     margin: auto;
-    height: 64px;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
 .site-title {
-    color: #ffffff;
+    color: #f1f1f1;
     text-decoration: none;
-    font-size: 21px;
-    font-weight: bold;
-    letter-spacing: .5px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: .4px;
 }
 
 .site-title span {
-    color: #e5e5e5;
+    color: #9fa4aa;
+    font-weight: 400;
 }
-
-/* NAVIGATION */
 
 nav {
     display: flex;
@@ -46,176 +55,362 @@ nav {
 }
 
 nav a {
-    color: #999da2;
-    text-decoration: none;
-    padding: 0 16px;
+    position: relative;
+
     display: flex;
     align-items: center;
-    font-size: 14px;
-    border-bottom: 2px solid transparent;
+
+    padding: 0 15px;
+
+    color: #969ba1;
+    text-decoration: none;
+
+    transition:
+        color .18s ease,
+        background .18s ease;
 }
 
 nav a:hover {
-    color: white;
-    background: #202327;
+    color: #fff;
+    background: #202428;
 }
 
 nav a.selected {
-    color: white;
-    border-bottom: 2px solid #ffffff;
+    color: #fff;
 }
 
-/* MAIN */
+nav a.selected::after {
+    content: "";
+
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 0;
+
+    height: 2px;
+    background: #fff;
+}
+
+/* =========================
+   MAIN
+========================= */
 
 main {
-    width: 1100px;
-    max-width: calc(100% - 40px);
-    margin: 35px auto 70px;
+    width: 1080px;
+    max-width: calc(100% - 36px);
+
+    margin: 32px auto 70px;
 }
 
 .list-header {
     display: flex;
-    align-items: end;
+    align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 25px;
+
+    margin-bottom: 20px;
 }
 
 h1 {
-    margin: 0 0 8px;
-    font-size: 28px;
-    color: white;
+    margin: 0 0 6px;
+
+    color: #f1f1f1;
+    font-size: 27px;
+    font-weight: 600;
 }
 
 .list-header p {
     margin: 0;
-    color: #85898e;
-    font-size: 14px;
+
+    color: #777d84;
+    font-size: 13px;
 }
 
-/* SEARCH */
+/* =========================
+   SEARCH
+========================= */
 
 .search input {
-    width: 230px;
+    width: 245px;
     height: 38px;
-    padding: 0 12px;
-    background: #1b1e21;
-    border: 1px solid #30343a;
-    border-radius: 3px;
-    color: white;
-    outline: none;
-}
 
-.search input:focus {
-    border-color: #555b63;
+    padding: 0 12px;
+
+    color: #eee;
+    background: #1a1d20;
+
+    border: 1px solid #30353a;
+    border-radius: 3px;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
 }
 
 .search input::placeholder {
-    color: #70757b;
+    color: #686e74;
 }
 
-/* LIST */
+.search input:focus {
+    border-color: #555c63;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.035);
+}
+
+/* =========================
+   LIST
+========================= */
 
 .list {
-    background: #181a1d;
-    border: 1px solid #292c30;
-    border-radius: 4px;
     overflow: hidden;
+
+    background: #181b1e;
+
+    border: 1px solid #2c3035;
+    border-radius: 3px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.12);
 }
 
 .list-columns,
 .level-row {
     display: grid;
-    grid-template-columns: 55px minmax(250px, 1fr) 170px 170px 80px;
+
+    grid-template-columns:
+        48px
+        78px
+        minmax(230px, 1fr)
+        150px
+        150px
+        80px;
+
     align-items: center;
 }
 
+/* COLUMN HEADER */
+
 .list-columns {
-    min-height: 45px;
-    padding: 0 18px;
-    background: #202327;
-    color: #858a90;
-    font-size: 12px;
+    min-height: 43px;
+
+    padding: 0 14px;
+
+    background: #202428;
+
+    color: #858b92;
+
+    border-bottom: 1px solid #30353a;
+
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    font-weight: bold;
-    border-bottom: 1px solid #30343a;
+    letter-spacing: .4px;
 }
 
+/* =========================
+   LEVEL ROW
+========================= */
+
 .level-row {
-    min-height: 70px;
-    padding: 0 18px;
-    border-bottom: 1px solid #272a2e;
+    position: relative;
+
+    min-height: 76px;
+
+    padding: 8px 14px;
+
+    border-bottom: 1px solid #292d31;
+
+    background: #181b1e;
+
+    transition:
+        background .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+/*
+   Hover animation
+*/
+
+.level-row:hover {
+    z-index: 2;
+
+    background: #202428;
+
+    transform: translateX(5px);
+
+    box-shadow:
+        -4px 0 0 #777,
+        0 4px 14px rgba(0,0,0,.16);
 }
 
 .level-row:last-child {
     border-bottom: none;
 }
 
-.level-row:hover {
-    background: #1e2125;
-}
+/* =========================
+   RANK
+========================= */
 
 .position {
-    color: #777c82;
-    font-size: 14px;
+    color: #777e85;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    transition: color .18s ease;
 }
 
-.level-name {
-    color: #ffffff;
-    font-weight: bold;
-    font-size: 15px;
+.level-row:hover .position {
+    color: #fff;
 }
+
+/* =========================
+   THUMBNAIL
+========================= */
+
+.thumbnail {
+    width: 66px;
+    height: 40px;
+
+    overflow: hidden;
+
+    background: #111315;
+
+    border: 1px solid #34393e;
+    border-radius: 3px;
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease;
+}
+
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+
+    transition:
+        transform .3s ease,
+        filter .3s ease;
+}
+
+.level-row:hover .thumbnail {
+    transform: scale(1.04);
+    border-color: #666d74;
+}
+
+.level-row:hover .thumbnail img {
+    transform: scale(1.08);
+    filter: brightness(1.08);
+}
+
+/* =========================
+   LEVEL NAME
+========================= */
+
+.level-name {
+    color: #e9eaec;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    transition:
+        color .18s ease,
+        transform .18s ease;
+}
+
+.level-row:hover .level-name {
+    color: #fff;
+    transform: translateX(2px);
+}
+
+/* =========================
+   CREATOR / VERIFIER
+========================= */
 
 .creator,
 .verifier {
-    color: #999ea4;
+    color: #969ca2;
+
     font-size: 13px;
+
+    transition: color .18s ease;
 }
+
+.level-row:hover .creator,
+.level-row:hover .verifier {
+    color: #c5c9cd;
+}
+
+/* =========================
+   POINTS
+========================= */
 
 .points {
-    color: #d4d7da;
-    font-weight: bold;
+    color: #d5d8db;
+
     font-size: 13px;
+    font-weight: 700;
 }
 
-/* LOADING */
+/* =========================
+   LOADING
+========================= */
 
 .loading {
-    padding: 40px;
+    padding: 55px 20px;
+
     text-align: center;
-    color: #777c82;
+
+    color: #70767c;
+
+    font-size: 14px;
 }
 
-/* FOOTER */
+/* =========================
+   FOOTER
+========================= */
 
 footer {
-    width: 1100px;
-    max-width: calc(100% - 40px);
+    width: 1080px;
+    max-width: calc(100% - 36px);
+
     margin: auto;
+
     padding: 20px 0 40px;
-    color: #555a60;
+
+    color: #555b61;
+
     font-size: 12px;
-    border-top: 1px solid #292c30;
+
+    border-top: 1px solid #292d31;
 }
 
-/* MOBILE */
+/* =========================
+   MOBILE
+========================= */
 
 @media (max-width: 800px) {
 
     .header-inner {
-        height: auto;
-        min-height: 64px;
-        flex-direction: column;
-        align-items: stretch;
-        padding: 15px 0;
+        max-width: calc(100% - 20px);
     }
 
-    nav {
-        margin-top: 12px;
-        overflow-x: auto;
+    .site-title {
+        font-size: 17px;
     }
 
     nav a {
-        padding: 10px 12px;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+
+    main {
+        max-width: calc(100% - 20px);
+        margin-top: 24px;
     }
 
     .list-header {
@@ -223,7 +418,7 @@ footer {
     }
 
     .search {
-        margin-top: 20px;
+        margin-top: 16px;
     }
 
     .search input {
