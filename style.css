@@ -75,3 +75,17 @@ dialog::backdrop { background:rgba(17,27,34,.65); }
 @media(max-width:960px) { .layout { grid-template-columns:230px minmax(0,1fr); gap:20px; } .level-body { grid-template-columns:1fr; } .thumbnail { max-height:240px; } }
 @media(max-width:680px) { .header-inner { padding:12px 18px 0; flex-wrap:wrap; gap:6px; } .site-title { font-size:16px; } nav { width:100%; gap:22px; } nav a { padding:9px 0; font-size:11px; } .page-intro { padding:34px 20px; } .page-intro > p:last-child { font-size:12px; } .layout { display:block; padding:0 16px; margin-top:20px; } .ranking-panel { position:static; margin-bottom:26px; } .ranking-list { max-height:180px; } .section-note { display:none; } .level-heading { padding:16px; } .level-heading h3 { font-size:19px; } .level-body { padding:16px; gap:18px; } footer { margin:0 16px; flex-direction:column; } dialog { padding:28px 22px; } }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+
+.feature-main { max-width:1050px; margin:40px auto; padding:0 24px; }
+.feature-main > p { color:var(--muted); }
+.feature-main input { padding:10px; border:1px solid var(--line); font:inherit; max-width:100%; }
+.table-scroll { overflow-x:auto; margin:24px 0; }
+table { width:100%; border-collapse:collapse; background:white; }
+th,td { text-align:left; padding:14px; border-bottom:1px solid var(--line); }
+th { font-size:11px; color:var(--muted); }
+td button { background:transparent; color:var(--accent); padding:0; }
+#admin-tools form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; background:white; padding:24px; margin:20px 0 32px; }
+#admin-tools label { display:flex; flex-direction:column; gap:6px; }
+#admin-tools h2 { margin-top:28px; }
+[hidden] { display:none !important; }
+@media(max-width:680px) { #admin-tools form { grid-template-columns:1fr; } nav { flex-wrap:wrap; gap:12px; } }

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore the hardest levels in Roblox Geometry Dash 1.1. Search rankings, creators, verifiers, and level points.">
+  <title>Owner Dashboard · GD 1.1 Demonlist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body><header class="site-header">
+    <div class="header-inner">
+      <a class="site-title" href="index.html" aria-label="GD 1.1 Demonlist home"><span class="brand-mark" aria-hidden="true">◇</span> GD 1.1 <span>DEMONLIST</span></a>
+      <nav aria-label="Main navigation">
+        <a  href="index.html#demonlist">Demonlist</a>
+        <a href="stats.html">Stats Viewer</a>
+        <a href="admin.html">Owner</a>
+        <a href="index.html#about">About the list</a>
+        <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+  <main class="feature-main"><h1>Owner Dashboard</h1><p>Sign in with an account granted owner or admin access.</p><button id="sign-in">Sign in with Google</button> <button id="sign-out" hidden>Sign out</button><p id="admin-status" role="status">Checking sign-in…</p><section id="admin-tools" hidden><h2>Save a level</h2><form id="level-form"><label>Document ID <input name="id" required pattern="[^/]+" placeholder="Unique level ID"></label><label>Name <input name="name" required></label><label>Placement <input name="position" type="number" min="1" step="1" required></label><label>Creator <input name="creator" required></label><label>Verifier <input name="verifier" required></label><label>Points <input name="points" type="number" min="0" step="any" required></label><label>Difficulty <input name="difficulty" required></label><label>Thumbnail URL <input name="thumbnail" type="url"></label><button>Save level</button></form><h2>Save a completion record</h2><p>Use the same player ID for all of a player’s records. Use the existing record ID to edit a record.</p><form id="record-form"><label>Record ID <input name="id" required pattern="[^/]+"></label><label>Player ID <input name="playerId" required></label><label>Player name <input name="player" required></label><label>Level document ID <input name="levelId" required pattern="[^/]+"></label><label>Completion <input name="progress" type="number" value="100" min="100" max="100" required></label><label><input name="approved" type="checkbox"> Approved for the stats viewer</label><button>Save record</button></form></section></main><script type="module" src="admin.js"></script></body></html>
