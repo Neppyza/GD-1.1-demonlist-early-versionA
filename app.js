@@ -5,8 +5,7 @@ import {
     getDocs,
     query,
     orderBy
-} from
-"https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 
 const levelsContainer =
@@ -79,13 +78,13 @@ function displayLevels() {
 
             return (
 
-                level.name
+                (level.name || "")
                     .toLowerCase()
                     .includes(searchText)
 
                 ||
 
-                level.creator
+                (level.creator || "")
                     .toLowerCase()
                     .includes(searchText)
 
@@ -107,7 +106,25 @@ function displayLevels() {
 
 
         row.href =
-            `level.html?id=${level.id}`;
+            `level.html?id=${encodeURIComponent(level.id)}`;
+
+
+        // Thumbnail
+        const thumbnail = level.thumbnail
+            ? `
+                <div class="thumbnail">
+                    <img
+                        src="${level.thumbnail}"
+                        alt="${level.name || "Level"} thumbnail"
+                        loading="lazy"
+                    >
+                </div>
+            `
+            : `
+                <div class="thumbnail no-thumbnail">
+                    <span>NO IMAGE</span>
+                </div>
+            `;
 
 
         row.innerHTML = `
@@ -115,6 +132,9 @@ function displayLevels() {
             <span class="position">
                 ${level.position}
             </span>
+
+
+            ${thumbnail}
 
 
             <span class="level-name">
@@ -131,7 +151,7 @@ function displayLevels() {
 
 
             <span>
-                ${level.creator}
+                ${level.creator || "-"}
             </span>
 
 
@@ -141,7 +161,7 @@ function displayLevels() {
 
 
             <span class="points">
-                ${level.points}
+                ${level.points ?? "-"}
             </span>
 
         `;
