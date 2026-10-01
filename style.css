@@ -434,3 +434,172 @@ footer {
         min-width: 800px;
     }
 }
+
+/* Level rows */
+
+.level-row {
+    display: grid;
+    grid-template-columns: 55px 90px minmax(180px, 1.5fr) 1fr 1fr 90px;
+    align-items: center;
+    gap: 16px;
+
+    padding: 12px 16px;
+
+    margin-bottom: 6px;
+
+    background: #181b1f;
+
+    border: 1px solid #24282d;
+
+    border-radius: 6px;
+
+    color: #d8dadd;
+
+    text-decoration: none;
+
+    transition:
+        transform 0.18s ease,
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+
+/* Hover animation */
+
+.level-row:hover {
+    transform: translateX(6px);
+
+    background: #20242a;
+
+    border-color: #3b4148;
+
+    box-shadow:
+        0 5px 18px rgba(0, 0, 0, 0.25);
+}
+
+
+/* Position */
+
+.position {
+    font-weight: 700;
+    color: #8f969e;
+}
+
+
+/* Thumbnail */
+
+.thumbnail {
+    width: 80px;
+    height: 45px;
+
+    overflow: hidden;
+
+    border-radius: 4px;
+
+    background: #101214;
+
+    border: 1px solid #30353b;
+}
+
+
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    display: block;
+
+    transition:
+        transform 0.25s ease;
+}
+
+
+.level-row:hover .thumbnail img {
+    transform: scale(1.08);
+}
+
+
+/* No thumbnail */
+
+.no-thumbnail {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 8px;
+
+    color: #686f77;
+}
+
+
+/* Level name */
+
+.level-name {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+
+.level-name strong {
+    color: #f0f1f2;
+
+    font-size: 15px;
+
+    transition: color 0.18s ease;
+}
+
+
+.level-row:hover .level-name strong {
+    color: #ffffff;
+}
+
+
+.level-name small {
+    color: #777f88;
+
+    font-size: 11px;
+}
+
+
+/* Points */
+
+.points {
+    font-weight: 700;
+
+    text-align: right;
+
+    color: #c5c9cd;
+}
+
+
+/* Mobile */
+
+@media (max-width: 750px) {
+
+    .level-row {
+        grid-template-columns:
+            35px
+            70px
+            minmax(120px, 1fr)
+            80px;
+
+        gap: 8px;
+    }
+
+    .thumbnail {
+        width: 65px;
+        height: 37px;
+    }
+
+    .level-row > span:nth-child(4),
+    .level-row > span:nth-child(5) {
+        display: none;
+    }
+
+}
