@@ -6,6 +6,8 @@ const resultCount = document.getElementById("result-count");
 const dialog = document.getElementById("level-dialog");
 let levels = [];
 let loaded = false;
+let unsubscribeLevels = null;
+let loadGeneration = 0;
 
 function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -113,35 +115,61 @@ function displayLevels() {
     });
 }
 
+function showLoadError(error) {
+    console.error("Could not load demonlist:", error);
+    loaded = false;
+    levelsContainer.setAttribute("aria-busy", "false");
+    const state = element("div", "state");
+    const retry = element("button", "", "Try again");
+    retry.addEventListener("click", loadLevels);
+    let message = "We couldn’t load the rankings. Please check your connection and try again.";
+    if (error.code === "permission-denied") {
+        message = "Firestore denied access to the levels collection. Check the read rules for /levels in project gd11-demonlist.";
+    } else if (error.code === "unavailable") {
+        message = "Firestore is temporarily unreachable. Check your connection and try again.";
+    }
+    state.append(element("h3", "", "The demonlist is unavailable"), element("p", "", message));
+    if (error.code) state.append(element("p", "", `Error: ${error.code}`));
+    state.append(retry);
+    levelsContainer.replaceChildren(state);
+    ranking.replaceChildren();
+    count.textContent = "—";
+    resultCount.textContent = "Rankings unavailable";
+}
+
 async function loadLevels() {
+    const generation = ++loadGeneration;
+    if (unsubscribeLevels) unsubscribeLevels();
+    unsubscribeLevels = null;
     loaded = false;
     levelsContainer.setAttribute("aria-busy", "true");
     levelsContainer.replaceChildren(element("div", "state", "Loading demonlist…"));
     resultCount.textContent = "Loading rankings…";
     try {
-        // Import inside the try block so connection and initialization errors have a retry state.
-        const [{ db }, { collection, getDocs }] = await Promise.all([
+        const [{ db }, { collection, onSnapshot }] = await Promise.all([
             import("./firebase.js"),
             import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
         ]);
-        const snapshot = await getDocs(collection(db, "levels"));
-        levels = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        const position = value => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : Infinity;
-        levels.sort((a, b) => position(a.position) - position(b.position) || String(a.name ?? "").localeCompare(String(b.name ?? "")));
-        loaded = true;
-        displayLevels();
-        const selected = new URLSearchParams(location.search).get("level");
-        if (selected) showDetails(selected);
+        if (generation !== loadGeneration) return;
+        let firstSnapshot = true;
+        unsubscribeLevels = onSnapshot(collection(db, "levels"), snapshot => {
+            if (generation !== loadGeneration) return;
+            levels = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            const position = value => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : Infinity;
+            levels.sort((a, b) => position(a.position) - position(b.position) || String(a.name ?? "").localeCompare(String(b.name ?? "")));
+            loaded = true;
+            displayLevels();
+            levelsContainer.setAttribute("aria-busy", "false");
+            if (firstSnapshot) {
+                const selected = new URLSearchParams(location.search).get("level");
+                if (selected) showDetails(selected);
+                firstSnapshot = false;
+            }
+        }, error => {
+            if (generation === loadGeneration) showLoadError(error);
+        });
     } catch (error) {
-        console.error("Could not load demonlist:", error);
-        const state = element("div", "state");
-        const retry = element("button", "", "Try again");
-        retry.addEventListener("click", loadLevels);
-        state.append(element("h3", "", "The demonlist is unavailable"), element("p", "", "We couldn’t load the rankings. Please check your connection and try again."), retry);
-        levelsContainer.replaceChildren(state);
-        resultCount.textContent = "Rankings unavailable";
-    } finally {
-        levelsContainer.setAttribute("aria-busy", "false");
+        if (generation === loadGeneration) showLoadError(error);
     }
 }
 
