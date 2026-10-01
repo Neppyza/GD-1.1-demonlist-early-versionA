@@ -1,121 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>GD 1.1 Demonlist</title>
-
-    <link rel="stylesheet" href="style.css">
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore the hardest levels in Roblox Geometry Dash 1.1. Search rankings, creators, verifiers, and level points.">
+  <title>GD 1.1 Demonlist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-
-
 <body>
-
-<header>
-
+  <a class="skip-link" href="#demonlist">Skip to demonlist</a>
+  <header class="site-header">
     <div class="header-inner">
-
-        <a class="site-title" href="/">
-            GD 1.1 <span>DEMONLIST</span>
-        </a>
-
-
-        <nav>
-
-            <a class="selected" href="index.html">
-                Demonlist
-            </a>
-
-            <a href="players.html">
-                Players
-            </a>
-
-            <a href="records.html">
-                Records
-            </a>
-
-            <a href="submit.html">
-                Submit
-            </a>
-
-            <a href="rules.html">
-                Rules
-            </a>
-
-        </nav>
-
+      <a class="site-title" href="index.html" aria-label="GD 1.1 Demonlist home"><span class="brand-mark" aria-hidden="true">◇</span> GD 1.1 <span>DEMONLIST</span></a>
+      <nav aria-label="Main navigation">
+        <a class="active" href="#demonlist">Demonlist</a>
+        <a href="#about">About the list</a>
+        <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </nav>
     </div>
-
-</header>
-
-
-<main>
-
-    <div class="page-header">
-
-        <div class="page-title">
-
-            <h1>GD 1.1 Demonlist</h1>
-
-            <p>
-                The official ranking of the hardest
-                levels in Roblox Geometry Dash 1.1.
-            </p>
-
-        </div>
-
-        <input
-            id="search"
-            type="text"
-            placeholder="Filter..."
-        >
-
-    </div>
-
-
-    <div class="list-columns">
-
-        <span>#</span>
-        <span>Thumbnail</span>
-        <span>Level</span>
-        <span>Creator</span>
-        <span>Verifier</span>
-        <span>Points</span>
-
-    </div>
-
-
-    <div id="levels">
-
-        <div class="loading">
-            Loading demonlist...
-        </div>
-
-    </div>
-
-</main>
-
-
-<footer>
-
-    GD 1.1 Demonlist
-
-</footer>
-
-
-<script
-    type="module"
-    src="app.js">
-</script>
-
+  </header>
+  <div class="page-intro">
+    <p class="eyebrow">ROBLOX GEOMETRY DASH · VERSION 1.1</p>
+    <h1>GD 1.1 Demonlist</h1>
+    <p>The ranking of the hardest levels in Roblox Geometry Dash 1.1.</p>
+  </div>
+  <main id="demonlist" class="layout">
+    <aside class="ranking-panel" aria-labelledby="ranking-title">
+      <div class="panel-heading"><h2 id="ranking-title">Demonlist</h2><span id="level-count" class="count">—</span></div>
+      <p class="sidebar-description">Find a level and explore its placement, creator, and verifier.</p>
+      <label class="search-label" for="search">Filter levels</label>
+      <input id="search" type="search" placeholder="Filter…" autocomplete="off">
+      <p id="result-count" class="result-count" role="status" aria-live="polite">Loading rankings…</p>
+      <ol id="ranking" class="ranking-list"></ol>
+    </aside>
+    <section class="list-content" aria-labelledby="list-title">
+      <div class="section-heading"><div><p class="eyebrow">THE RANKINGS</p><h2 id="list-title">The Demonlist</h2></div><span class="section-note">Hardest to easiest</span></div>
+      <div id="levels" aria-busy="true"><div class="state" role="status">Loading demonlist…</div></div>
+      <section id="about" class="about-panel">
+        <h2>About the list</h2>
+        <p>Explore the GD 1.1 rankings, ordered by difficulty. Each entry lists the level’s creator, verifier, and points from the community database.</p>
+        <p>Choose a level to view its details. Use the filter to search by level name, creator, or verifier.</p>
+      </section>
+    </section>
+  </main>
+  <footer><span>GD 1.1 Demonlist</span><span>A community ranking · Inspired by Pointercrate</span></footer>
+  <dialog id="level-dialog" aria-labelledby="detail-title">
+    <button id="close-dialog" class="close-button" aria-label="Close level details">×</button>
+    <div id="level-detail"></div>
+  </dialog>
+  <script type="module" src="app.js"></script>
 </body>
-
 </html>
