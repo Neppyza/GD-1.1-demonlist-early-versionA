@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Explore the hardest levels in Roblox Geometry Dash 1.1. Search rankings, creators, verifiers, and level points.">
-  <title>Stats Viewer · GD 1.1 Demonlist</title>
+  <title>My Roblox Profile · GD 1.1 Demonlist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -22,4 +23,4 @@
       </nav>
     </div>
   </header>
-  <main class="feature-main"><h1>Stats Viewer</h1><p>Player rankings from approved 100% completions. Each level awards its current points once per player.</p><label for="player-search">Search players</label><input id="player-search" type="search" placeholder="Player name…"><p id="stats-status" role="status">Loading stats…</p><div id="stats-summary"></div><div class="table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>Points</th><th>Completions</th><th>Hardest level</th></tr></thead><tbody id="players"></tbody></table></div><section id="player-details" aria-live="polite"></section></main><script type="module" src="stats.js"></script></body></html>
+  <main class="feature-main"><h1>My Roblox Profile</h1><p>Sign in on Roblox to view your own profile here.</p><button id="roblox-login">Sign in with Roblox</button> <button id="roblox-logout" hidden>Sign out</button><p id="profile-status" role="status">Ready to sign in.</p><section id="roblox-profile" hidden><img id="roblox-avatar" alt="Your Roblox avatar" width="150" height="150" hidden><h2 id="roblox-display-name"></h2><p id="roblox-username"></p><p id="roblox-id"></p><a id="roblox-profile-link" target="_blank" rel="noopener noreferrer">View Roblox profile ↗</a></section></main><script type="module" src="roblox-auth.js"></script></body></html>
