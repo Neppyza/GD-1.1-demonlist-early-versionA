@@ -1,15 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
     function staff() {
-      return request.auth != null &&
+      return signedIn() &&
         (request.auth.token.get('owner', false) == true || request.auth.token.get('admin', false) == true);
+    }
+    function httpsLink(value) {
+      return value is string && value.size() <= 2000 && value.matches('^https://.+');
+    }
+    function validLevel(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 80
+        && data.position is int && data.position > 0
+        && data.points is number && data.points >= 0
+        && data.creator is string && data.creator.size() > 0 && data.creator.size() <= 60
+        && data.verifier is string && data.verifier.size() > 0 && data.verifier.size() <= 60
+        && httpsLink(data.levelUrl) && httpsLink(data.proofUrl);
+    }
+    match /profiles/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'bio', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 3
+        && request.resource.data.displayName.size() <= 24
+        && request.resource.data.bio is string
+        && request.resource.data.bio.size() <= 300
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+    match /submissions/{submissionId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasAll(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.submittedBy is string
+        && request.resource.data.submittedBy.size() >= 3
+        && request.resource.data.submittedBy.size() <= 24
+        && request.resource.data.levelName is string
+        && request.resource.data.levelName.size() > 0
+        && request.resource.data.levelName.size() <= 80
+        && httpsLink(request.resource.data.levelUrl)
+        && request.resource.data.creator is string
+        && request.resource.data.creator.size() > 0
+        && request.resource.data.creator.size() <= 60
+        && request.resource.data.verifier is string
+        && request.resource.data.verifier.size() > 0
+        && request.resource.data.verifier.size() <= 60
+        && httpsLink(request.resource.data.proofUrl)
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 500
+        && request.resource.data.status == 'pending'
+        && request.resource.data.submittedAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
+      allow get, list: if staff() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow update: if staff()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'levelId', 'reviewedAt', 'reviewedBy']);
+      allow delete: if staff();
     }
     match /levels/{id} {
       allow read: if true;
-      allow create, update: if staff() && request.resource.data.name is string
-        && request.resource.data.position is int && request.resource.data.position > 0
-        && request.resource.data.points is number && request.resource.data.points >= 0;
+      allow create, update: if staff() && validLevel(request.resource.data);
       allow delete: if staff();
     }
     match /records/{id} {
