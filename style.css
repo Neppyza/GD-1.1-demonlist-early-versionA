@@ -115,3 +115,5 @@ td button { background:transparent; color:var(--accent); padding:0; }
 .secondary-button { background:#707780; }
 .review-queue { margin-top:20px; }
 @media(max-width:680px) { .form-panel,.submission-item { padding:18px; } .auth-row { align-items:flex-start; } }
+
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
