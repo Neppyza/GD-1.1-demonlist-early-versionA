@@ -41,9 +41,21 @@ function thumbnail(level) {
 
 function metadata(level) {
     const list = element("dl", "level-meta");
-    for (const [label, value] of [["Creator", level.creator], ["Verifier", level.verifier], ["Points", level.points], ["Difficulty", level.difficulty]]) {
+    const fields = [["Creator", level.creator], ["Verifier", level.verifier], ["Points", level.points], ["Difficulty", level.difficulty]];
+    if (level.levelUrl) fields.push(["Level link", level.levelUrl]);
+    if (level.proofUrl) fields.push(["Video proof", level.proofUrl]);
+    for (const [label, value] of fields) {
         const group = element("div");
-        group.append(element("dt", "", label), element("dd", "", value ?? "—"));
+        const detail = element("dd");
+        const href = (label === "Level link" || label === "Video proof") ? safeURL(value) : null;
+        if (href) {
+            const link = element("a", "", label === "Level link" ? "Open level" : "Watch proof");
+            link.href = href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            detail.append(link);
+        } else detail.textContent = value ?? "—";
+        group.append(element("dt", "", label), detail);
         list.append(group);
     }
     return list;
