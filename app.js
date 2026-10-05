@@ -115,12 +115,13 @@ function displayLevels() {
         title.append(link);
         titleGroup.append(title, element("p", "", `by ${level.creator || "Unknown creator"}`));
         heading.append(element("span", "position", `#${rank}`), titleGroup);
-        const body = element("div", "level-body");
-        body.append(thumbnail(level), metadata(level));
+        const summary = element("div", "level-summary");
+        summary.append(heading, metadata(level));
         const detailLink = element("a", "detail-link", "View level details →");
         detailLink.setAttribute("aria-label", `View details for ${name}`);
         openLink(detailLink, level.id);
-        card.append(heading, body, detailLink);
+        summary.append(detailLink);
+        card.append(thumbnail(level), summary);
         levelsContainer.append(card);
         const item = element("li");
         const rankLink = element("a", "", `#${rank} — ${name}`);
