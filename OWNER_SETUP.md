@@ -32,3 +32,14 @@ Stats sum current level points for approved full completions; duplicate records 
 ## Firebase project Owner
 
 This differs from website owner access. An existing project Owner must open Firebase Project settings → Users and permissions, verify your Google account, and assign Owner if appropriate. Website custom claims do not grant console/IAM access. Do not grant this role to an unverified account.
+
+
+## Theme, community rules and victors update
+
+Deploy the updated Firestore rules with the website. Google sign-in remains the only supported provider. New and existing members must accept community rules version `2026-10-05` before editing profiles or submitting levels. Acceptance is saved privately in `agreements/{uid}` and checked by database rules. These are community guidelines plus staff review, not an automatic profanity classifier.
+
+The header theme button follows the system preference initially, then remembers the player's light/dark choice.
+
+Staff can use **Add a victor** at `admin.html` after checking completion proof. Victors come from approved 100% `records`, are deduplicated by player ID, and also appear in Stats. Existing levels need no schema migration.
+
+The staff page now displays the signed-in Firebase UID. An existing project administrator must run the owner-grant script in a trusted environment. This update does not itself grant an account access or change Firebase console settings.

@@ -117,3 +117,32 @@ td button { background:transparent; color:var(--accent); padding:0; }
 @media(max-width:680px) { .form-panel,.submission-item { padding:18px; } .auth-row { align-items:flex-start; } }
 
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+
+
+/* Shared, accessible light and dark palettes. */
+:root { color-scheme:light; --ink:#172536; --muted:#596b7d; --accent:#176d93; --line:#dae3eb; --paper:#fff; --background:#f2f6fa; --soft:#eaf2f7; --button-ink:#fff; }
+:root[data-theme="dark"] { color-scheme:dark; --ink:#e8f0f8; --muted:#a1b2c5; --accent:#78d4f4; --line:#2c4053; --paper:#162330; --background:#0d1721; --soft:#203344; --button-ink:#0d1721; }
+body { background:var(--background); }
+.site-header,.ranking-panel,.state,.about-panel,dialog,table,.auth-row,.form-panel,.submission-item,#admin-tools form { background:var(--paper); }
+.page-intro { background:linear-gradient(125deg,var(--paper),var(--soft)); padding-block:64px; }
+h1 { font-weight:700; letter-spacing:-1.5px; }
+h2,.level-heading h3 { font-weight:600; }
+.header-inner { flex-wrap:wrap; gap:14px; padding-block:12px; }
+nav { gap:18px; flex-wrap:wrap; }
+nav a { min-height:40px; }
+.theme-toggle { display:grid; place-items:center; width:42px; height:42px; padding:0; flex-shrink:0; background:var(--soft); color:var(--ink); border:1px solid var(--line); border-radius:50%; }
+.level-card,.ranking-panel,.form-panel,.auth-row,.submission-item,.state,dialog,.about-panel { border-radius:16px; }
+.level-card,.ranking-panel { overflow:hidden; box-shadow:0 4px 18px #00000006; }
+.level-card:hover { border-color:var(--accent); }
+.level-heading,.detail-link,.ranking-list li + li { border-color:var(--line); }
+.position { font-weight:700; font-size:22px; background:var(--soft); padding:8px 12px; border-radius:10px; }
+.thumbnail { background:var(--soft); color:var(--muted); border-radius:10px; }
+.count,.ranking-list a:hover,.rules-box { background:var(--soft); }
+.count { border-radius:20px; }
+button { border-radius:9px; color:var(--button-ink); min-height:40px; font-weight:600; }
+button:disabled { opacity:.55; cursor:wait; }
+#search,.feature-main input,.feature-main textarea,.review-form input,.review-form select { background:var(--background); color:var(--ink); border:1px solid var(--line); border-radius:9px; }
+.close-button { background:transparent; color:var(--muted); }
+.secondary-button { background:var(--soft); color:var(--ink); }
+.account-uid { overflow-wrap:anywhere; font-family:monospace; }
+@media(max-width:680px) { .header-inner { padding:12px 16px; } .theme-toggle { position:absolute; top:12px; right:16px; } .site-title { padding-right:40px; font-size:14px; } nav { gap:12px; } .page-intro { padding:38px 20px; } }

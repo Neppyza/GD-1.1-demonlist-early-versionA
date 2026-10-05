@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,7 +19,7 @@
       <nav aria-label="Main navigation">
         <a class="active" href="#demonlist">Demonlist</a>
         <a href="stats.html">Stats Viewer</a>
-        <a href="community.html">Player Hub</a>
+        <a href="community.html">Google sign-in</a>
         <a href="#about">About the list</a>
         <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
       </nav>
@@ -32,7 +33,7 @@
   <main id="demonlist" class="layout">
     <aside class="ranking-panel" aria-labelledby="ranking-title">
       <div class="panel-heading"><h2 id="ranking-title">Demonlist</h2><span id="level-count" class="count">—</span></div>
-      <p class="sidebar-description">Find a level and explore its placement, creator, and verifier.</p>
+      <p class="sidebar-description">Find a level and explore its placement, creator, verifier, and victors.</p>
       <label class="search-label" for="search">Filter levels</label>
       <input id="search" type="search" placeholder="Filter…" autocomplete="off">
       <p id="result-count" class="result-count" role="status" aria-live="polite">Loading rankings…</p>
@@ -44,7 +45,7 @@
       <section id="about" class="about-panel">
         <h2>About the list</h2>
         <p>Explore the GD 1.1 rankings, ordered by difficulty. Each entry lists the level’s creator, verifier, and points from the community database.</p>
-        <p>Choose a level to view its details. Use the filter to search by level name, creator, or verifier.</p>
+        <p>Choose a level to view its details. Use the filter to search by level name, creator, verifier, or victor.</p>
       </section>
     </section>
   </main>
@@ -56,3 +57,4 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
+

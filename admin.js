@@ -1,6 +1,6 @@
 import { auth, db } from "./firebase.js";
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { collection, doc, getDocs, query, where, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { collection, doc, getDocs, query, where, serverTimestamp, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const status = document.getElementById("staff-status");
 const queue = document.getElementById("review-queue");
@@ -15,11 +15,13 @@ login.addEventListener("click", async () => {
     catch { status.textContent = "Google sign-in did not finish. Please try again."; }
     finally { login.disabled = false; }
 });
-logout.addEventListener("click", () => signOut(auth));
+logout.addEventListener("click", () => signOut(auth).catch(() => { status.textContent = "Could not sign out. Please try again."; }));
 
 onAuthStateChanged(auth, async user => {
     staffUser = user;
     queue.hidden = true;
+    document.getElementById("victor-panel").hidden = true;
+    document.getElementById("staff-uid").textContent = user ? `Your Firebase UID: ${user.uid}` : "";
     login.hidden = Boolean(user);
     logout.hidden = !user;
     if (!user) {
@@ -34,6 +36,15 @@ onAuthStateChanged(auth, async user => {
         }
         status.textContent = `Staff access enabled for ${user.displayName || "your account"}.`;
         queue.hidden = false;
+        document.getElementById("victor-panel").hidden = false;
+        const levels = await getDocs(collection(db, "levels"));
+        const select = document.getElementById("victor-level");
+        select.replaceChildren();
+        for (const item of levels.docs) {
+            const option = document.createElement("option");
+            option.value = item.id; option.textContent = item.data().name || item.id;
+            select.append(option);
+        }
         await loadQueue();
     } catch {
         status.textContent = "Could not check staff access.";
@@ -176,3 +187,26 @@ function safeLink(value, label) {
         return anchor;
     } catch { return null; }
 }
+
+
+
+document.getElementById("victor-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!staffUser) return;
+    const form = event.currentTarget;
+    const button = form.querySelector("button");
+    const output = document.getElementById("victor-status");
+    const player = form.elements.player.value.trim();
+    const playerId = form.elements.playerId.value.trim();
+    const levelId = form.elements.levelId.value;
+    if (!player || !playerId || !levelId) return;
+    button.disabled = true;
+    try {
+        // Stable pair key keeps repeated approvals from creating duplicate records.
+        const key = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([playerId, levelId])))), byte => byte.toString(16).padStart(2, "0")).join("");
+        await setDoc(doc(db, "records", key), { player, playerId, levelId, progress: 100, approved: true });
+        output.textContent = "Victor added. The completion now appears on the list and in Stats.";
+        form.reset();
+    } catch { output.textContent = "Could not save the victor. Check staff access and database rules."; }
+    finally { button.disabled = false; }
+});
