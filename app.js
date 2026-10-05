@@ -1,3 +1,4 @@
+import { victorNames } from "./victors.js";
 const levelsContainer = document.getElementById("levels");
 const search = document.getElementById("search");
 const ranking = document.getElementById("ranking");
@@ -5,6 +6,8 @@ const count = document.getElementById("level-count");
 const resultCount = document.getElementById("result-count");
 const dialog = document.getElementById("level-dialog");
 let levels = [];
+let records = [];
+let recordsState = "loading";
 let loaded = false;
 let unsubscribeLevels = null;
 let loadGeneration = 0;
@@ -41,7 +44,7 @@ function thumbnail(level) {
 
 function metadata(level) {
     const list = element("dl", "level-meta");
-    const fields = [["Creator", level.creator], ["Verifier", level.verifier], ["Points", level.points], ["Difficulty", level.difficulty]];
+    const fields = [["Creator", level.creator], ["Verifier", level.verifier], ["Victors", recordsState === "error" ? "Unavailable" : recordsState === "loading" ? "Loading…" : victorNames(records, level.id).join(", ") || "No approved victors yet"], ["Points", level.points], ["Difficulty", level.difficulty]];
     if (level.levelUrl) fields.push(["Level link", level.levelUrl]);
     if (level.proofUrl) fields.push(["Video proof", level.proofUrl]);
     for (const [label, value] of fields) {
@@ -64,6 +67,7 @@ function metadata(level) {
 function showDetails(id) {
     const level = levels.find(item => item.id === id);
     if (!level) return;
+    dialog.dataset.levelId = id;
     const detail = document.getElementById("level-detail");
     const title = element("h2", "", level.name || "Unnamed Level");
     title.id = "detail-title";
@@ -84,7 +88,7 @@ function openLink(link, id) {
 function displayLevels() {
     if (!loaded) return;
     const query = search.value.toLowerCase().trim();
-    const filtered = levels.filter(level => [level.name, level.creator, level.verifier].some(value => String(value ?? "").toLowerCase().includes(query)));
+    const filtered = levels.filter(level => [level.name, level.creator, level.verifier, ...victorNames(records, level.id)].some(value => String(value ?? "").toLowerCase().includes(query)));
     count.textContent = levels.length;
     resultCount.textContent = `${filtered.length} of ${levels.length} levels`;
     ranking.replaceChildren();
@@ -189,3 +193,20 @@ search.addEventListener("input", displayLevels);
 document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", event => { if (event.target === dialog) { const bounds = dialog.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close(); } });
 loadLevels();
+(async () => {
+    try {
+        const [{ db }, { collection, query, where, onSnapshot }] = await Promise.all([
+            import("./firebase.js"), import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
+        ]);
+        const refresh = () => {
+            displayLevels();
+            if (dialog.open && dialog.dataset.levelId) showDetails(dialog.dataset.levelId);
+        };
+        onSnapshot(query(collection(db, "records"), where("approved", "==", true)), snapshot => {
+            records = snapshot.docs.map(item => item.data());
+            recordsState = "ready";
+            refresh();
+        }, () => { recordsState = "error"; refresh(); });
+    } catch { recordsState = "error"; displayLevels(); }
+})();
+

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,6 +20,11 @@
     <p class="eyebrow">PLAYER HUB</p><h1>Profile & level submissions</h1>
     <p>Sign in with Google to manage your private profile and send a level to the list team for review.</p>
     <div class="auth-row"><button id="google-sign-in" type="button">Continue with Google</button><button id="google-sign-out" type="button" hidden>Sign out</button><span id="account-status" role="status">Sign in to continue.</span></div>
+    <section id="community-rules" class="form-panel" hidden aria-labelledby="rules-title">
+      <h2 id="rules-title">Keep the community welcoming</h2>
+      <ul><li>No swearing, slurs, harassment, or hateful language.</li><li>No sexual, violent, or otherwise inappropriate names, images, links, or content.</li><li>No spam, impersonation, cheating, or fake completion proof.</li><li>Respect other players. Staff review submissions and may reject content that breaks these rules.</li></ul>
+      <form id="community-rules-form"><label class="check-row"><input id="community-agreement" type="checkbox" required><span>I have read and agree to the community rules.</span></label><button type="submit">Accept and continue</button><p id="agreement-status" role="status"></p></form>
+    </section>
     <div id="member-content" hidden>
       <section class="form-panel">
         <h2>Your private profile</h2>
@@ -32,7 +38,7 @@
       <section class="form-panel">
         <h2>Submit a level</h2>
         <p>Submissions stay private while pending review. The list team checks every level and name before publishing.</p>
-        <div class="rules-box"><strong>Submission rules</strong><ul><li>Use respectful, appropriate player and level names. Inappropriate names or content will be rejected.</li><li>Include the level page link and a video link showing the completion.</li><li>Enter the level creator and verifier accurately. A verifier is the player who beat the level for the submitted record.</li><li>Only submit a level you have permission to share. Staff decides its placement and points.</li></ul></div>
+        <div class="rules-box"><strong>Submission rules</strong><ul><li>Use respectful, appropriate player and level names. Inappropriate names or content will be rejected.</li><li>Include the level page link and a video link showing the completion.</li><li>Enter the level creator and verifier accurately. A verifier is the first player to complete and verify the level. Victors are players with approved 100% completion records.</li><li>Only submit a level you have permission to share. Staff decides its placement and points.</li></ul></div>
         <form id="submission-form">
           <label for="level-name">Level name</label><input id="level-name" name="levelName" maxlength="80" required>
           <label for="level-url">Level link</label><input id="level-url" name="levelUrl" type="url" placeholder="https://…" required>

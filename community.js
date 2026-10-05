@@ -7,6 +7,26 @@ const signOutButton = document.getElementById("google-sign-out");
 const status = document.getElementById("account-status");
 const memberContent = document.getElementById("member-content");
 let member = null;
+let acceptedRules = false;
+const rulesPanel = document.getElementById("community-rules");
+const rulesVersion = "2026-10-05";
+document.getElementById("community-rules-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!member || !document.getElementById("community-agreement").checked) return;
+    const user = member;
+    const button = event.currentTarget.querySelector("button");
+    button.disabled = true;
+    try {
+        await setDoc(doc(db, "agreements", user.uid), { version: rulesVersion, acceptedAt: serverTimestamp() });
+        if (member?.uid !== user.uid) return;
+        acceptedRules = true;
+        rulesPanel.hidden = true;
+        memberContent.hidden = false;
+        await loadMemberData(user);
+    } catch {
+        document.getElementById("agreement-status").textContent = "Could not save your agreement. Please try again.";
+    } finally { button.disabled = false; }
+});
 
 signInButton.addEventListener("click", async () => {
     signInButton.disabled = true;
@@ -27,7 +47,10 @@ signOutButton.addEventListener("click", () => signOut(auth).catch(() => {
 
 onAuthStateChanged(auth, async user => {
     member = user;
-    memberContent.hidden = !user;
+    acceptedRules = false;
+    memberContent.hidden = true;
+    rulesPanel.hidden = true;
+    document.getElementById("community-agreement").checked = false;
     signInButton.hidden = Boolean(user);
     signOutButton.hidden = !user;
     if (!user) {
@@ -35,7 +58,18 @@ onAuthStateChanged(auth, async user => {
         return;
     }
     status.textContent = `Signed in as ${user.displayName || "Google user"}.`;
-    await loadMemberData(user);
+    try {
+        const agreement = await getDoc(doc(db, "agreements", user.uid));
+        if (member?.uid !== user.uid) return;
+        acceptedRules = agreement.exists() && agreement.data().version === rulesVersion;
+        rulesPanel.hidden = acceptedRules;
+        memberContent.hidden = !acceptedRules;
+        if (acceptedRules) await loadMemberData(user);
+    } catch {
+        if (member?.uid !== user.uid) return;
+        rulesPanel.hidden = false;
+        status.textContent = "Please accept the community rules to continue.";
+    }
 });
 
 async function loadMemberData(user) {
@@ -43,6 +77,7 @@ async function loadMemberData(user) {
     const submissionsBox = document.getElementById("my-submissions");
     try {
         const snapshot = await getDoc(doc(db, "profiles", user.uid));
+        if (member?.uid !== user.uid) return;
         const saved = snapshot.exists() ? snapshot.data() : {};
         document.getElementById("display-name").value = saved.displayName || user.displayName || "";
         document.getElementById("profile-bio").value = saved.bio || "";
@@ -54,6 +89,7 @@ async function loadMemberData(user) {
     }
     try {
         const snapshot = await getDocs(query(collection(db, "submissions"), where("ownerUid", "==", user.uid)));
+        if (member?.uid !== user.uid) return;
         submissionsBox.replaceChildren();
         if (snapshot.empty) {
             submissionsBox.textContent = "You have no submissions yet.";
@@ -80,7 +116,7 @@ async function loadMemberData(user) {
 
 document.getElementById("profile-form").addEventListener("submit", async event => {
     event.preventDefault();
-    if (!member) return;
+    if (!member || !acceptedRules) return;
     const name = document.getElementById("display-name").value.trim();
     const bio = document.getElementById("profile-bio").value.trim();
     const output = document.getElementById("profile-status");
@@ -107,14 +143,15 @@ document.getElementById("profile-form").addEventListener("submit", async event =
 
 document.getElementById("submission-form").addEventListener("submit", async event => {
     event.preventDefault();
-    if (!member) return;
+    if (!member || !acceptedRules) return;
     const output = document.getElementById("submission-status");
     const profileName = document.getElementById("display-name").value.trim();
     if (profileName.length < 3) {
         output.textContent = "Save your Demonlist name in Your private profile first.";
         return;
     }
-    const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form).entries());
     const levelUrl = document.getElementById("level-url").value.trim();
     const proofUrl = document.getElementById("proof-url").value.trim();
     if (!safeHttps(levelUrl) || !safeHttps(proofUrl)) {
@@ -141,7 +178,7 @@ document.getElementById("submission-form").addEventListener("submit", async even
             status: "pending",
             submittedAt: serverTimestamp()
         });
-        event.currentTarget.reset();
+        form.reset();
         output.textContent = "Submission received. It remains private until the list team reviews it.";
         await loadMemberData(member);
     } catch (error) {
@@ -157,3 +194,4 @@ function safeHttps(value) {
     try { return new URL(value).protocol === "https:"; }
     catch { return false; }
 }
+

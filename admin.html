@@ -7,11 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="site-header"><div class="header-inner"><a class="site-title" href="index.html"><span class="brand-mark" aria-hidden="true">◇</span> GD 1.1 <span>DEMONLIST</span></a><nav aria-label="Main navigation"><a href="index.html#demonlist">Demonlist</a><a href="stats.html">Stats Viewer</a><a href="community.html">Player Hub</a></nav></div></header>
-  <main class="feature-main community"><p class="eyebrow">STAFF AREA</p><h1>Level review queue</h1><p>Sign in with an approved staff Google account to review private submissions.</p><div class="auth-row"><button id="staff-sign-in" type="button">Sign in with Google</button><button id="staff-sign-out" type="button" hidden>Sign out</button><span id="staff-status" role="status">Checking access…</span></div><section id="review-queue" class="review-queue" hidden></section></main>
+  <main class="feature-main community"><p class="eyebrow">STAFF AREA</p><h1>Level review queue</h1><p>Sign in with an approved staff Google account to review private submissions.</p><div class="auth-row"><button id="staff-sign-in" type="button">Sign in with Google</button><button id="staff-sign-out" type="button" hidden>Sign out</button><span id="staff-status" role="status">Checking access…</span></div><p id="staff-uid" class="account-uid"></p><section id="victor-panel" class="form-panel" hidden><h2>Add a victor</h2><p>Check the player's 100% completion proof before approving. Use the same player ID for all of their records.</p><form id="victor-form"><label for="victor-level">Level</label><select id="victor-level" name="levelId" required></select><label for="victor-player">Player name</label><input id="victor-player" name="player" maxlength="60" required><label for="victor-id">Stable player ID</label><input id="victor-id" name="playerId" maxlength="100" required><label class="check-row"><input type="checkbox" required><span>I verified the completion proof and checked the community rules.</span></label><button type="submit">Approve victor</button><p id="victor-status" role="status"></p></form></section><section id="review-queue" class="review-queue" hidden></section></main>
   <script type="module" src="admin.js"></script>
 </body>
 </html>

@@ -2,7 +2,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == "google.com";
+    }
+    function acceptedRules() {
+      return signedIn() && get(/databases/$(database)/documents/agreements/$(request.auth.uid)).data.version == '2026-10-05';
+    }
+    match /agreements/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['version', 'acceptedAt'])
+        && request.resource.data.version == '2026-10-05'
+        && request.resource.data.acceptedAt == request.time;
     }
     function staff() {
       return signedIn() &&
@@ -21,7 +31,7 @@ service cloud.firestore {
     }
     match /profiles/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update: if signedIn() && request.auth.uid == uid
+      allow create, update: if acceptedRules() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['displayName', 'bio', 'updatedAt'])
         && request.resource.data.keys().hasAll(['displayName', 'bio', 'updatedAt'])
         && request.resource.data.displayName is string
@@ -33,7 +43,7 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == uid;
     }
     match /submissions/{submissionId} {
-      allow create: if signedIn()
+      allow create: if acceptedRules()
         && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.keys().hasAll(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.ownerUid == request.auth.uid
@@ -79,3 +89,4 @@ service cloud.firestore {
     }
   }
 }
+
