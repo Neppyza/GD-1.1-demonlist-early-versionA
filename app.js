@@ -4,7 +4,7 @@ const search = document.getElementById("search");
 const ranking = document.getElementById("ranking");
 const count = document.getElementById("level-count");
 const resultCount = document.getElementById("result-count");
-const dialog = document.getElementById("level-dialog");
+let selectedId = new URLSearchParams(location.search).get("level");
 let levels = [];
 let records = [];
 let recordsState = "loading";
@@ -65,16 +65,20 @@ function metadata(level) {
 }
 
 function showDetails(id) {
-    const level = levels.find(item => item.id === id);
-    if (!level) return;
-    dialog.dataset.levelId = id;
-    const detail = document.getElementById("level-detail");
-    const title = element("h2", "", level.name || "Unnamed Level");
-    title.id = "detail-title";
-    detail.replaceChildren(element("p", "eyebrow", `DEMONLIST · #${level.position ?? "—"}`), title, thumbnail(level), metadata(level));
-    if (level.description) detail.append(element("p", "", level.description));
-    if (!dialog.open) dialog.showModal();
+    if (!levels.some(level => level.id === id)) return;
+    selectedId = id;
+    const url = new URL(location.href);
+    url.searchParams.set("level", id);
+    history.pushState({}, "", url);
+    displayLevels();
+    document.getElementById("selected-title")?.focus({ preventScroll: true });
+    if (matchMedia("(max-width: 760px)").matches) levelsContainer.scrollIntoView({ behavior: "auto" });
 }
+
+window.addEventListener("popstate", () => {
+    selectedId = new URLSearchParams(location.search).get("level");
+    displayLevels();
+});
 
 function openLink(link, id) {
     link.href = `?level=${encodeURIComponent(id)}`;
@@ -103,32 +107,35 @@ function displayLevels() {
         }
         levelsContainer.append(empty);
     }
+    const selected = filtered.find(level => level.id === selectedId) || filtered[0];
     filtered.forEach(level => {
-        const rank = level.position ?? "—";
-        const name = level.name || "Unnamed Level";
-        const card = element("article", "level-card");
-        const heading = element("div", "level-heading");
-        const titleGroup = element("div");
-        const title = element("h3");
-        const link = element("a", "", name);
-        openLink(link, level.id);
-        title.append(link);
-        titleGroup.append(title, element("p", "", `by ${level.creator || "Unknown creator"}`));
-        heading.append(element("span", "position", `#${rank}`), titleGroup);
-        const body = element("div", "level-body");
-        body.append(thumbnail(level), metadata(level));
-        const detailLink = element("a", "detail-link", "View level details →");
-        detailLink.setAttribute("aria-label", `View details for ${name}`);
-        openLink(detailLink, level.id);
-        card.append(heading, body, detailLink);
-        levelsContainer.append(card);
         const item = element("li");
-        const rankLink = element("a", "", `#${rank} — ${name}`);
+        const rankLink = element("a", "", `#${level.position ?? "—"} — ${level.name || "Unnamed Level"}`);
         rankLink.append(element("small", "", level.creator || "Unknown creator"));
         openLink(rankLink, level.id);
+        if (level === selected) rankLink.setAttribute("aria-current", "true");
         item.append(rankLink);
         ranking.append(item);
     });
+    if (!selected) return;
+    const article = element("article", "selected-level");
+    const title = element("h2", "", `#${selected.position ?? "—"} — ${selected.name || "Unnamed Level"}`);
+    title.id = "selected-title";
+    title.tabIndex = -1;
+    article.append(title, element("p", "level-byline", `Created by ${selected.creator || "Unknown creator"}`), thumbnail(selected), metadata(selected));
+    if (selected.description) article.append(element("p", "level-description", selected.description));
+    const recordsHeading = element("h3", "", "Victors");
+    article.append(recordsHeading);
+    const names = victorNames(records, selected.id);
+    if (recordsState === "ready" && names.length) {
+        const list = element("ul", "victor-list");
+        names.forEach(name => list.append(element("li", "", name)));
+        article.append(list);
+    } else article.append(element("p", "records-status", recordsState === "loading" ? "Loading records…" : recordsState === "error" ? "Records are currently unavailable." : "No approved victors yet."));
+    const submit = element("a", "submit-record", "Submit a record");
+    submit.href = "community.html";
+    article.append(submit);
+    levelsContainer.append(article);
 }
 
 function showLoadError(error) {
@@ -167,7 +174,6 @@ async function loadLevels() {
             import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
         ]);
         if (generation !== loadGeneration) return;
-        let firstSnapshot = true;
         unsubscribeLevels = onSnapshot(collection(db, "levels"), snapshot => {
             if (generation !== loadGeneration) return;
             levels = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -176,11 +182,7 @@ async function loadLevels() {
             loaded = true;
             displayLevels();
             levelsContainer.setAttribute("aria-busy", "false");
-            if (firstSnapshot) {
-                const selected = new URLSearchParams(location.search).get("level");
-                if (selected) showDetails(selected);
-                firstSnapshot = false;
-            }
+
         }, error => {
             if (generation === loadGeneration) showLoadError(error);
         });
@@ -190,8 +192,6 @@ async function loadLevels() {
 }
 
 search.addEventListener("input", displayLevels);
-document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
-dialog.addEventListener("click", event => { if (event.target === dialog) { const bounds = dialog.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close(); } });
 loadLevels();
 (async () => {
     try {
@@ -200,7 +200,6 @@ loadLevels();
         ]);
         const refresh = () => {
             displayLevels();
-            if (dialog.open && dialog.dataset.levelId) showDetails(dialog.dataset.levelId);
         };
         onSnapshot(query(collection(db, "records"), where("approved", "==", true)), snapshot => {
             records = snapshot.docs.map(item => item.data());

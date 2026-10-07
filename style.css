@@ -175,3 +175,25 @@ footer { max-width:1224px; font-size:11px; }
 @media(max-width:1050px) { .header-inner { flex-wrap:wrap; gap:0 20px; padding-block:10px; } nav { order:3; width:100%; margin:0; flex-wrap:wrap; gap:0 22px; } nav a { min-height:40px; } .theme-toggle { margin-left:auto; } .layout { grid-template-columns:220px minmax(0,1fr); gap:28px; } .level-card { grid-template-columns:150px minmax(0,1fr); gap:0 18px; } }
 @media(max-width:760px) { .layout { display:block; padding:0 20px; } .ranking-panel { position:static; border-right:0; padding:0; margin-bottom:30px; } .ranking-list { max-height:210px; } .page-intro { padding:28px 20px; } .header-inner { padding-inline:20px; } .site-title { font-size:15px; } .section-heading { margin:0; } footer { margin-inline:20px; } }
 @media(max-width:440px) { .level-card { grid-template-columns:100px minmax(0,1fr); column-gap:14px; } .level-heading { flex-wrap:wrap; gap:0 6px; } .level-heading h3,.position { font-size:18px; } .level-meta { grid-column:1 / -1; grid-template-columns:1fr 1fr; margin-top:16px; } .level-body > .thumbnail { grid-row:1; } .detail-link { grid-column:1 / -1; } }
+
+/* A level is selected from the index and read in the main column. */
+.page-intro { padding-top:28px; padding-bottom:28px; }
+.page-intro h1 { font-size:26px; }
+.layout { grid-template-columns:270px minmax(0,1fr); gap:48px; }
+.ranking-list a[aria-current="true"] { background:var(--soft); color:var(--accent); border-left:3px solid var(--accent); padding-left:5px; }
+.selected-level { min-width:0; }
+.selected-level > h2 { font-size:clamp(25px,3vw,36px); line-height:1.3; overflow-wrap:anywhere; }
+.level-byline { margin:8px 0 22px; color:var(--muted); }
+.selected-level > .thumbnail { width:100%; max-height:none; aspect-ratio:16/9; }
+.selected-level > .level-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding:20px 0; margin:0; gap:20px; border-bottom:1px solid var(--line); }
+.selected-level dt { font-size:12px; }
+.selected-level dd { font-size:14px; }
+.selected-level > h3 { margin:26px 0 12px; font-size:22px; font-weight:400; border-bottom:1px solid var(--line); padding-bottom:10px; }
+.victor-list { list-style:none; padding:0; margin:0 0 20px; }
+.victor-list li { padding:10px 0; border-bottom:1px solid var(--line); }
+.records-status { color:var(--muted); }
+.submit-record { display:inline-block; padding:8px 14px; border:1px solid var(--accent); margin-top:8px; }
+.submit-record:hover { background:var(--soft); }
+.level-description { white-space:pre-line; overflow-wrap:anywhere; }
+@media(max-width:1050px) { .layout { grid-template-columns:220px minmax(0,1fr); gap:28px; } }
+@media(max-width:760px) { .layout { display:block; } .selected-level > .level-meta { grid-template-columns:repeat(2,minmax(0,1fr)); } .selected-level { scroll-margin-top:20px; } }
