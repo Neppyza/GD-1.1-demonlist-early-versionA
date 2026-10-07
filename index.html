@@ -19,28 +19,27 @@
       <nav aria-label="Main navigation">
         <a class="active" href="#demonlist">Demonlist</a>
         <a href="stats.html">Stats Viewer</a>
-        <a href="community.html">Google sign-in</a>
+        <a href="community.html">Player Hub</a>
         <a href="#about">About the list</a>
         <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
       </nav>
     </div>
   </header>
   <div class="page-intro">
-    <p class="eyebrow">ROBLOX GEOMETRY DASH · VERSION 1.1</p>
     <h1>GD 1.1 Demonlist</h1>
     <p>The ranking of the hardest levels in Roblox Geometry Dash 1.1.</p>
   </div>
   <main id="demonlist" class="layout">
     <aside class="ranking-panel" aria-labelledby="ranking-title">
       <div class="panel-heading"><h2 id="ranking-title">Demonlist</h2><span id="level-count" class="count">—</span></div>
-      <p class="sidebar-description">Find a level and explore its placement, creator, verifier, and victors.</p>
+      <p class="sidebar-description">Levels ordered by difficulty. Select an entry to see its records.</p>
       <label class="search-label" for="search">Filter levels</label>
       <input id="search" type="search" placeholder="Filter…" autocomplete="off">
       <p id="result-count" class="result-count" role="status" aria-live="polite">Loading rankings…</p>
       <ol id="ranking" class="ranking-list"></ol>
     </aside>
     <section class="list-content" aria-labelledby="list-title">
-      <div class="section-heading"><div><p class="eyebrow">THE RANKINGS</p><h2 id="list-title">The Demonlist</h2></div><span class="section-note">Hardest to easiest</span></div>
+      <div class="section-heading"><div><h2 id="list-title">Level rankings</h2></div><span class="section-note">Hardest to easiest</span></div>
       <div id="levels" aria-busy="true"><div class="state" role="status">Loading demonlist…</div></div>
       <section id="about" class="about-panel">
         <h2>About the list</h2>
@@ -49,7 +48,7 @@
       </section>
     </section>
   </main>
-  <footer><span>GD 1.1 Demonlist</span><span>A community ranking · Inspired by Pointercrate</span></footer>
+  <footer><span>GD 1.1 Demonlist</span><span>Roblox Geometry Dash 1.1</span></footer>
   <dialog id="level-dialog" aria-labelledby="detail-title">
     <button id="close-dialog" class="close-button" aria-label="Close level details">×</button>
     <div id="level-detail"></div>
