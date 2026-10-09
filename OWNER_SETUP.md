@@ -1,45 +1,48 @@
-# Firebase setup
+# Crux: Firebase and staff setup
 
-The player hub uses Firebase Authentication with Google sign-in. Configure Firebase before enabling the new pages.
+Crux keeps the existing `gd11-demonlist` Firebase project and Google sign-in. New Google users create their Firebase account through the same **Continue with Google** button. Email/password and Roblox OAuth are not configured by this website.
 
-1. In Firebase Console → Authentication → Sign-in method, enable **Google**.
-2. In Authentication → Settings → Authorized domains, add `neppyza.github.io`.
-3. Review and publish `firestore.rules` in Firestore → Rules. The rules keep profiles private to their owner, let signed-in users create pending level submissions, and limit submission review and level publishing to owner/admin custom claims. Merge any legitimate existing rules before publishing.
-4. After the site is published, open `community.html`, sign in with Google, and create your private profile. Submit a level with its link, creator, verifier, and video proof. Submissions are private while pending.
-5. To enable staff review, sign in at `admin.html` with the staff Google account and copy its Firebase UID. Do not share passwords or tokens.
-6. In a trusted local/server environment with Firebase Admin credentials for `gd11-demonlist`, install `firebase-admin` and run `node scripts/grant-owner.cjs YOUR_UID`. Never put Admin credentials in GitHub or browser code. The script preserves other custom claims.
-7. Sign out and sign in again so Firebase refreshes the custom claims. Staff can review the queue at `admin.html`. Approval publishes the level with the staff-assigned position and points; rejection leaves it private.
+## Authentication blocker found on 9 October 2026
 
-## Privacy and moderation
+A read-only request to the Firebase Authentication project-configuration endpoint, using the existing public web API key, returned HTTP 400 with `CONFIGURATION_NOT_FOUND`. Clicking the redesigned login button with the real modular Firebase SDK returns `auth/configuration-not-found` and keeps the user signed out.
 
-- A user's profile document is stored at `profiles/{uid}`; Firestore allows only that signed-in user to read or edit it.
-- Pending submissions are visible only to their submitter and staff. They become public level entries only after staff approval.
-- Names must be appropriate and respectful. Staff must reject inappropriate names, content, or incomplete proof before publication.
-- Every new level needs an HTTPS level link, a verifier, and an HTTPS completion video link.
+This is a project-side configuration blocker. The previous handler hid it behind “Google sign-in did not finish.” The private Firebase Console is needed to determine whether Authentication has never been initialized or the web API key belongs to a differently configured project. The endpoint cannot confirm provider or authorized-domain settings while this configuration is missing. The old SDK imports were consistent, and Firebase's default browser persistence was already local; those were not established causes of this failure.
 
-## Stats records
+## Complete these steps in the existing project
 
-Create documents in top-level `records` using the dashboard or console:
+1. Open [Firebase Console](https://console.firebase.google.com/project/gd11-demonlist/authentication) and confirm the selected project is **gd11-demonlist**. In Authentication, choose **Get started** if setup has not been completed.
+2. Under **Authentication → Sign-in method**, enable **Google**, select a project support email, and save. Follow [Firebase's Google sign-in setup](https://firebase.google.com/docs/auth/web/google-signin).
+3. Under **Authentication → Settings → Authorized domains**, add **neppyza.github.io**. Enter the hostname only, without `https://` or the repository path. Add your custom hostname if you use one. Add `localhost` only if you want to test Google sign-in locally; it may not be authorized by default.
+4. Under **Project settings → General → Your apps**, compare the existing web application's configuration with `firebase.js`. Check `apiKey`, `projectId`, `authDomain`, and `appId` together. Preserve this project and app; do not substitute a newly created Firebase project. A public Firebase web API key is not a service-account credential.
+5. If configuration is still missing after saving, check that the key belongs to this project and that its API restrictions permit Firebase Authentication. Do not broadly disable restrictions as a workaround. Confirm the sign-in error and project settings with Firebase support if they still disagree.
+6. Compare the currently deployed Firestore rules with `firestore.rules`. The redesign does **not** modify or automatically deploy rules. The included rules require Google authentication and current community-rule acceptance for member writes, and `owner: true` or `admin: true` custom claims for staff writes. Preserve any legitimate production rules when reviewing a deployment.
 
-- `playerId`: stable player ID (string)
-- `player`: displayed name (string)
-- `levelId`: existing level document ID (string)
-- `progress`: 100 (number)
-- `approved`: true (boolean)
+No new frontend environment variables are required: this remains a static site using the existing public configuration. Never add a service-account JSON file, private key, Google client secret, or Admin SDK credentials to frontend code or GitHub.
 
-Stats sum current level points for approved full completions; duplicate records for the same player and level count once. Use consistent player names/IDs. Rank ties break by completion count then name. Partial completions do not award points in this version.
+## Staff access
 
-## Firebase project Owner
+1. After Google sign-in works, sign in with the staff account at `admin.html` and copy the displayed Firebase UID.
+2. In a trusted local/server environment, install `firebase-admin` and provide Application Default Credentials for **gd11-demonlist**. Run `node scripts/grant-owner.cjs YOUR_UID`. The existing script preserves other custom claims. Do not commit credentials or put this script in browser code.
+3. Sign out and sign in again to refresh claims. The Staff link appears after Firebase verifies the claim. Staff can review pending submissions and add approved completions at `admin.html`.
 
-This differs from website owner access. An existing project Owner must open Firebase Project settings → Users and permissions, verify your Google account, and assign Owner if appropriate. Website custom claims do not grant console/IAM access. Do not grant this role to an unverified account.
+Website claims grant website privileges only. They do not grant Firebase Console or Google Cloud IAM access. An existing project administrator manages Console permissions separately.
 
+## Existing data and moderation
 
-## Theme, community rules and victors update
+- `levels`: existing public level documents and fields are preserved, including numeric strings for positions and points. Missing positions are displayed as unranked after ranked entries. No migration is required.
+- `records`: public reads query `approved == true`. Full completions use `progress: 100`, `playerId`, `player`, and `levelId`; duplicate player/level completions count once in Players and victors. Partial completions award no points in this version. Optional proof links are shown only when already present.
+- `profiles/{uid}`: private saved player name and bio. Only that user can read or edit the profile under the existing rules.
+- `agreements/{uid}`: private acceptance of community rules version **2026-10-05**. This version is unchanged.
+- `submissions`: the existing pending submission fields remain unchanged. A saved player name, verifier, HTTPS level link, HTTPS video proof, and rules confirmation are required. Pending submissions are visible only to their submitter and staff.
 
-Deploy the updated Firestore rules with the website. Google sign-in remains the only supported provider. New and existing members must accept community rules version `2026-10-05` before editing profiles or submitting levels. Acceptance is saved privately in `agreements/{uid}` and checked by database rules. These are community guidelines plus staff review, not an automatic profanity classifier.
+Staff must review proof and reject inappropriate names or content. Approval publishes a staff-assigned position and points; rejection keeps the submission private. Transactions prevent two reviews from publishing the same pending submission twice. Neither the redesign nor its tests writes to the production database.
 
-The header theme button follows the system preference initially, then remembers the player's light/dark choice.
+## Manual verification after configuration and deployment
 
-Staff can use **Add a victor** at `admin.html` after checking completion proof. Victors come from approved 100% `records`, are deduplicated by player ID, and also appear in Stats. Existing levels need no schema migration.
+- Sign in with a new Google account and with an existing account. Confirm Account appears in the navbar, refresh, and confirm the same session returns. Sign out and confirm private forms and fields clear.
+- Close the Google window before completion; verify the page remains signed out with an understandable message. Invalid Google credentials are handled by Google's own account window; this site has no password form.
+- Accept the rules, save your profile, and submit a level. Verify exactly one private pending document is created and public rankings remain unchanged.
+- With an ordinary account, confirm Staff is unavailable and Firestore rejects direct administrative writes. With an approved staff account, verify queue access. Review a real submission only when you intend to publish or reject it.
+- Verify the live Firestore rules match the reviewed rules, then check ranks, search, record links, mobile layout, and the browser console on the deployed GitHub Pages URL.
 
-The staff page now displays the signed-in Firebase UID. An existing project administrator must run the owner-grant script in a trusted environment. This update does not itself grant an account access or change Firebase console settings.
+Successful live Google sign-in, live session restoration, live logout, private-account reads, and real staff workflows could not be verified while Authentication returned `CONFIGURATION_NOT_FOUND`. The repository's browser fixtures and Firestore emulator tests cover these UI and permission paths without pretending to authenticate against production.

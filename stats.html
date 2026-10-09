@@ -3,23 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore the hardest levels in Roblox Geometry Dash 1.1. Search rankings, creators, verifiers, and level points.">
-  <title>Stats Viewer · GD 1.1 Demonlist</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Crux player rankings from approved full completions, using the existing community database.">
+  <meta property="og:title" content="Players · Crux">
+  <meta property="og:description" content="Crux player rankings from approved full completions, using the existing community database.">
+  <meta property="og:type" content="website">
+  <title>Players · Crux</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <script src="theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
-<body><header class="site-header">
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
     <div class="header-inner">
-      <a class="site-title" href="index.html" aria-label="GD 1.1 Demonlist home"><span class="brand-mark" aria-hidden="true">1.1</span> GD 1.1 <span>DEMONLIST</span></a>
-      <nav aria-label="Main navigation">
-        <a href="index.html">Demonlist</a>
-        <a class="active" aria-current="page" href="stats.html">Stats Viewer</a>
-        <a href="community.html">Player Hub</a>
-        <a href="index.html#about">About the list</a>
-      </nav>
+      <a class="brand" href="index.html" aria-label="Crux home">cru<span>x</span><small>GD 1.1</small></a>
+      <nav aria-label="Main navigation"><a href="index.html">Demonlist</a>
+<a href="stats.html" class="active" aria-current="page">Players</a>
+<a href="records.html">Records</a>
+<a href="submit.html">Submit</a>
+<a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Staff</a></nav>
+      <div class="account-nav"><a href="community.html" data-account-link>Sign in</a><button type="button" class="text-button" data-auth-logout hidden>Sign out</button></div>
     </div>
+    <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
   </header>
-  <main class="feature-main"><p class="eyebrow">PLAYER RANKINGS</p><h1>Stats Viewer</h1><p>Player rankings from approved 100% completions. Each level awards its current points once per player.</p><label for="player-search">Search players</label><input id="player-search" type="search" placeholder="Player name…"><p id="stats-status" role="status">Loading stats…</p><div id="stats-summary"></div><div class="table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>Points</th><th>Completions</th><th>Hardest level</th></tr></thead><tbody id="players"></tbody></table></div><section id="player-details" aria-live="polite"></section></main><script type="module" src="stats.js"></script></body></html>
+  <main id="main" class="page"><div class="page-heading"><div><h1>Players</h1><p>Rankings from approved 100% completions. Each level awards its current points once per player.</p></div></div>
+    <div class="list-toolbar"><div class="search-control"><label for="player-search">Search players</label><input id="player-search" type="search" placeholder="Player name" autocomplete="off"></div><div><label for="player-sort">Sort by</label><select id="player-sort"><option value="points">Points, high to low</option><option value="name">Player name A–Z</option><option value="completions">Completions, high to low</option></select></div></div>
+    <p id="stats-status" class="result-count" role="status" aria-live="polite">Loading player rankings…</p><div class="table-scroll" role="region" aria-label="Player rankings" tabindex="0"><table id="players-table" aria-busy="true"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="numeric">Points</th><th scope="col" class="numeric">Completions</th><th scope="col">Hardest level</th></tr></thead><tbody id="players"><tr><td colspan="5" class="table-state">Loading player rankings…</td></tr></tbody></table></div><section id="player-details" class="section-block" aria-live="polite" hidden></section>
+</main>
+  <footer class="site-footer"><div><strong>Crux</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <script type="module" src="site.js"></script>
+  <script type="module" src="stats.js"></script>
+</body>
+</html>
