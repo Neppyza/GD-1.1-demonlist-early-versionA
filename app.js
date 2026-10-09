@@ -27,6 +27,11 @@ function safeURL(value) {
     } catch { return null; }
 }
 
+function placement(level) {
+    const position = Number(level.position);
+    return Number.isFinite(position) && position > 0 ? `#${position}` : "Unranked";
+}
+
 function thumbnail(level) {
     const container = element("div", "thumbnail");
     const placeholder = () => container.replaceChildren(element("span", "thumbnail-placeholder", "No preview available"));
@@ -42,11 +47,15 @@ function thumbnail(level) {
     return container;
 }
 
-function metadata(level) {
+function metadata(level, compact = false) {
     const list = element("dl", "level-meta");
-    const fields = [["Creator", level.creator], ["Verifier", level.verifier], ["Victors", recordsState === "error" ? "Unavailable" : recordsState === "loading" ? "Loading…" : victorNames(records, level.id).join(", ") || "No approved victors yet"], ["Points", level.points], ["Difficulty", level.difficulty]];
-    if (level.levelUrl) fields.push(["Level link", level.levelUrl]);
-    if (level.proofUrl) fields.push(["Video proof", level.proofUrl]);
+    const victors = victorNames(records, level.id);
+    const victorText = recordsState === "error" ? "Unavailable" : recordsState === "loading" ? "Loading…" : compact ? String(victors.length) : victors.join(", ") || "No approved victors yet";
+    const fields = compact
+        ? [["Verifier", level.verifier], ["Points", level.points], ["Victors", victorText]]
+        : [["Creator", level.creator], ["Verifier", level.verifier], ["Victors", victorText], ["Points", level.points], ["Difficulty", level.difficulty]];
+    if (!compact && level.levelUrl) fields.push(["Level link", level.levelUrl]);
+    if (!compact && level.proofUrl) fields.push(["Video proof", level.proofUrl]);
     for (const [label, value] of fields) {
         const group = element("div");
         const detail = element("dd");
@@ -71,7 +80,7 @@ function showDetails(id) {
     const detail = document.getElementById("level-detail");
     const title = element("h2", "", level.name || "Unnamed Level");
     title.id = "detail-title";
-    detail.replaceChildren(element("p", "eyebrow", `DEMONLIST · #${level.position ?? "—"}`), title, thumbnail(level), metadata(level));
+    detail.replaceChildren(element("p", "eyebrow", `DEMONLIST · ${placement(level)}`), title, thumbnail(level), metadata(level));
     if (level.description) detail.append(element("p", "", level.description));
     if (!dialog.open) dialog.showModal();
 }
@@ -95,7 +104,7 @@ function displayLevels() {
     levelsContainer.replaceChildren();
     if (!filtered.length) {
         const empty = element("div", "state");
-        empty.append(element("h3", "", levels.length ? "No matching levels" : "No levels yet"), element("p", "", levels.length ? "Try another level name, creator, or verifier." : "The rankings will appear here when levels are added."));
+        empty.append(element("h3", "", levels.length ? "No matching levels" : "No levels yet"), element("p", "", levels.length ? "Try another level name, creator, verifier, or victor." : "The rankings will appear here when levels are added."));
         if (query) {
             const clear = element("button", "", "Clear filter");
             clear.addEventListener("click", () => { search.value = ""; displayLevels(); search.focus(); });
@@ -104,27 +113,31 @@ function displayLevels() {
         levelsContainer.append(empty);
     }
     filtered.forEach(level => {
-        const rank = level.position ?? "—";
+        const rank = placement(level);
         const name = level.name || "Unnamed Level";
         const card = element("article", "level-card");
+        const previewLink = element("a", "level-preview");
+        previewLink.setAttribute("aria-label", `View details for ${name}`);
+        openLink(previewLink, level.id);
+        previewLink.append(thumbnail(level));
+        const body = element("div", "level-body");
         const heading = element("div", "level-heading");
-        const titleGroup = element("div");
         const title = element("h3");
         const link = element("a", "", name);
         openLink(link, level.id);
-        title.append(link);
-        titleGroup.append(title, element("p", "", `by ${level.creator || "Unknown creator"}`));
-        heading.append(element("span", "position", `#${rank}`), titleGroup);
-        const body = element("div", "level-body");
-        body.append(thumbnail(level), metadata(level));
-        const detailLink = element("a", "detail-link", "View level details →");
+        title.append(element("span", rank === "Unranked" ? "position unranked" : "position", rank), document.createTextNode(" — "), link);
+        heading.append(title, element("p", "", `by ${level.creator || "Unknown creator"}`));
+        const detailLink = element("a", "detail-link", "Level details →");
         detailLink.setAttribute("aria-label", `View details for ${name}`);
         openLink(detailLink, level.id);
-        card.append(heading, body, detailLink);
+        body.append(heading, metadata(level, true), detailLink);
+        card.append(previewLink, body);
         levelsContainer.append(card);
         const item = element("li");
-        const rankLink = element("a", "", `#${rank} — ${name}`);
-        rankLink.append(element("small", "", level.creator || "Unknown creator"));
+        const rankLink = element("a");
+        const rankName = element("span", "ranking-name", name);
+        rankName.append(element("small", "", level.creator || "Unknown creator"));
+        rankLink.append(element("span", "ranking-position", rank === "Unranked" ? "—" : rank), rankName);
         openLink(rankLink, level.id);
         item.append(rankLink);
         ranking.append(item);
@@ -140,9 +153,9 @@ function showLoadError(error) {
     retry.addEventListener("click", loadLevels);
     let message = "We couldn’t load the rankings. Please check your connection and try again.";
     if (error.code === "permission-denied") {
-        message = "Firestore denied access to the levels collection. Check the read rules for /levels in project gd11-demonlist.";
+        message = "The rankings are unavailable right now. Please try again later.";
     } else if (error.code === "unavailable") {
-        message = "Firestore is temporarily unreachable. Check your connection and try again.";
+        message = "The list is temporarily unreachable. Check your connection and try again.";
     }
     state.append(element("h3", "", "The demonlist is unavailable"), element("p", "", message));
     if (error.code) state.append(element("p", "", `Error: ${error.code}`));
