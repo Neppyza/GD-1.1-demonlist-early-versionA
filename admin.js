@@ -2,6 +2,7 @@ import { subscribeAuth, requireStaff } from "./auth.js";
 import { dataMessage } from "./messages.js";
 import { sortLevels } from "./list-model.js";
 import { element, externalLink, setBusy } from "./ui.js";
+import { countryName } from "./countries.js";
 
 const tools = document.getElementById("staff-tools");
 const queue = document.getElementById("review-queue");
@@ -67,6 +68,7 @@ document.getElementById("staff-retry").addEventListener("click", () => loadStaff
 function renderSubmission(id, data, turn) {
     const card = element("article", "review-item");
     card.append(element("h3", "", data.levelName || "Untitled level"), element("p", "muted", `Submitted by ${data.submittedBy || "—"} · Creator: ${data.creator || "—"} · Verifier: ${data.verifier || "—"}`));
+    if (countryName(data.country)) card.append(element("p", "muted", `Submitter country: ${countryName(data.country)}`));
     const links = element("div", "detail-actions");
     for (const [url, label] of [[data.levelUrl, "Open level ↗"], [data.proofUrl, "Watch proof ↗"]]) {
         const link = externalLink(url, label);

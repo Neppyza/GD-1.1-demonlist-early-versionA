@@ -21,6 +21,10 @@ service cloud.firestore {
     function httpsLink(value) {
       return value is string && value.size() <= 2000 && value.matches('^https://.+');
     }
+    // Country is optional so existing player and submission documents remain valid.
+    function validCountry(data) {
+      return !('country' in data) || (data.country is string && data.country in ["AD","AE","AF","AG","AI","AL","AM","AO","AQ","AR","AS","AT","AU","AW","AX","AZ","BA","BB","BD","BE","BF","BG","BH","BI","BJ","BL","BM","BN","BO","BQ","BR","BS","BT","BV","BW","BY","BZ","CA","CC","CD","CF","CG","CH","CI","CK","CL","CM","CN","CO","CR","CU","CV","CW","CX","CY","CZ","DE","DJ","DK","DM","DO","DZ","EC","EE","EG","EH","ER","ES","ET","FI","FJ","FK","FM","FO","FR","GA","GB","GD","GE","GF","GG","GH","GI","GL","GM","GN","GP","GQ","GR","GS","GT","GU","GW","GY","HK","HM","HN","HR","HT","HU","ID","IE","IL","IM","IN","IO","IQ","IR","IS","IT","JE","JM","JO","JP","KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ","LA","LB","LC","LI","LK","LR","LS","LT","LU","LV","LY","MA","MC","MD","ME","MF","MG","MH","MK","ML","MM","MN","MO","MP","MQ","MR","MS","MT","MU","MV","MW","MX","MY","MZ","NA","NC","NE","NF","NG","NI","NL","NO","NP","NR","NU","NZ","OM","PA","PE","PF","PG","PH","PK","PL","PM","PN","PR","PS","PT","PW","PY","QA","RE","RO","RS","RU","RW","SA","SB","SC","SD","SE","SG","SH","SI","SJ","SK","SL","SM","SN","SO","SR","SS","ST","SV","SX","SY","SZ","TC","TD","TF","TG","TH","TJ","TK","TL","TM","TN","TO","TR","TT","TV","TW","TZ","UA","UG","UM","US","UY","UZ","VA","VC","VE","VG","VI","VN","VU","WF","WS","YE","YT","ZA","ZM","ZW"]);
+    }
     function validLevel(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 80
         && data.position is int && data.position > 0
@@ -47,7 +51,7 @@ service cloud.firestore {
     match /players/{uid} {
       allow read: if true;
       allow create, update: if acceptedRules() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'country', 'updatedAt'])
         && request.resource.data.keys().hasAll(['displayName', 'bio', 'tags', 'updatedAt'])
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 3
@@ -58,6 +62,7 @@ service cloud.firestore {
         && request.resource.data.tags.size() >= 1 && request.resource.data.tags.size() <= 3
         && request.resource.data.tags.toSet().size() == request.resource.data.tags.size()
         && request.resource.data.tags.hasOnly(['Player', 'Creator', 'Verifier'])
+        && validCountry(request.resource.data)
         && request.resource.data.updatedAt == request.time
         && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.displayName == request.resource.data.displayName
         && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.bio == request.resource.data.bio;
@@ -65,7 +70,7 @@ service cloud.firestore {
     }
     match /submissions/{submissionId} {
       allow create: if acceptedRules()
-        && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'country', 'status', 'submittedAt'])
         && request.resource.data.keys().hasAll(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.submittedBy is string
@@ -84,6 +89,7 @@ service cloud.firestore {
         && httpsLink(request.resource.data.proofUrl)
         && request.resource.data.notes is string
         && request.resource.data.notes.size() <= 500
+        && validCountry(request.resource.data)
         && request.resource.data.status == 'pending'
         && request.resource.data.submittedAt == request.time
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid));

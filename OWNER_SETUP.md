@@ -23,18 +23,26 @@ No new frontend environment variables are required: this remains a static site u
 
 ## Enable public player profiles and the leaderboard
 
-The player-profile update adds **one new collection**, `players/{uid}`, without changing existing `profiles`, `levels`, `records`, `agreements`, or `submissions` fields. Do not manually migrate or publish existing private profiles.
+The player-profile update adds **one new collection**, `players/{uid}`, while preserving existing collection fields. The country update adds an optional `country` field to public players and private submissions; old documents without it remain valid. Do not manually migrate or publish existing private profiles.
 
 1. Review the proposed `firestore.rules`. In the existing **gd11-demonlist** project, open **Firestore Database → Rules**. Compare the deployed rules with the repository first and retain any legitimate production-specific rules.
-2. Publish the reviewed rules including the new `match /players/{uid}` block. The feature cannot save player profiles under the old rules. GitHub Pages deployment alone does not deploy Firebase rules. If the deployed rules match the previous repository version, this update only adds the `players` block.
-3. Merge/deploy the website update. Sign in and complete **Account**: accept the rules, choose a 3–24 character player name, review the public bio, and select at least one Player/Creator/Verifier tag. Save profile.
+2. Publish the reviewed rules including the new `match /players/{uid}` block. The feature cannot save player profiles under the old rules. GitHub Pages deployment alone does not deploy Firebase rules. The latest country update also adds a `validCountry` helper and permits an optional country in player and submission documents. Review the complete diff, not only the player block.
+3. Merge/deploy the website update. Sign in and complete **Account**: accept the rules, choose a 3–24 character player name and optional country, review the public bio, and select at least one Player/Creator/Verifier tag. Save profile.
 4. Verify that the player appears in Players with 0 points and no completions, then refresh. A new document is created by the successful save; you do not need to create the collection manually.
 
-Name, bio and tags are explicitly public. Google email, provider credentials, and private submissions are never copied. Existing private bios are shown as an editable draft and become public only when the owner saves the clearly labeled public profile. The existing private profile and the new directory entry are written atomically, so a denied directory write cannot leave a partially saved profile. Registered users are prompted to complete setup before ordinary site navigation; Rules and Staff remain accessible during setup. Existing profiles require this one-time publication step.
+Name, selected profile country, bio and tags are explicitly public. Google email, provider credentials, and private submissions are never copied. Existing private bios are shown as an editable draft and become public only when the owner saves the clearly labeled public profile. The existing private profile and the new directory entry are written atomically, so a denied directory write cannot leave a partially saved profile. Registered users are prompted to complete setup before ordinary site navigation; Rules and Staff remain accessible during setup. Existing profiles require this one-time publication step.
 
-`players/{uid}` contains only `displayName`, `bio`, `tags`, and `updatedAt`. Its owner must use Google sign-in, accept the existing rules version, and write values matching their private profile. Tags are self-described interests, not staff roles or certified achievements. Clients cannot add scores, claims, email, or extra fields. Approved records remain the only source of leaderboard points; zero-point profiles and legacy record-only players both remain visible.
+`players/{uid}` contains `displayName`, `bio`, `tags`, `updatedAt`, and optional `country`. Its owner must use Google sign-in, accept the existing rules version, and write values matching their private profile. Tags are self-described interests, not staff roles or certified achievements. Clients cannot add scores, claims, email, or extra fields. Approved records remain the only source of leaderboard points; zero-point profiles and legacy record-only players both remain visible.
 
 To attach a registered player's approved completions, staff must use that user's Firebase UID as the existing record `playerId`. The UID is shown in Account. Names are not used to merge identities. Preserve older stable IDs for legacy players; linking unrelated legacy IDs to a registered user requires a separately reviewed migration and is not done automatically.
+
+## Login and country update
+
+- `login.html` is the dedicated Google sign-in page. Signed-out navbar links and protected-page prompts lead here. Existing members return to the requested local page; new members finish Account setup first. Sessions still use the same Firebase Auth project and persistence. No email/password provider or new Google app is needed.
+- Country is optional in **Account** and **Submit**, and defaults to **Not shared**. Select from the bundled country/territory dropdown. Stored values are ISO alpha-2 codes, not free text or location inference.
+- A saved profile country is public in Players and searchable by its display name. A submission country is private to the submitter and authorized staff; changing it does not change the public profile, and it is not copied to published levels. Submit initially uses the saved profile country and lets the user change or omit it.
+- Publish the reviewed latest `firestore.rules` before deploying the country UI. Both `players` and `submissions` now allow an optional validated country, and the helper rejects unsupported values. The existing private `profiles` schema, required submission fields, Google provider, agreements and staff permissions are unchanged. Old documents without countries require no migration.
+- After deployment, verify a profile save with and without a country, refresh, and inspect Players. Submit a level with a country and confirm it appears in the private submission/review views, without changing level metadata or awarding points.
 
 ## Staff access
 
@@ -49,9 +57,9 @@ Website claims grant website privileges only. They do not grant Firebase Console
 - `levels`: existing public level documents and fields are preserved, including numeric strings for positions and points. Missing positions are displayed as unranked after ranked entries. No migration is required.
 - `records`: public reads query `approved == true`. Full completions use `progress: 100`, `playerId`, `player`, and `levelId`; duplicate player/level completions count once in Players and victors. Partial completions award no points in this version. Optional proof links are shown only when already present.
 - `profiles/{uid}`: existing private player name and bio, with unchanged fields and permissions.
-- `players/{uid}`: new explicitly public name, bio, tags, and timestamp, keyed by Firebase UID.
+- `players/{uid}`: explicitly public name, bio, tags, timestamp, and optional country, keyed by Firebase UID.
 - `agreements/{uid}`: private acceptance of community rules version **2026-10-05**. This version is unchanged.
-- `submissions`: the existing pending submission fields remain unchanged. A saved player name, verifier, HTTPS level link, HTTPS video proof, and rules confirmation are required. Pending submissions are visible only to their submitter and staff.
+- `submissions`: existing pending submission fields are retained, with an optional `country` added. A saved player name, verifier, HTTPS level link, HTTPS video proof, and rules confirmation are required. Pending submissions are visible only to their submitter and staff.
 
 Staff must review proof and reject inappropriate names or content. Approval publishes a staff-assigned position and points; rejection keeps the submission private. Transactions prevent two reviews from publishing the same pending submission twice. Neither the redesign nor its tests writes to the production database.
 

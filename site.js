@@ -20,14 +20,25 @@ async function checkProfile(uid, turn) {
         const snapshot = await client.storeSDK.getDoc(client.storeSDK.doc(client.db, "players", uid));
         if (turn !== profileGeneration || client.auth.currentUser?.uid !== uid) return;
         const complete = snapshot.exists() && validPlayerProfile(snapshot.data());
-        if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search)}`);
+        if (page === "login.html") {
+            if (complete) navigate(next || "community.html");
+            else navigate(next ? `community.html?next=${encodeURIComponent(next)}` : "community.html");
+        } else if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search)}`);
     } catch (error) {
         if (turn !== profileGeneration) return;
         profileError = dataMessage(error, "your player profile") + " Open Account to retry setup.";
         const banner = document.getElementById("site-auth-status");
         if (banner) { banner.hidden = false; banner.textContent = profileError; }
+        for (const button of document.querySelectorAll("[data-profile-retry]")) button.hidden = false;
     }
 }
+for (const button of document.querySelectorAll("[data-profile-retry]")) button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    profileError = "";
+    await checkProfile(lastUser, ++profileGeneration);
+    button.disabled = false;
+});
 // Account emits this only after a real database read or a committed profile batch.
 window.addEventListener("player-profile-ready", event => {
     if (page === "community.html" && next && event.detail?.uid === lastUser) navigate(next);
@@ -43,7 +54,10 @@ for (const button of document.querySelectorAll("[data-auth-logout]")) button.add
 subscribeAuth(state => {
     const uid = state.user?.uid || null;
     const identityChanged = state.ready && uid !== lastUser;
-    if (identityChanged) profileError = "";
+    if (identityChanged) {
+        profileError = "";
+        for (const button of document.querySelectorAll("[data-profile-retry]")) button.hidden = true;
+    }
     for (const button of document.querySelectorAll("[data-auth-login]")) {
         button.disabled = !state.ready || state.busy;
         button.hidden = Boolean(state.user);
@@ -55,8 +69,15 @@ subscribeAuth(state => {
     }
     for (const link of document.querySelectorAll("[data-account-link]")) {
         link.textContent = state.user ? "Account" : "Sign in";
-        link.href = state.user || page === "community.html" ? "community.html" : `community.html?next=${encodeURIComponent(page)}`;
+        link.href = state.user ? "community.html" : page === "login.html" ? "login.html" : `login.html?next=${encodeURIComponent(page + location.search)}`;
         link.setAttribute("aria-label", state.user ? "Your Demonlist account" : "Sign in to the Demonlist");
+        link.classList.toggle("sign-in-link", !state.user);
+    }
+    for (const link of document.querySelectorAll("[data-login-link]")) {
+        link.href = `login.html?next=${encodeURIComponent(page + location.search)}`;
+    }
+    for (const panel of document.querySelectorAll("[data-auth-gate]")) {
+        panel.hidden = !state.ready || Boolean(state.user);
     }
     for (const link of document.querySelectorAll("[data-staff-link]")) link.hidden = !state.staff;
     for (const status of document.querySelectorAll("[data-auth-status]")) {
