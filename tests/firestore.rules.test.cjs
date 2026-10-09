@@ -3,7 +3,7 @@ const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@fir
 const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, serverTimestamp } = require('firebase/firestore');
 
 (async () => {
-    const env = await initializeTestEnvironment({ projectId: 'demo-crux', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync('firestore.rules','utf8') } });
+    const env = await initializeTestEnvironment({ projectId: 'demo-demonlist', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync('firestore.rules','utf8') } });
     let passed = 0;
     const check = async (label, promise, allowed) => { await (allowed ? assertSucceeds(promise) : assertFails(promise)); ++passed; console.log('PASS',label); };
     const level = { name:'Emulator level', position:1, points:50, creator:'Creator', verifier:'Verifier', levelUrl:'https://example.org/level', proofUrl:'https://example.org/proof' };

@@ -1,7 +1,14 @@
 (() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     let preference;
-    try { preference = localStorage.getItem('crux-theme') || localStorage.getItem('demonlist-theme'); } catch {}
+    try {
+        preference = localStorage.getItem('crux-theme') || localStorage.getItem('demonlist-theme');
+        // Migrate the previous preference without changing the player's theme.
+        if (['light', 'dark'].includes(preference)) {
+            localStorage.setItem('demonlist-theme', preference);
+            localStorage.removeItem('crux-theme');
+        }
+    } catch {}
     if (!['light', 'dark'].includes(preference)) preference = undefined;
     const apply = theme => { document.documentElement.dataset.theme = theme; };
     apply(['light', 'dark'].includes(preference) ? preference : media.matches ? 'dark' : 'light');
@@ -19,7 +26,7 @@
         button.addEventListener('click', () => {
             preference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
             apply(preference);
-            try { localStorage.setItem('crux-theme', preference); } catch {}
+            try { localStorage.setItem('demonlist-theme', preference); } catch {}
             render();
         });
         media.addEventListener('change', () => { if (!preference) { apply(media.matches ? 'dark' : 'light'); render(); } });

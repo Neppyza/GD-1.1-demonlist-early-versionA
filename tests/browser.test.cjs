@@ -3,9 +3,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const assert = require('node:assert/strict');
-const { chromium } = require(process.env.CRUX_PLAYWRIGHT_MODULE || 'playwright');
+const { chromium } = require(process.env.DEMONLIST_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname,'..');
-const output = process.env.CRUX_TEST_OUTPUT || path.join(root,'test-output');
+const output = process.env.DEMONLIST_TEST_OUTPUT || path.join(root,'test-output');
 fs.mkdirSync(output,{recursive:true});
 const levels = [
     {id:'alpha',name:'Fixture Alpha',position:'1',points:'50',creator:'Creator A',verifier:'Verifier A',difficulty:'Extreme Demon',thumbnail:'/thumbnail-2.jpg',levelUrl:'https://example.org/alpha',proofUrl:'https://example.org/proof'},
@@ -15,8 +15,8 @@ const levels = [
 const appModule = `let app; export const getApps=()=>app?[app]:[]; export const getApp=()=>app; export const initializeApp=config=>{window.__test.initializations++;return app={config}};`;
 const authModule = `
 const test=window.__test; const listeners=new Set();
-const auth={currentUser:JSON.parse(localStorage.getItem('crux-test-user')||'null')};
-test.setUser=user=>{auth.currentUser=user; user?localStorage.setItem('crux-test-user',JSON.stringify(user)):localStorage.removeItem('crux-test-user'); for(const listener of listeners)queueMicrotask(()=>listener(user));};
+const auth={currentUser:JSON.parse(localStorage.getItem('demonlist-test-user')||'null')};
+test.setUser=user=>{auth.currentUser=user; user?localStorage.setItem('demonlist-test-user',JSON.stringify(user)):localStorage.removeItem('demonlist-test-user'); for(const listener of listeners)queueMicrotask(()=>listener(user));};
 export const getAuth=()=>auth;
 export const browserLocalPersistence={type:'LOCAL'};
 export const setPersistence=async()=>{test.persistence++;if(test.persistenceError)throw{code:test.persistenceError}};
@@ -58,7 +58,7 @@ const server=http.createServer((req,res)=>{
 (async()=>{
     await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
     const origin=`http://127.0.0.1:${server.address().port}`;
-    const browser=await chromium.launch({headless:true,...(process.env.CRUX_CHROMIUM?{executablePath:process.env.CRUX_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']}: {})});
+    const browser=await chromium.launch({headless:true,...(process.env.DEMONLIST_CHROMIUM?{executablePath:process.env.DEMONLIST_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']}: {})});
     const context=await browser.newContext({viewport:{width:1440,height:950},colorScheme:'light',reducedMotion:'reduce'});
     const errors=[];
     context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
@@ -79,10 +79,11 @@ const server=http.createServer((req,res)=>{
     await page.locator('#sort').selectOption('name');assert.match(await page.locator('.demon-row').first().innerText(),/Fixture Alpha/);
     await page.locator('#sort').selectOption('points');assert.match(await page.locator('.demon-row').last().innerText(),/Incomplete entry/);
     await page.locator('#sort').selectOption('position');
+    await page.locator('[data-section=unranked]').click();assert.equal(await page.locator('.demon-row').count(),1);assert.match(await page.locator('.demon-row').innerText(),/Incomplete entry/);await page.locator('[data-section=ranked]').click();assert.equal(await page.locator('.demon-row').count(),2);await page.locator('[data-section=all]').click();assert.equal(await page.locator('#ranking-index li').count(),3);
     await page.locator('.level-name a').first().click();assert.equal(await page.locator('dialog').evaluate(el=>el.open),true);assert.equal(await page.locator('#detail-title').innerText(),'Fixture Alpha');assert.equal(await page.getByRole('link',{name:'Open level ↗'}).getAttribute('href'),'https://example.org/alpha');await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
     await page.goto(origin+'/?level=beta');await page.locator('dialog[open]').waitFor();assert.equal(await page.locator('#detail-title').innerText(),'Fixture Beta');await page.getByRole('button',{name:'Close level details'}).click();
     await page.evaluate(()=>{window.__test.data.records={one:{approved:true,progress:100,levelId:'alpha',playerId:'p',player:'Fixture Victor'},two:{approved:true,progress:100,levelId:'alpha',playerId:'p',player:'Fixture Victor'}};window.__test.emit('records')});
-    await page.locator('#search').fill('fixture victor');assert.equal(await page.locator('.demon-row').count(),1);assert.equal(await page.locator('.demon-row td').last().innerText(),'1');await page.locator('#search').fill('');
+    await page.locator('#search').fill('fixture victor');assert.equal(await page.locator('.demon-row').count(),1);assert.equal(await page.locator('.demon-row .victor-count').last().innerText(),'1');await page.locator('#search').fill('');
     await page.evaluate(()=>window.__test.fail('levels','unavailable'));await page.getByRole('button',{name:'Try again'}).click();await page.locator('.demon-row').first().waitFor();assert.equal(await page.evaluate(()=>window.__test.watcherCount('levels')),1);
     await page.goto(origin);await page.locator('.demon-row').first().waitFor();await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});
     await page.getByRole('button',{name:'Switch to dark theme'}).click();await page.reload();await page.locator('.demon-row').first().waitFor();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.screenshot({path:path.join(output,'dark.png'),fullPage:true});await page.getByRole('button',{name:'Switch to light theme'}).click();
@@ -119,14 +120,14 @@ const server=http.createServer((req,res)=>{
     await page.goto(origin+'/stats.html');await ready();await page.evaluate(()=>{window.__test.data.records={one:{approved:true,progress:100,levelId:'alpha',playerId:'p',player:'Fixture Victor'},two:{approved:true,progress:100,levelId:'alpha',playerId:'p',player:'Fixture Victor'}};window.__test.emit('records')});await page.locator('#players button').waitFor();assert.equal(await page.locator('#players tr').count(),1);await page.locator('#players button').click();assert.match(await page.locator('#player-details').innerText(),/Fixture Alpha/);await page.locator('#player-search').fill('missing');assert.match(await page.locator('#players').innerText(),/No matching players/);
     await page.goto(origin+'/records.html');await ready();await page.evaluate(()=>{window.__test.data.records={one:{approved:true,progress:100,levelId:'alpha',playerId:'p',player:'Fixture Victor',proofUrl:'https://example.org/proof'}};window.__test.emit('records')});await page.waitForFunction(()=>document.getElementById('records-status').textContent==='1 of 1 approved records');await page.locator('#record-level').selectOption('beta');assert.match(await page.locator('#records').innerText(),/No matching records/);await page.locator('#record-level').selectOption('alpha');assert.equal(await page.getByRole('link',{name:'Watch proof ↗'}).getAttribute('href'),'https://example.org/proof');
     for(const route of ['index.html','stats.html','records.html','submit.html','rules.html','community.html','admin.html']){
-        await page.goto(origin+'/'+route);await ready();assert.match(await page.title(),/Crux/);assert.doesNotMatch(await page.locator('body').innerText(),/GD 1\.1 Demonlist|Player Hub|Stats Viewer/);
+        await page.goto(origin+'/'+route);await ready();assert.match(await page.title(),/GD 1\.1 Demonlist/);assert.doesNotMatch(await page.locator('body').innerText(),/Crux|crux|Player Hub|Stats Viewer/);
         if(['community.html','submit.html'].includes(route)){await page.evaluate(()=>window.__test.setUser(window.__test.loginUser));await page.locator('#member-content').waitFor({state:'visible'})}
         if(route==='admin.html'){await page.evaluate(()=>{window.__test.data.submissions.pending={ownerUid:'fixture-user',submittedBy:'Player',levelName:'Review fixture',creator:'Creator',verifier:'Verifier',levelUrl:'https://example.org/level',proofUrl:'https://example.org/proof',status:'pending'};window.__test.setUser({uid:'staff-user',displayName:'Staff',claims:{admin:true}})});await page.locator('#staff-tools').waitFor({state:'visible'})}
         for(const width of [320,390,540,768,1024,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`Page overflow: ${route} at ${width}px`)}
         if(['community.html','submit.html','admin.html'].includes(route)){await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(output,route.replace('.html','-mobile.png')),fullPage:true})}
         for(const link of await page.locator('.header-inner nav a').all())assert.equal((await page.request.get(origin+'/'+await link.getAttribute('href'))).status(),200);
     }
-    await page.goto(origin+'/profile.html');await page.waitForURL('**/community.html');assert.match(await page.title(),/Crux/);
+    await page.goto(origin+'/profile.html');await page.waitForURL('**/community.html');assert.match(await page.title(),/GD 1\.1 Demonlist/);
     assert.deepEqual(errors,[]);
     const offline=await browser.newContext();await offline.route('https://www.gstatic.com/firebasejs/**',route=>route.abort());const offlinePage=await offline.newPage();const offlineErrors=[];offlinePage.on('pageerror',error=>offlineErrors.push(error.message));await offlinePage.goto(origin+'/community.html');await offlinePage.waitForFunction(()=>document.querySelector('[data-auth-status]').textContent.includes('Sign-in is unavailable'));assert.equal(await offlinePage.locator('[data-account-link]').innerText(),'Sign in');assert.equal(await offlinePage.locator('#member-content').isHidden(),true);assert.deepEqual(offlineErrors,[]);await offline.close();
     console.log('PASS Players, Records, consistent rebrand, every local nav route, legacy profile redirect, seven pages including authenticated forms at six viewport widths, SDK-load failure handling, and no uncaught JavaScript errors.');
