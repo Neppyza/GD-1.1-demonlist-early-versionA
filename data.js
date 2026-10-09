@@ -31,7 +31,7 @@ async function connect(name) {
     }
 }
 export function subscribeData(name, listener) {
-    if (!["levels", "records"].includes(name)) throw new Error("Unsupported public collection");
+    if (!["levels", "records", "players"].includes(name)) throw new Error("Unsupported public collection");
     const entry = source(name);
     entry.listeners.add(listener);
     listener(entry.value);

@@ -240,10 +240,6 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 .list-heading h1 { margin: 0; font-size: 28px; }
 .list-heading .eyebrow { color: var(--muted); font-size: 10px; letter-spacing: .8px; }
 .list-heading > a { font-size: 12px; }
-.list-sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 28px; border: 1px solid var(--line); }
-.list-sections button { min-height: 44px; border: 0; border-radius: 0; color: var(--muted); background: var(--paper); font-size: 14px; }
-.list-sections button + button { border-left: 1px solid var(--line); }
-.list-sections button[aria-pressed="true"] { color: var(--accent); background: var(--soft); box-shadow: inset 0 -2px var(--accent); }
 .demon-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; align-items: start; gap: 28px; }
 .list-content { min-width: 0; }
 .list-content .list-toolbar { grid-template-columns: minmax(0, 1fr) 170px; gap: 14px; }
@@ -295,8 +291,6 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
     .list-heading { align-items: start; margin-bottom: 20px; }
     .list-heading > a { display: none; }
     .list-heading h1 { font-size: 26px; }
-    .list-sections { margin-bottom: 20px; }
-    .list-sections button { font-size: 12px; }
     .list-content .list-toolbar { grid-template-columns: minmax(0, 1fr) 130px; gap: 10px; }
     .demon-row { grid-template-columns: 115px minmax(0, 1fr); align-items: start; margin-bottom: 16px; padding: 12px; gap: 12px; }
     .level-name { font-size: 18px; }
@@ -311,4 +305,33 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 @media (max-width: 360px) {
     .demon-row { grid-template-columns: 90px minmax(0, 1fr); gap: 10px; }
     .level-name { font-size: 16px; }
+}
+
+/* Public player profiles use the same compact community styling. */
+.player-tags { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: 10px; vertical-align: middle; }
+.player-tag { padding: 2px 7px; border: 1px solid var(--line); background: var(--soft); color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.5; }
+#player-details .player-tags { margin: 0 0 12px; }
+.player-bio { white-space: pre-wrap; overflow-wrap: anywhere; }
+.player-id { font-size: 11px; overflow-wrap: anywhere; }
+.tag-options { margin: 0; padding: 14px; border: 1px solid var(--line); }
+.tag-options legend { padding: 0 5px; font-weight: 600; }
+.tag-options .check-row { display: inline-flex; margin: 8px 16px 8px 0; }
+.tag-options p { font-size: 12px; }
+@media (max-width: 540px) {
+    #players .player-tags { display: flex; margin: 6px 0 0; }
+}
+
+/* Keep motion restrained and only enable movement for a fine pointer. */
+button, a, input, select, textarea { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+.demon-row { transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.demon-row:focus-within { border-color: var(--accent); background: var(--paper); }
+@media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):not(.text-button):hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgb(0 0 0 / .1); }
+    .demon-row:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgb(0 0 0 / .07); }
+    .ranking-index a:hover { transform: translateX(3px); }
+    .header-inner nav a:hover { color: var(--accent); background: var(--soft); }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    button:hover, .demon-row:hover, .ranking-index a:hover { transform: none !important; }
 }

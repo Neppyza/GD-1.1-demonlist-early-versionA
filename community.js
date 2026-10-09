@@ -1,6 +1,7 @@
 import { subscribeAuth, requireUser } from "./auth.js";
 import { dataMessage } from "./messages.js";
 import { element, setBusy } from "./ui.js";
+import { validPlayerProfile } from "./player-profile.js";
 
 export const rulesVersion = "2026-10-05";
 const content = document.getElementById("member-content");
@@ -24,6 +25,10 @@ function clearPrivateData() {
     retry.hidden = true;
     document.getElementById("community-rules-form").reset();
     profileForm?.reset();
+    const view = document.getElementById("view-profile");
+    if (view) { view.hidden = true; view.removeAttribute("href"); }
+    const uid = document.getElementById("player-uid");
+    if (uid) uid.textContent = "";
     submissionForm?.reset();
     document.getElementById("my-submissions")?.replaceChildren();
     for (const output of document.querySelectorAll("[data-private-status]")) output.textContent = "";
@@ -51,15 +56,25 @@ async function loadMember(user, turn) {
         memberStatus.textContent = "";
         rulesPanel.hidden = acceptedRules;
         if (!acceptedRules) return;
-        const snapshot = await sdk.getDoc(sdk.doc(db, "profiles", user.uid));
+        const [snapshot, publicSnapshot] = await Promise.all([
+            sdk.getDoc(sdk.doc(db, "profiles", user.uid)),
+            sdk.getDoc(sdk.doc(db, "players", user.uid))
+        ]);
         if (!current(user, turn)) return;
         const profile = snapshot.exists() ? snapshot.data() : {};
-        savedName = profile.displayName || "";
+        const publicProfile = publicSnapshot.exists() ? publicSnapshot.data() : null;
+        savedName = validPlayerProfile(publicProfile) ? publicProfile.displayName : "";
         content.hidden = false;
         if (profileForm) {
-            profileForm.elements.displayName.value = savedName || user.displayName || "";
-            profileForm.elements.bio.value = profile.bio || "";
-            document.getElementById("profile-status").textContent = snapshot.exists() ? "Your private profile is saved." : "Save a player name before submitting a level.";
+            profileForm.elements.displayName.value = savedName || profile.displayName || user.displayName || "";
+            profileForm.elements.bio.value = publicProfile?.bio ?? profile.bio ?? "";
+            for (const checkbox of profileForm.querySelectorAll('[name="tags"]')) checkbox.checked = (publicProfile?.tags || ["Player"]).includes(checkbox.value);
+            document.getElementById("profile-status").textContent = savedName ? "Your public player profile is saved." : "Complete your player profile to join the leaderboard.";
+            const view = document.getElementById("view-profile");
+            view.hidden = !savedName;
+            view.href = `stats.html?player=${encodeURIComponent(user.uid)}`;
+            document.getElementById("player-uid").textContent = `Player ID: ${user.uid}`;
+            if (savedName) window.dispatchEvent(new CustomEvent("player-profile-ready", { detail: { uid: user.uid } }));
         }
         if (submissionForm) {
             document.getElementById("submitter-name").textContent = savedName || "No player name saved";
@@ -130,20 +145,30 @@ profileForm?.addEventListener("submit", async event => {
     const output = document.getElementById("profile-status");
     const name = form.elements.displayName.value.trim();
     const bio = form.elements.bio.value.trim();
-    if (name.length < 3 || name.length > 24 || bio.length > 300) {
-        output.textContent = "Use a name of 3–24 characters and a bio of at most 300 characters.";
+    const tags = [...form.querySelectorAll('[name="tags"]:checked')].map(input => input.value);
+    if (!validPlayerProfile({ displayName: name, bio, tags })) {
+        output.textContent = "Use a name of 3–24 characters, a bio of at most 300 characters, and choose at least one player tag.";
         return;
     }
     const turn = generation;
     setBusy(form, true);
-    output.textContent = "Saving your private profile…";
+    output.textContent = "Saving your player profile…";
     try {
         const client = await requireUser();
         if (!current(client.user, turn) || !acceptedRules) throw { code: "auth/requires-login" };
-        await client.storeSDK.setDoc(client.storeSDK.doc(client.db, "profiles", client.user.uid), { displayName: name, bio, updatedAt: client.storeSDK.serverTimestamp() });
+        const sdk = client.storeSDK;
+        const updatedAt = sdk.serverTimestamp();
+        const batch = sdk.writeBatch(client.db);
+        batch.set(sdk.doc(client.db, "profiles", client.user.uid), { displayName: name, bio, updatedAt });
+        batch.set(sdk.doc(client.db, "players", client.user.uid), { displayName: name, bio, tags, updatedAt });
+        await batch.commit();
         if (!current(client.user, turn)) return;
         savedName = name;
-        output.textContent = "Profile saved. Only you can read these details.";
+        output.textContent = "Profile saved. You now appear on the Players leaderboard.";
+        const view = document.getElementById("view-profile");
+        view.hidden = false;
+        view.href = `stats.html?player=${encodeURIComponent(client.user.uid)}`;
+        window.dispatchEvent(new CustomEvent("player-profile-ready", { detail: { uid: client.user.uid } }));
     } catch (error) {
         if (turn === generation) output.textContent = dataMessage(error, "your profile");
     } finally { setBusy(form, false); }
