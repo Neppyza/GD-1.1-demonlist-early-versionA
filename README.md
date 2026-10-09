@@ -13,7 +13,7 @@ The Demonlist has a thumbnail-led ranking rows and a separate ranking index, rea
 - `app.js`, `stats.js`, `records.js`, `victors.js`: ranking/details, Players, approved records, and deduplicated full completions. Existing `stats-model.js` is retained.
 - `community.js`, `admin.js`: private profiles, unchanged rule agreements and pending submissions, staff review transactions, and the existing stable completion-record keys. Private fields clear when identity changes or the user signs out.
 - `index.html`, `stats.html`, `records.html`, `submit.html`, `rules.html`, `community.html`, `admin.html`, `profile.html`: GD 1.1 Demonlist branding and metadata throughout; the legacy profile route still redirects to Account.
-- `style.css`, `theme.js`, `favicon.svg`: shared visual system and text logo. Existing theme preferences are respected.
+- `style.css`, `theme.js`, `favicon.svg`, `fonts/`: shared visual system and text logo, with self-hosted Montserrat typography and its OFL license. Existing theme preferences are respected.
 - `OWNER_SETUP.md`, `ROBLOX_SETUP.md`: setup, current authentication blocker, preserved data fields, and manual checks.
 - `package.json`, `package-lock.json`, `.gitignore`, `firebase.json`, `tests/`: development-only verification tools. `firestore.rules`, the project IDs, collection names, existing images, and `scripts/grant-owner.cjs` are unchanged.
 
