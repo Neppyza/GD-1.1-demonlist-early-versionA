@@ -1,4 +1,4 @@
-/* Crux: a traditional Demonlist layout with a blue community palette. */
+/* GD 1.1 Demonlist: a traditional Demonlist layout with a blue community palette. */
 :root {
     color-scheme: light;
     --ink: #28323a;
@@ -58,10 +58,10 @@ fieldset:disabled { opacity: .55; }
 /* Shared navigation */
 .site-header { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: var(--paper); }
 .header-inner { display: flex; align-items: center; gap: 28px; max-width: 1160px; min-height: 66px; margin: auto; padding: 0 24px; }
-.brand { display: flex; align-items: baseline; color: var(--ink); font-size: 28px; font-weight: 800; letter-spacing: -1.3px; line-height: 1; }
+.brand { display: flex; flex-direction: column; gap: 2px; color: var(--ink); line-height: 1.1; }
 .brand:hover { text-decoration: none; }
-.brand > span { color: var(--accent); }
-.brand small { margin-left: 12px; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+.brand-game { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .5px; }
+.brand-name { color: var(--ink); font-size: 19px; font-weight: 800; letter-spacing: -.4px; }
 .header-inner nav { display: flex; align-self: stretch; align-items: stretch; gap: 22px; margin-right: auto; }
 .header-inner nav a { display: flex; align-items: center; min-height: 44px; padding-top: 2px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap; }
 .header-inner nav a:hover, .header-inner nav a.active { color: var(--ink); text-decoration: none; }
@@ -202,7 +202,6 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 @media (max-width: 540px) {
     html { scroll-padding-top: 120px; }
     .header-inner { padding-inline: 16px; gap: 0 12px; }
-    .brand small { display: none; }
     .header-inner nav { gap: 22px; }
     .header-inner nav a { font-size: 11px; }
     .account-nav { gap: 12px; }

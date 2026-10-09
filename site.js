@@ -29,7 +29,7 @@ subscribeAuth(state => {
     for (const link of document.querySelectorAll("[data-account-link]")) {
         link.textContent = state.user ? "Account" : "Sign in";
         link.href = state.user || page === "community.html" ? "community.html" : `community.html?next=${encodeURIComponent(page)}`;
-        link.setAttribute("aria-label", state.user ? "Your Crux account" : "Sign in to Crux");
+        link.setAttribute("aria-label", state.user ? "Your Demonlist account" : "Sign in to the Demonlist");
     }
     for (const link of document.querySelectorAll("[data-staff-link]")) link.hidden = !state.staff;
     for (const status of document.querySelectorAll("[data-auth-status]")) {

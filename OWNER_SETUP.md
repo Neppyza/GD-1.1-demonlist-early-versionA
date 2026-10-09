@@ -1,6 +1,6 @@
-# Crux: Firebase and staff setup
+# GD 1.1 Demonlist: Firebase and staff setup
 
-Crux keeps the existing `gd11-demonlist` Firebase project and Google sign-in. New Google users create their Firebase account through the same **Continue with Google** button. Email/password and Roblox OAuth are not configured by this website.
+The website keeps the existing `gd11-demonlist` Firebase project and Google sign-in. New Google users create their Firebase account through the same **Continue with Google** button. Email/password and Roblox OAuth are not configured by this website.
 
 ## Authentication blocker found on 9 October 2026
 
