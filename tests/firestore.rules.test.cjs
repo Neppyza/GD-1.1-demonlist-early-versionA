@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, serverTimestamp } = require('firebase/firestore');
+const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } = require('firebase/firestore');
 
 (async () => {
     const env = await initializeTestEnvironment({ projectId: 'demo-demonlist', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync('firestore.rules','utf8') } });
@@ -36,6 +36,31 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, serve
         await check('staff cannot read private player profiles',getDoc(doc(admin,'profiles','player-a')),false);
         await check('cannot forge another user agreement',setDoc(doc(player,'agreements','player-b'),{version:'2026-10-05',acceptedAt:serverTimestamp()}),false);
         await check('outdated agreement version rejected',setDoc(doc(player,'agreements','player-a'),{version:'old',acceptedAt:serverTimestamp()}),false);
+        const publicProfile={displayName:'Player A',bio:'',tags:['Player','Creator'],updatedAt:serverTimestamp()};
+        await check('guest cannot register a public player',setDoc(doc(guest,'players','player-a'),publicProfile),false);
+        await check('public profile requires rules agreement',setDoc(doc(other,'players','player-b'),publicProfile),false);
+        await check('cannot publish another player profile',setDoc(doc(player,'players','player-b'),publicProfile),false);
+        await check('cannot self-assign staff tag',setDoc(doc(player,'players','player-a'),{...publicProfile,tags:['Admin']}),false);
+        await check('cannot self-assign points',setDoc(doc(player,'players','player-a'),{...publicProfile,points:999}),false);
+        await check('cannot publish email or private fields',setDoc(doc(player,'players','player-a'),{...publicProfile,email:'private@example.org'}),false);
+        await check('empty tags rejected',setDoc(doc(player,'players','player-a'),{...publicProfile,tags:[]}),false);
+        await check('duplicate tags rejected',setDoc(doc(player,'players','player-a'),{...publicProfile,tags:['Player','Player']}),false);
+        await check('public profile must match private player name',setDoc(doc(player,'players','player-a'),{...publicProfile,displayName:'Different name'}),false);
+        await check('member publishes their own valid public profile',setDoc(doc(player,'players','player-a'),publicProfile),true);
+        await check('guest can list public players',getDocs(collection(guest,'players')),true);
+        await check('another member cannot update a player',updateDoc(doc(other,'players','player-a'),{bio:'Forged'}),false);
+        await check('cannot add a privileged field later',updateDoc(doc(player,'players','player-a'),{admin:true}),false);
+        await check('public profile must match private bio',updateDoc(doc(player,'players','player-a'),{bio:'Changed',updatedAt:serverTimestamp()}),false);
+        const batch=writeBatch(player);
+        batch.set(doc(player,'profiles','player-a'),{displayName:'Updated Player',bio:'Public bio',updatedAt:serverTimestamp()});
+        batch.set(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',tags:['Verifier'],updatedAt:serverTimestamp()});
+        await check('profile and directory update atomically using getAfter',batch.commit(),true);
+        const badBatch=writeBatch(player);
+        badBatch.set(doc(player,'profiles','player-a'),{displayName:'Should not save',bio:'',updatedAt:serverTimestamp()});
+        badBatch.set(doc(player,'players','player-a'),{displayName:'Should not save',bio:'',tags:['Owner'],updatedAt:serverTimestamp()});
+        await check('invalid public profile rejects the entire batch',badBatch.commit(),false);
+        if((await getDoc(doc(player,'profiles','player-a'))).data().displayName!=='Updated Player') throw new Error('Failed batch modified private profile');
+        await check('cannot delete another player',deleteDoc(doc(other,'players','player-a')),false);
         const submission={ownerUid:'player-a',submittedBy:'Player A',levelName:'Submitted level',levelUrl:'https://example.org/level',creator:'Creator',verifier:'Verifier',proofUrl:'https://example.org/proof',notes:'',status:'pending',submittedAt:serverTimestamp()};
         await check('signed-in member creates a pending submission',setDoc(doc(player,'submissions','submission-a'),submission),true);
         await check('cannot submit as another user',setDoc(doc(player,'submissions','forged'),{...submission,ownerUid:'player-b'}),false);
@@ -49,6 +74,6 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, serve
         await check('staff approves a full completion',setDoc(doc(admin,'records','staff-record'),record),true);
         await check('partial completion rejected by current rules',setDoc(doc(admin,'records','partial'),{...record,progress:99}),false);
         await check('record must reference an existing level',setDoc(doc(admin,'records','missing-level'),{...record,levelId:'not-a-level'}),false);
-        console.log(`${passed} Firestore permission checks passed against the unchanged production rules in the emulator.`);
+        console.log(`${passed} Firestore permission checks passed against the proposed rules in the emulator.`);
     } finally { await env.cleanup(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

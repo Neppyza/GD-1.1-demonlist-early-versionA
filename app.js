@@ -1,5 +1,5 @@
 import { subscribeData, retryData } from "./data.js";
-import { filterLevels, sortLevels, rankLabel, position } from "./list-model.js";
+import { filterLevels, sortLevels, rankLabel } from "./list-model.js";
 import { victorNames } from "./victors.js";
 import { element, thumbnail, externalLink } from "./ui.js";
 import { dataMessage } from "./messages.js";
@@ -13,7 +13,6 @@ const dialog = document.getElementById("level-dialog");
 let levelState = { status: "loading", items: [] };
 let recordState = { status: "loading", items: [] };
 let initialSelection = true;
-let section = "all";
 const ranking = document.getElementById("ranking-index");
 
 function listState(title, message, retry) {
@@ -52,7 +51,7 @@ function render() {
         return;
     }
     const records = recordState.status === "ready" ? recordState.items : [];
-    const matching = filterLevels(levelState.items, records, search.value).filter(level => section === "all" || (section === "ranked" ? position(level.position) !== Infinity : position(level.position) === Infinity));
+    const matching = filterLevels(levelState.items, records, search.value);
     const filtered = sortLevels(matching, sort.value);
     status.textContent = `${filtered.length} of ${levelState.items.length} levels`;
     const recordNote = document.getElementById("records-note");
@@ -152,11 +151,6 @@ function showDetails(id) {
     if (!dialog.open) dialog.showModal();
 }
 
-for (const button of document.querySelectorAll("[data-section]")) button.addEventListener("click", () => {
-    section = button.dataset.section;
-    for (const item of document.querySelectorAll("[data-section]")) item.setAttribute("aria-pressed", String(item === button));
-    render();
-});
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
 document.getElementById("close-dialog").addEventListener("click", () => dialog.close());

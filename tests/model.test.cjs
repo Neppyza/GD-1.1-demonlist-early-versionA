@@ -44,3 +44,24 @@ test('configuration, domain, credential and permission failures are explicit', a
     assert.match(authMessage({code:'auth/invalid-credential'}),/could not verify/);
     assert.match(dataMessage({code:'permission-denied'},'profiles'),/Access to profiles was denied/);
 });
+test('registered players start at zero; UID joins preserve legacy players and deduplicate approved scores', async () => {
+    const {buildStats}=await import('../stats-model.js');
+    const profiles=[{id:'one',displayName:'Current Name',bio:'Public bio',tags:['Player','Creator']},{id:'new',displayName:'New Player',bio:'',tags:['Player']},{id:'invalid',displayName:'Invalid',bio:'',tags:['Admin']}];
+    const records=[{approved:true,progress:100,levelId:'a',playerId:'one',player:'Old Name'},{approved:true,progress:100,levelId:'a',playerId:'one',player:'Old Name'},{approved:true,progress:100,levelId:'a',playerId:'legacy',player:'Legacy Player'},{approved:false,progress:100,levelId:'a',playerId:'new',player:'New Player'}];
+    const stats=buildStats([{id:'a',name:'A',points:'50',position:1}],records,profiles);
+    assert.equal(stats.length,3);
+    assert.equal(stats.find(p=>p.id==='one').name,'Current Name');
+    assert.equal(stats.find(p=>p.id==='one').points,50);
+    assert.equal(stats.find(p=>p.id==='one').completed.length,1);
+    assert.deepEqual(stats.find(p=>p.id==='one').tags,['Player','Creator']);
+    assert.equal(stats.find(p=>p.id==='new').points,0);
+    assert.equal(stats.find(p=>p.id==='legacy').points,50);
+    assert.equal(profiles[0].displayName,'Current Name');
+});
+test('profiles reject missing, duplicate and privileged tags', async () => {
+    const {validPlayerProfile}=await import('../player-profile.js');
+    const profile={displayName:'Player',bio:'',tags:['Player']};
+    assert.equal(validPlayerProfile(profile),true);
+    for(const tags of [[],['Owner'],['Player','Player'],['Player','Admin'],null]) assert.equal(validPlayerProfile({...profile,tags}),false);
+    assert.equal(validPlayerProfile({...profile,displayName:'   '}),false);
+});

@@ -42,6 +42,27 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if signedIn() && request.auth.uid == uid;
     }
+    // Public directory; private profiles above keep their existing schema and access.
+    // Identity is the document UID. Scores and staff roles cannot be self-assigned.
+    match /players/{uid} {
+      allow read: if true;
+      allow create, update: if acceptedRules() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'bio', 'tags', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 3
+        && request.resource.data.displayName.size() <= 24
+        && request.resource.data.displayName.matches('.*[^ ].*')
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 300
+        && request.resource.data.tags is list
+        && request.resource.data.tags.size() >= 1 && request.resource.data.tags.size() <= 3
+        && request.resource.data.tags.toSet().size() == request.resource.data.tags.size()
+        && request.resource.data.tags.hasOnly(['Player', 'Creator', 'Verifier'])
+        && request.resource.data.updatedAt == request.time
+        && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.displayName == request.resource.data.displayName
+        && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.bio == request.resource.data.bio;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
     match /submissions/{submissionId} {
       allow create: if acceptedRules()
         && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])

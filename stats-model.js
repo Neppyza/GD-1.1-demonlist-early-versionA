@@ -1,12 +1,18 @@
-export function buildStats(levels, records) {
+import { validPlayerProfile } from "./player-profile.js";
+
+export function buildStats(levels, records, profiles = []) {
     const byLevel = new Map(levels.map(level => [level.id, level]));
     const players = new Map();
+    for (const profile of profiles) {
+        if (!profile.id || !validPlayerProfile(profile)) continue;
+        players.set(String(profile.id), { id: String(profile.id), name: profile.displayName, bio: profile.bio, tags: [...profile.tags], registered: true, completed: new Map() });
+    }
     for (const record of records) {
         if (record.approved !== true || Number(record.progress) !== 100 || !record.playerId || !record.player) continue;
         const level = byLevel.get(record.levelId);
         if (!level) continue;
         const id = String(record.playerId);
-        if (!players.has(id)) players.set(id, { id, name: String(record.player), completed: new Map() });
+        if (!players.has(id)) players.set(id, { id, name: String(record.player), bio: "", tags: [], registered: false, completed: new Map() });
         players.get(id).completed.set(level.id, level);
     }
     return [...players.values()].map(player => {
