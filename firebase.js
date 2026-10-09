@@ -1,8 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-
-const firebaseConfig = {
+// Public Firebase web configuration. Admin credentials must never be stored here.
+export const firebaseConfig = {
     apiKey: "AIzaSyD2TLHnVzYfD_5CWuP15dn25Qhxyhuksg4",
     authDomain: "gd11-demonlist.firebaseapp.com",
     projectId: "gd11-demonlist",
@@ -11,6 +8,23 @@ const firebaseConfig = {
     appId: "1:645171215190:web:222c39c99b1f64116e74f7"
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+let clientPromise;
+
+// One app and one SDK version per page. Dynamic imports let the UI report SDK
+// loading failures instead of leaving buttons and loading messages stuck.
+export function getFirebase() {
+    if (!clientPromise) {
+        clientPromise = Promise.all([
+            import("https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js"),
+            import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js"),
+            import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
+        ]).then(([appSDK, authSDK, storeSDK]) => {
+            const app = appSDK.getApps().length ? appSDK.getApp() : appSDK.initializeApp(firebaseConfig);
+            return { app, auth: authSDK.getAuth(app), db: storeSDK.getFirestore(app), authSDK, storeSDK };
+        }).catch(error => {
+            clientPromise = null;
+            throw error;
+        });
+    }
+    return clientPromise;
+}

@@ -1,197 +1,179 @@
-import { auth, db } from "./firebase.js";
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { collection, doc, getDoc, getDocs, query, where, setDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { subscribeAuth, requireUser } from "./auth.js";
+import { dataMessage } from "./messages.js";
+import { element, setBusy } from "./ui.js";
 
-const signInButton = document.getElementById("google-sign-in");
-const signOutButton = document.getElementById("google-sign-out");
-const status = document.getElementById("account-status");
-const memberContent = document.getElementById("member-content");
-let member = null;
-let acceptedRules = false;
+export const rulesVersion = "2026-10-05";
+const content = document.getElementById("member-content");
 const rulesPanel = document.getElementById("community-rules");
-const rulesVersion = "2026-10-05";
+const memberStatus = document.getElementById("member-status");
+const retry = document.getElementById("account-retry");
+const profileForm = document.getElementById("profile-form");
+const submissionForm = document.getElementById("submission-form");
+let memberId;
+let generation = 0;
+let acceptedRules = false;
+let savedName = "";
+
+function current(user, turn) { return memberId === user.uid && generation === turn; }
+function clearPrivateData() {
+    content.hidden = true;
+    rulesPanel.hidden = true;
+    acceptedRules = false;
+    savedName = "";
+    memberStatus.textContent = "";
+    retry.hidden = true;
+    document.getElementById("community-rules-form").reset();
+    profileForm?.reset();
+    submissionForm?.reset();
+    document.getElementById("my-submissions")?.replaceChildren();
+    for (const output of document.querySelectorAll("[data-private-status]")) output.textContent = "";
+    if (submissionForm) submissionForm.querySelector("fieldset").disabled = true;
+}
+subscribeAuth(state => {
+    if (!state.ready) return;
+    const id = state.user?.uid || null;
+    if (id === memberId) return;
+    memberId = id;
+    ++generation;
+    clearPrivateData();
+    if (state.user) loadMember(state.user, generation);
+});
+
+async function loadMember(user, turn) {
+    memberStatus.textContent = "Loading your account…";
+    try {
+        const client = await requireUser();
+        if (!current(user, turn) || client.user.uid !== user.uid) return;
+        const { db, storeSDK: sdk } = client;
+        const agreement = await sdk.getDoc(sdk.doc(db, "agreements", user.uid));
+        if (!current(user, turn)) return;
+        acceptedRules = agreement.exists() && agreement.data().version === rulesVersion;
+        memberStatus.textContent = "";
+        rulesPanel.hidden = acceptedRules;
+        if (!acceptedRules) return;
+        const snapshot = await sdk.getDoc(sdk.doc(db, "profiles", user.uid));
+        if (!current(user, turn)) return;
+        const profile = snapshot.exists() ? snapshot.data() : {};
+        savedName = profile.displayName || "";
+        content.hidden = false;
+        if (profileForm) {
+            profileForm.elements.displayName.value = savedName || user.displayName || "";
+            profileForm.elements.bio.value = profile.bio || "";
+            document.getElementById("profile-status").textContent = snapshot.exists() ? "Your private profile is saved." : "Save a player name before submitting a level.";
+        }
+        if (submissionForm) {
+            document.getElementById("submitter-name").textContent = savedName || "No player name saved";
+            document.getElementById("profile-required").hidden = Boolean(savedName);
+            submissionForm.querySelector("fieldset").disabled = !savedName;
+        }
+        if (document.getElementById("my-submissions")) await loadSubmissions(client, turn);
+    } catch (error) {
+        if (!current(user, turn)) return;
+        content.hidden = true;
+        memberStatus.textContent = dataMessage(error, "your private account");
+        retry.hidden = false;
+    }
+}
+retry.addEventListener("click", async () => {
+    try {
+        const { user } = await requireUser();
+        retry.hidden = true;
+        await loadMember(user, ++generation);
+    } catch (error) { memberStatus.textContent = dataMessage(error, "your account"); }
+});
+
+async function loadSubmissions(client, turn) {
+    const box = document.getElementById("my-submissions");
+    const { db, user, storeSDK: sdk } = client;
+    box.textContent = "Loading your submissions…";
+    try {
+        const snapshot = await sdk.getDocs(sdk.query(sdk.collection(db, "submissions"), sdk.where("ownerUid", "==", user.uid)));
+        if (!current(user, turn)) return;
+        box.replaceChildren();
+        const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        items.sort((a, b) => (b.submittedAt?.toMillis?.() || 0) - (a.submittedAt?.toMillis?.() || 0));
+        if (!items.length) box.append(element("p", "muted", "You have no submissions yet."));
+        for (const item of items) {
+            const row = element("article", "submission-item");
+            const title = element("h3", "", item.levelName || "Level submission");
+            const status = element("span", "submission-status", item.status || "pending");
+            row.append(title, status, element("p", "muted", `Creator: ${item.creator || "—"} · Verifier: ${item.verifier || "—"}`));
+            box.append(row);
+        }
+    } catch (error) {
+        if (current(user, turn)) box.textContent = dataMessage(error, "your submissions");
+    }
+}
+
 document.getElementById("community-rules-form").addEventListener("submit", async event => {
     event.preventDefault();
-    if (!member || !document.getElementById("community-agreement").checked) return;
-    const user = member;
-    const button = event.currentTarget.querySelector("button");
-    button.disabled = true;
+    const form = event.currentTarget;
+    if (form.dataset.busy === "true" || !form.elements.agreement.checked) return;
+    const output = document.getElementById("agreement-status");
+    const turn = generation;
+    setBusy(form, true);
+    output.textContent = "Saving your agreement…";
     try {
-        await setDoc(doc(db, "agreements", user.uid), { version: rulesVersion, acceptedAt: serverTimestamp() });
-        if (member?.uid !== user.uid) return;
-        acceptedRules = true;
-        rulesPanel.hidden = true;
-        memberContent.hidden = false;
-        await loadMemberData(user);
-    } catch {
-        document.getElementById("agreement-status").textContent = "Could not save your agreement. Please try again.";
-    } finally { button.disabled = false; }
-});
-
-signInButton.addEventListener("click", async () => {
-    signInButton.disabled = true;
-    status.textContent = "Opening Google sign-in…";
-    try {
-        await signInWithPopup(auth, new GoogleAuthProvider());
+        const client = await requireUser();
+        if (!current(client.user, turn)) return;
+        await client.storeSDK.setDoc(client.storeSDK.doc(client.db, "agreements", client.user.uid), { version: rulesVersion, acceptedAt: client.storeSDK.serverTimestamp() });
+        if (current(client.user, turn)) await loadMember(client.user, turn);
     } catch (error) {
-        status.textContent = error.code === "auth/popup-blocked"
-            ? "Your browser blocked the sign-in window. Allow popups and try again."
-            : "Google sign-in did not finish. Please try again.";
-    } finally {
-        signInButton.disabled = false;
-    }
-});
-signOutButton.addEventListener("click", () => signOut(auth).catch(() => {
-    status.textContent = "Could not sign out. Please try again.";
-}));
-
-onAuthStateChanged(auth, async user => {
-    member = user;
-    acceptedRules = false;
-    memberContent.hidden = true;
-    rulesPanel.hidden = true;
-    document.getElementById("community-agreement").checked = false;
-    signInButton.hidden = Boolean(user);
-    signOutButton.hidden = !user;
-    if (!user) {
-        status.textContent = "Sign in to continue.";
-        return;
-    }
-    status.textContent = `Signed in as ${user.displayName || "Google user"}.`;
-    try {
-        const agreement = await getDoc(doc(db, "agreements", user.uid));
-        if (member?.uid !== user.uid) return;
-        acceptedRules = agreement.exists() && agreement.data().version === rulesVersion;
-        rulesPanel.hidden = acceptedRules;
-        memberContent.hidden = !acceptedRules;
-        if (acceptedRules) await loadMemberData(user);
-    } catch {
-        if (member?.uid !== user.uid) return;
-        rulesPanel.hidden = false;
-        status.textContent = "Please accept the community rules to continue.";
-    }
+        if (turn === generation) output.textContent = dataMessage(error, "your rules agreement");
+    } finally { setBusy(form, false); }
 });
 
-async function loadMemberData(user) {
-    const profileStatus = document.getElementById("profile-status");
-    const submissionsBox = document.getElementById("my-submissions");
-    try {
-        const snapshot = await getDoc(doc(db, "profiles", user.uid));
-        if (member?.uid !== user.uid) return;
-        const saved = snapshot.exists() ? snapshot.data() : {};
-        document.getElementById("display-name").value = saved.displayName || user.displayName || "";
-        document.getElementById("profile-bio").value = saved.bio || "";
-        profileStatus.textContent = snapshot.exists()
-            ? "Your profile is private and saved."
-            : "Choose a Demonlist name to use with your submissions.";
-    } catch {
-        profileStatus.textContent = "Could not load your private profile.";
-    }
-    try {
-        const snapshot = await getDocs(query(collection(db, "submissions"), where("ownerUid", "==", user.uid)));
-        if (member?.uid !== user.uid) return;
-        submissionsBox.replaceChildren();
-        if (snapshot.empty) {
-            submissionsBox.textContent = "You have no submissions yet.";
-            return;
-        }
-        const items = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-        items.sort((a, b) => (b.submittedAt?.toMillis?.() || 0) - (a.submittedAt?.toMillis?.() || 0));
-        for (const item of items) {
-            const card = document.createElement("article");
-            card.className = "submission-item";
-            const title = document.createElement("h3");
-            title.textContent = item.levelName || "Level submission";
-            const details = document.createElement("p");
-            details.textContent = `Creator: ${item.creator} · Verifier: ${item.verifier}`;
-            const state = document.createElement("p");
-            state.textContent = `Status: ${item.status || "pending"}`;
-            card.append(title, details, state);
-            submissionsBox.append(card);
-        }
-    } catch {
-        submissionsBox.textContent = "Could not load your submissions.";
-    }
-}
-
-document.getElementById("profile-form").addEventListener("submit", async event => {
+profileForm?.addEventListener("submit", async event => {
     event.preventDefault();
-    if (!member || !acceptedRules) return;
-    const name = document.getElementById("display-name").value.trim();
-    const bio = document.getElementById("profile-bio").value.trim();
+    const form = event.currentTarget;
+    if (form.dataset.busy === "true") return;
     const output = document.getElementById("profile-status");
-    if (name.length < 3 || name.length > 24) {
-        output.textContent = "Choose a name between 3 and 24 characters.";
+    const name = form.elements.displayName.value.trim();
+    const bio = form.elements.bio.value.trim();
+    if (name.length < 3 || name.length > 24 || bio.length > 300) {
+        output.textContent = "Use a name of 3–24 characters and a bio of at most 300 characters.";
         return;
     }
-    const button = event.currentTarget.querySelector("button[type=submit]");
-    button.disabled = true;
+    const turn = generation;
+    setBusy(form, true);
     output.textContent = "Saving your private profile…";
     try {
-        await setDoc(doc(db, "profiles", member.uid), {
-            displayName: name,
-            bio,
-            updatedAt: serverTimestamp()
-        });
-        output.textContent = "Saved. Only you can view these profile details.";
-    } catch {
-        output.textContent = "Could not save your profile. Please try again.";
-    } finally {
-        button.disabled = false;
-    }
+        const client = await requireUser();
+        if (!current(client.user, turn) || !acceptedRules) throw { code: "auth/requires-login" };
+        await client.storeSDK.setDoc(client.storeSDK.doc(client.db, "profiles", client.user.uid), { displayName: name, bio, updatedAt: client.storeSDK.serverTimestamp() });
+        if (!current(client.user, turn)) return;
+        savedName = name;
+        output.textContent = "Profile saved. Only you can read these details.";
+    } catch (error) {
+        if (turn === generation) output.textContent = dataMessage(error, "your profile");
+    } finally { setBusy(form, false); }
 });
 
-document.getElementById("submission-form").addEventListener("submit", async event => {
+submissionForm?.addEventListener("submit", async event => {
     event.preventDefault();
-    if (!member || !acceptedRules) return;
-    const output = document.getElementById("submission-status");
-    const profileName = document.getElementById("display-name").value.trim();
-    if (profileName.length < 3) {
-        output.textContent = "Save your Demonlist name in Your private profile first.";
-        return;
-    }
     const form = event.currentTarget;
-    const values = Object.fromEntries(new FormData(form).entries());
-    const levelUrl = document.getElementById("level-url").value.trim();
-    const proofUrl = document.getElementById("proof-url").value.trim();
-    if (!safeHttps(levelUrl) || !safeHttps(proofUrl)) {
-        output.textContent = "Add valid HTTPS links for the level and completion video.";
+    if (form.dataset.busy === "true") return;
+    const output = document.getElementById("submission-status");
+    const values = Object.fromEntries(new FormData(form));
+    const fields = { levelName: String(values.levelName || "").trim(), creator: String(values.creator || "").trim(), verifier: String(values.verifier || "").trim(), levelUrl: String(values.levelUrl || "").trim(), proofUrl: String(values.proofUrl || "").trim(), notes: String(values.notes || "").trim() };
+    const https = value => { try { return new URL(value).protocol === "https:"; } catch { return false; } };
+    if (!savedName || !acceptedRules) { output.textContent = "Sign in, accept the rules, and save a player name in Account before submitting."; return; }
+    if (!fields.levelName || fields.levelName.length > 80 || !fields.creator || fields.creator.length > 60 || !fields.verifier || fields.verifier.length > 60 || fields.notes.length > 500 || fields.levelUrl.length > 2000 || fields.proofUrl.length > 2000 || !https(fields.levelUrl) || !https(fields.proofUrl) || !form.elements.confirmed.checked) {
+        output.textContent = "Complete the required fields, use valid HTTPS links, and confirm the submission rules.";
         return;
     }
-    if (!document.getElementById("rules-accepted").checked) {
-        output.textContent = "Please confirm the submission rules first.";
-        return;
-    }
-    const button = event.currentTarget.querySelector("button[type=submit]");
-    button.disabled = true;
-    output.textContent = "Sending your submission for review…";
+    const turn = generation;
+    setBusy(form, true);
+    output.textContent = "Sending your level for review…";
     try {
-        await addDoc(collection(db, "submissions"), {
-            ownerUid: member.uid,
-            submittedBy: profileName,
-            levelName: String(values.levelName || "").trim(),
-            levelUrl,
-            creator: String(values.creator || "").trim(),
-            verifier: String(values.verifier || "").trim(),
-            proofUrl,
-            notes: String(values.notes || "").trim(),
-            status: "pending",
-            submittedAt: serverTimestamp()
-        });
+        const client = await requireUser();
+        if (!current(client.user, turn)) throw { code: "auth/requires-login" };
+        await client.storeSDK.addDoc(client.storeSDK.collection(client.db, "submissions"), { ownerUid: client.user.uid, submittedBy: savedName, ...fields, status: "pending", submittedAt: client.storeSDK.serverTimestamp() });
+        if (!current(client.user, turn)) return;
         form.reset();
         output.textContent = "Submission received. It remains private until the list team reviews it.";
-        await loadMemberData(member);
     } catch (error) {
-        output.textContent = error.code === "permission-denied"
-            ? "Your submission was blocked by the database rules. Contact the list owner."
-            : "Could not send the submission. Please try again.";
-    } finally {
-        button.disabled = false;
-    }
+        if (turn === generation) output.textContent = dataMessage(error, "your level submission");
+    } finally { setBusy(form, false); }
 });
-
-function safeHttps(value) {
-    try { return new URL(value).protocol === "https:"; }
-    catch { return false; }
-}
 

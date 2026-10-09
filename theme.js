@@ -1,7 +1,8 @@
 (() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     let preference;
-    try { preference = localStorage.getItem('demonlist-theme'); } catch {}
+    try { preference = localStorage.getItem('crux-theme') || localStorage.getItem('demonlist-theme'); } catch {}
+    if (!['light', 'dark'].includes(preference)) preference = undefined;
     const apply = theme => { document.documentElement.dataset.theme = theme; };
     apply(['light', 'dark'].includes(preference) ? preference : media.matches ? 'dark' : 'light');
     document.addEventListener('DOMContentLoaded', () => {
@@ -18,7 +19,7 @@
         button.addEventListener('click', () => {
             preference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
             apply(preference);
-            try { localStorage.setItem('demonlist-theme', preference); } catch {}
+            try { localStorage.setItem('crux-theme', preference); } catch {}
             render();
         });
         media.addEventListener('change', () => { if (!preference) { apply(media.matches ? 'dark' : 'light'); render(); } });

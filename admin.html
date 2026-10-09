@@ -3,21 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Review submissions · GD 1.1 Demonlist</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Crux administrator tools for reviewing private submissions and approving verified completions.">
+  <meta property="og:title" content="Staff review · Crux">
+  <meta property="og:description" content="Crux administrator tools for reviewing private submissions and approving verified completions.">
+  <meta property="og:type" content="website">
+  <title>Staff review · Crux</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <script src="theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header"><div class="header-inner"><a class="site-title" href="index.html"><span class="brand-mark" aria-hidden="true">1.1</span> GD 1.1 <span>DEMONLIST</span></a><nav aria-label="Main navigation">
-        <a href="index.html">Demonlist</a>
-        <a href="stats.html">Stats Viewer</a>
-        <a href="community.html">Player Hub</a>
-        <a href="index.html#about">About the list</a>
-      </nav></div></header>
-  <main class="feature-main community"><p class="eyebrow">STAFF AREA</p><h1>Level review queue</h1><p>Sign in with an approved staff Google account to review private submissions.</p><div class="auth-row"><button id="staff-sign-in" type="button">Sign in with Google</button><button id="staff-sign-out" type="button" hidden>Sign out</button><span id="staff-status" role="status">Checking access…</span></div><p id="staff-uid" class="account-uid"></p><section id="victor-panel" class="form-panel" hidden><h2>Add a victor</h2><p>Check the player's 100% completion proof before approving. Use the same player ID for all of their records.</p><form id="victor-form"><label for="victor-level">Level</label><select id="victor-level" name="levelId" required></select><label for="victor-player">Player name</label><input id="victor-player" name="player" maxlength="60" required><label for="victor-id">Stable player ID</label><input id="victor-id" name="playerId" maxlength="100" required><label class="check-row"><input type="checkbox" required><span>I verified the completion proof and checked the community rules.</span></label><button type="submit">Approve victor</button><p id="victor-status" role="status"></p></form></section><section id="review-queue" class="review-queue" hidden></section></main>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Crux home">cru<span>x</span><small>GD 1.1</small></a>
+      <nav aria-label="Main navigation"><a href="index.html">Demonlist</a>
+<a href="stats.html">Players</a>
+<a href="records.html">Records</a>
+<a href="submit.html">Submit</a>
+<a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Staff</a></nav>
+      <div class="account-nav"><a href="community.html" data-account-link>Sign in</a><button type="button" class="text-button" data-auth-logout hidden>Sign out</button></div>
+    </div>
+    <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
+  </header>
+  <main id="main" class="page"><div class="page-heading"><div><h1>Staff review</h1><p>Review private level submissions and approve completion records.</p></div></div><section class="auth-panel" aria-labelledby="signin-title"><h2 id="signin-title">Your Google account</h2><p>Sign in securely with Google. Your first sign-in creates a Crux account; no separate password is needed.</p><div class="auth-actions"><button type="button" data-auth-login disabled>Continue with Google</button><button type="button" class="secondary-button" data-auth-logout hidden>Sign out</button></div><p data-auth-status class="form-status" role="status">Restoring your session…</p></section><p id="staff-status" class="form-status" role="status">Checking access…</p><p id="staff-uid" class="account-uid"></p><button id="staff-retry" class="secondary-button" type="button">Retry access check</button><div id="staff-tools" hidden><section class="section-block"><div class="section-heading"><h2>Pending submissions</h2><button id="refresh-queue" type="button" class="secondary-button">Refresh queue</button></div><div id="review-queue"></div></section><section class="section-block narrow-form"><h2>Approve a completion</h2><p class="muted">Check the player's 100% completion proof. Keep the same stable player ID for all their records.</p><form id="victor-form" class="stack-form"><label for="victor-level">Level</label><select id="victor-level" name="levelId" required></select><label for="victor-player">Player name</label><input id="victor-player" name="player" maxlength="60" required><label for="victor-id">Stable player ID</label><input id="victor-id" name="playerId" maxlength="100" required><label class="check-row"><input name="checkedProof" type="checkbox" required><span>I verified the completion proof and checked the community rules.</span></label><button type="submit">Approve completion</button><p id="victor-status" class="form-status" role="status"></p></form></section></div></main>
+  <footer class="site-footer"><div><strong>Crux</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <script type="module" src="site.js"></script>
   <script type="module" src="admin.js"></script>
 </body>
 </html>

@@ -1,225 +1,141 @@
+import { subscribeData, retryData } from "./data.js";
+import { filterLevels, sortLevels, rankLabel, position } from "./list-model.js";
 import { victorNames } from "./victors.js";
-const levelsContainer = document.getElementById("levels");
+import { element, thumbnail, externalLink, stateRow } from "./ui.js";
+import { dataMessage } from "./messages.js";
+
+const body = document.getElementById("levels");
+const table = document.getElementById("demon-table");
 const search = document.getElementById("search");
-const ranking = document.getElementById("ranking");
-const count = document.getElementById("level-count");
-const resultCount = document.getElementById("result-count");
+const sort = document.getElementById("sort");
+const status = document.getElementById("result-count");
 const dialog = document.getElementById("level-dialog");
-let levels = [];
-let records = [];
-let recordsState = "loading";
-let loaded = false;
-let unsubscribeLevels = null;
-let loadGeneration = 0;
+let levelState = { status: "loading", items: [] };
+let recordState = { status: "loading", items: [] };
+let initialSelection = true;
 
-function element(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text !== undefined) node.textContent = String(text);
-    return node;
-}
-
-function safeURL(value) {
-    if (!value) return null;
-    try {
-        const url = new URL(String(value), location.href);
-        return ["https:", "http:"].includes(url.protocol) ? url.href : null;
-    } catch { return null; }
-}
-
-function placement(level) {
-    const position = Number(level.position);
-    return Number.isFinite(position) && position > 0 ? `#${position}` : "Unranked";
-}
-
-function thumbnail(level) {
-    const container = element("div", "thumbnail");
-    const placeholder = () => container.replaceChildren(element("span", "thumbnail-placeholder", "No preview available"));
-    const src = safeURL(level.thumbnail);
-    if (src) {
-        const image = element("img");
-        image.src = src;
-        image.alt = `${level.name || "Level"} preview`;
-        image.loading = "lazy";
-        image.addEventListener("error", placeholder, { once: true });
-        container.append(image);
-    } else placeholder();
-    return container;
-}
-
-function metadata(level, compact = false) {
-    const list = element("dl", "level-meta");
-    const victors = victorNames(records, level.id);
-    const victorText = recordsState === "error" ? "Unavailable" : recordsState === "loading" ? "Loading…" : compact ? String(victors.length) : victors.join(", ") || "No approved victors yet";
-    const fields = compact
-        ? [["Verifier", level.verifier], ["Points", level.points], ["Victors", victorText]]
-        : [["Creator", level.creator], ["Verifier", level.verifier], ["Victors", victorText], ["Points", level.points], ["Difficulty", level.difficulty]];
-    if (!compact && level.levelUrl) fields.push(["Level link", level.levelUrl]);
-    if (!compact && level.proofUrl) fields.push(["Video proof", level.proofUrl]);
-    for (const [label, value] of fields) {
-        const group = element("div");
-        const detail = element("dd");
-        const href = (label === "Level link" || label === "Video proof") ? safeURL(value) : null;
-        if (href) {
-            const link = element("a", "", label === "Level link" ? "Open level" : "Watch proof");
-            link.href = href;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            detail.append(link);
-        } else detail.textContent = value ?? "—";
-        group.append(element("dt", "", label), detail);
-        list.append(group);
-    }
-    return list;
-}
-
-function showDetails(id) {
-    const level = levels.find(item => item.id === id);
-    if (!level) return;
-    dialog.dataset.levelId = id;
-    const detail = document.getElementById("level-detail");
-    const title = element("h2", "", level.name || "Unnamed Level");
-    title.id = "detail-title";
-    detail.replaceChildren(element("p", "eyebrow", `DEMONLIST · ${placement(level)}`), title, thumbnail(level), metadata(level));
-    if (level.description) detail.append(element("p", "", level.description));
-    if (!dialog.open) dialog.showModal();
-}
-
-function openLink(link, id) {
+function levelLink(id, label, className = "") {
+    const link = element("a", className, label);
     link.href = `?level=${encodeURIComponent(id)}`;
     link.addEventListener("click", event => {
-        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         showDetails(id);
     });
+    return link;
 }
 
-function displayLevels() {
-    if (!loaded) return;
-    const query = search.value.toLowerCase().trim();
-    const filtered = levels.filter(level => [level.name, level.creator, level.verifier, ...victorNames(records, level.id)].some(value => String(value ?? "").toLowerCase().includes(query)));
-    count.textContent = levels.length;
-    resultCount.textContent = `${filtered.length} of ${levels.length} levels`;
-    ranking.replaceChildren();
-    levelsContainer.replaceChildren();
+function render() {
+    table.setAttribute("aria-busy", String(levelState.status === "loading"));
+    if (levelState.status === "loading") {
+        stateRow(body, 8, "Loading the demonlist…");
+        status.textContent = "Loading levels…";
+        return;
+    }
+    if (levelState.status === "error") {
+        stateRow(body, 8, "The demonlist is unavailable", dataMessage(levelState.error, "the rankings"), () => retryData("levels"));
+        status.textContent = "Rankings unavailable";
+        return;
+    }
+    const records = recordState.status === "ready" ? recordState.items : [];
+    const filtered = sortLevels(filterLevels(levelState.items, records, search.value), sort.value);
+    status.textContent = `${filtered.length} of ${levelState.items.length} levels`;
+    const recordNote = document.getElementById("records-note");
+    recordNote.hidden = recordState.status !== "error";
+    recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
+    for (const heading of table.querySelectorAll("th[data-sort]")) {
+        heading.setAttribute("aria-sort", heading.dataset.sort === sort.value ? sort.value === "points" ? "descending" : "ascending" : "none");
+    }
+    body.replaceChildren();
     if (!filtered.length) {
-        const empty = element("div", "state");
-        empty.append(element("h3", "", levels.length ? "No matching levels" : "No levels yet"), element("p", "", levels.length ? "Try another level name, creator, verifier, or victor." : "The rankings will appear here when levels are added."));
-        if (query) {
-            const clear = element("button", "", "Clear filter");
-            clear.addEventListener("click", () => { search.value = ""; displayLevels(); search.focus(); });
-            empty.append(clear);
+        stateRow(body, 8, levelState.items.length ? "No matching levels" : "No levels have been published yet", levelState.items.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
+        if (search.value) {
+            const clear = element("button", "secondary-button", "Clear search");
+            clear.type = "button";
+            clear.addEventListener("click", () => { search.value = ""; render(); search.focus(); });
+            body.querySelector("td").append(clear);
         }
-        levelsContainer.append(empty);
     }
-    filtered.forEach(level => {
-        const rank = placement(level);
-        const name = level.name || "Unnamed Level";
-        const card = element("article", "level-card");
-        const previewLink = element("a", "level-preview");
-        previewLink.setAttribute("aria-label", `View details for ${name}`);
-        openLink(previewLink, level.id);
+    for (const level of filtered) {
+        const row = element("tr", "demon-row");
+        const rank = element("td", position(level.position) === Infinity ? "rank unranked" : "rank", position(level.position) === Infinity ? "—" : position(level.position));
+        rank.setAttribute("aria-label", rankLabel(level));
+        const preview = element("td", "preview-cell");
+        const previewLink = levelLink(level.id, "");
+        previewLink.setAttribute("aria-label", `Details for ${String(level.name || "Unnamed level").trim()}`);
         previewLink.append(thumbnail(level));
-        const body = element("div", "level-body");
-        const heading = element("div", "level-heading");
-        const title = element("h3");
-        const link = element("a", "", name);
-        openLink(link, level.id);
-        title.append(element("span", rank === "Unranked" ? "position unranked" : "position", rank), document.createTextNode(" — "), link);
-        heading.append(title, element("p", "", `by ${level.creator || "Unknown creator"}`));
-        const detailLink = element("a", "detail-link", "Level details →");
-        detailLink.setAttribute("aria-label", `View details for ${name}`);
-        openLink(detailLink, level.id);
-        body.append(heading, metadata(level, true), detailLink);
-        card.append(previewLink, body);
-        levelsContainer.append(card);
-        const item = element("li");
-        const rankLink = element("a");
-        const rankName = element("span", "ranking-name", name);
-        rankName.append(element("small", "", level.creator || "Unknown creator"));
-        rankLink.append(element("span", "ranking-position", rank === "Unranked" ? "—" : rank), rankName);
-        openLink(rankLink, level.id);
-        item.append(rankLink);
-        ranking.append(item);
-    });
-}
-
-function showLoadError(error) {
-    console.error("Could not load demonlist:", error);
-    loaded = false;
-    levelsContainer.setAttribute("aria-busy", "false");
-    const state = element("div", "state");
-    const retry = element("button", "", "Try again");
-    retry.addEventListener("click", loadLevels);
-    let message = "We couldn’t load the rankings. Please check your connection and try again.";
-    if (error.code === "permission-denied") {
-        message = "The rankings are unavailable right now. Please try again later.";
-    } else if (error.code === "unavailable") {
-        message = "The list is temporarily unreachable. Check your connection and try again.";
+        preview.append(previewLink);
+        const name = element("td", "level-name");
+        name.append(levelLink(level.id, String(level.name || "Unnamed level").trim()));
+        const creator = element("td", "", level.creator || "—");
+        const verifier = element("td", "", level.verifier || "—");
+        const difficulty = element("td", "difficulty", level.category || level.difficulty || "—");
+        const points = element("td", "numeric", level.points ?? "—");
+        const victors = element("td", "numeric", recordState.status === "ready" ? victorNames(records, level.id).length : "—");
+        row.append(rank, preview, name, creator, verifier, difficulty, points, victors);
+        body.append(row);
     }
-    state.append(element("h3", "", "The demonlist is unavailable"), element("p", "", message));
-    if (error.code) state.append(element("p", "", `Error: ${error.code}`));
-    state.append(retry);
-    levelsContainer.replaceChildren(state);
-    ranking.replaceChildren();
-    count.textContent = "—";
-    resultCount.textContent = "Rankings unavailable";
-}
-
-async function loadLevels() {
-    const generation = ++loadGeneration;
-    if (unsubscribeLevels) unsubscribeLevels();
-    unsubscribeLevels = null;
-    loaded = false;
-    levelsContainer.setAttribute("aria-busy", "true");
-    levelsContainer.replaceChildren(element("div", "state", "Loading demonlist…"));
-    resultCount.textContent = "Loading rankings…";
-    try {
-        const [{ db }, { collection, onSnapshot }] = await Promise.all([
-            import("./firebase.js"),
-            import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
-        ]);
-        if (generation !== loadGeneration) return;
-        let firstSnapshot = true;
-        unsubscribeLevels = onSnapshot(collection(db, "levels"), snapshot => {
-            if (generation !== loadGeneration) return;
-            levels = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-            const position = value => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : Infinity;
-            levels.sort((a, b) => position(a.position) - position(b.position) || String(a.name ?? "").localeCompare(String(b.name ?? "")));
-            loaded = true;
-            displayLevels();
-            levelsContainer.setAttribute("aria-busy", "false");
-            if (firstSnapshot) {
-                const selected = new URLSearchParams(location.search).get("level");
-                if (selected) showDetails(selected);
-                firstSnapshot = false;
-            }
-        }, error => {
-            if (generation === loadGeneration) showLoadError(error);
-        });
-    } catch (error) {
-        if (generation === loadGeneration) showLoadError(error);
+    if (dialog.open) {
+        if (levelState.items.some(level => level.id === dialog.dataset.levelId)) showDetails(dialog.dataset.levelId);
+        else dialog.close();
+    }
+    if (initialSelection) {
+        initialSelection = false;
+        const selected = new URLSearchParams(location.search).get("level");
+        if (selected && levelState.items.some(level => level.id === selected)) showDetails(selected);
+        else if (selected) {
+            document.getElementById("selection-status").hidden = false;
+            document.getElementById("selection-status").textContent = "That level is no longer available. Browse the current list below.";
+        }
     }
 }
 
-search.addEventListener("input", displayLevels);
+function showDetails(id) {
+    const level = levelState.items.find(item => item.id === id);
+    if (!level) return;
+    dialog.dataset.levelId = id;
+    const detail = document.getElementById("level-detail");
+    const title = element("h2", "", String(level.name || "Unnamed level").trim());
+    title.id = "detail-title";
+    const meta = element("dl", "detail-meta");
+    for (const [label, value] of [["Creator", level.creator], ["Verifier", level.verifier], ["Difficulty / category", level.category || level.difficulty], ["Points", level.points]]) {
+        const group = element("div");
+        group.append(element("dt", "", label), element("dd", "", value ?? "—"));
+        meta.append(group);
+    }
+    detail.replaceChildren(element("p", "eyebrow", rankLabel(level)), title, thumbnail(level), meta);
+    if (level.description) detail.append(element("p", "level-description", level.description));
+    const links = element("div", "detail-actions");
+    const permanent = element("a", "", "Permanent link");
+    permanent.href = `?level=${encodeURIComponent(id)}`;
+    links.append(permanent);
+    for (const [value, label] of [[level.levelUrl, "Open level ↗"], [level.proofUrl, "Watch verification ↗"]]) {
+        const link = externalLink(value, label);
+        if (link) links.append(link);
+    }
+    detail.append(links, element("h3", "", "Approved victors"));
+    if (recordState.status === "ready") {
+        const names = victorNames(recordState.items, id);
+        if (names.length) {
+            const list = element("ul", "victor-list");
+            for (const name of names) list.append(element("li", "", name));
+            detail.append(list);
+            const recordsLink = element("a", "", "View completion records →");
+            recordsLink.href = `records.html?level=${encodeURIComponent(id)}`;
+            detail.append(recordsLink);
+        } else detail.append(element("p", "muted", "No approved completions have been recorded."));
+    } else detail.append(element("p", "muted", recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "Loading approved records…"));
+    if (!dialog.open) dialog.showModal();
+}
+
+search.addEventListener("input", render);
+sort.addEventListener("change", render);
 document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
-dialog.addEventListener("click", event => { if (event.target === dialog) { const bounds = dialog.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close(); } });
-loadLevels();
-(async () => {
-    try {
-        const [{ db }, { collection, query, where, onSnapshot }] = await Promise.all([
-            import("./firebase.js"), import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
-        ]);
-        const refresh = () => {
-            displayLevels();
-            if (dialog.open && dialog.dataset.levelId) showDetails(dialog.dataset.levelId);
-        };
-        onSnapshot(query(collection(db, "records"), where("approved", "==", true)), snapshot => {
-            records = snapshot.docs.map(item => item.data());
-            recordsState = "ready";
-            refresh();
-        }, () => { recordsState = "error"; refresh(); });
-    } catch { recordsState = "error"; displayLevels(); }
-})();
+dialog.addEventListener("click", event => {
+    if (event.target !== dialog) return;
+    const bounds = dialog.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+});
+subscribeData("levels", value => { levelState = value; render(); });
+subscribeData("records", value => { recordState = value; render(); });
 

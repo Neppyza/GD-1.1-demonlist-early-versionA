@@ -1,212 +1,167 @@
-import { auth, db } from "./firebase.js";
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, getIdTokenResult } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { collection, doc, getDocs, query, where, serverTimestamp, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { subscribeAuth, requireStaff } from "./auth.js";
+import { dataMessage } from "./messages.js";
+import { sortLevels } from "./list-model.js";
+import { element, externalLink, setBusy } from "./ui.js";
 
-const status = document.getElementById("staff-status");
+const tools = document.getElementById("staff-tools");
 const queue = document.getElementById("review-queue");
-const login = document.getElementById("staff-sign-in");
-const logout = document.getElementById("staff-sign-out");
-let staffUser = null;
+const status = document.getElementById("staff-status");
+const select = document.getElementById("victor-level");
+let identity;
+let generation = 0;
+let staffId = null;
 
-login.addEventListener("click", async () => {
-    login.disabled = true;
-    status.textContent = "Opening Google sign-in…";
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-    catch { status.textContent = "Google sign-in did not finish. Please try again."; }
-    finally { login.disabled = false; }
+subscribeAuth(state => {
+    if (!state.ready) return;
+    const key = `${state.user?.uid || ""}:${state.staff}`;
+    if (identity === key) return;
+    identity = key;
+    ++generation;
+    staffId = state.staff ? state.user.uid : null;
+    tools.hidden = true;
+    queue.replaceChildren();
+    select.replaceChildren();
+    document.getElementById("victor-form").reset();
+    document.getElementById("victor-status").textContent = "";
+    document.getElementById("staff-uid").textContent = state.user ? `Firebase UID: ${state.user.uid}` : "";
+    if (!state.user) { status.textContent = "Sign in with your approved staff Google account."; return; }
+    if (!state.staff) { status.textContent = "This account does not have administrator access."; return; }
+    loadStaff(generation);
 });
-logout.addEventListener("click", () => signOut(auth).catch(() => { status.textContent = "Could not sign out. Please try again."; }));
 
-onAuthStateChanged(auth, async user => {
-    staffUser = user;
-    queue.hidden = true;
-    document.getElementById("victor-panel").hidden = true;
-    document.getElementById("staff-uid").textContent = user ? `Your Firebase UID: ${user.uid}` : "";
-    login.hidden = Boolean(user);
-    logout.hidden = !user;
-    if (!user) {
-        status.textContent = "Sign in with your staff Google account.";
-        return;
-    }
+async function loadStaff(turn) {
+    status.textContent = "Checking administrator permissions…";
     try {
-        const token = await getIdTokenResult(user, true);
-        if (token.claims.owner !== true && token.claims.admin !== true) {
-            status.textContent = "This Google account does not have staff access.";
-            return;
-        }
-        status.textContent = `Staff access enabled for ${user.displayName || "your account"}.`;
-        queue.hidden = false;
-        document.getElementById("victor-panel").hidden = false;
-        const levels = await getDocs(collection(db, "levels"));
-        const select = document.getElementById("victor-level");
+        const client = await requireStaff();
+        if (turn !== generation || client.user.uid !== staffId) return;
+        const sdk = client.storeSDK;
+        const results = await Promise.all([
+            sdk.getDocs(sdk.collection(client.db, "levels")),
+            sdk.getDocs(sdk.query(sdk.collection(client.db, "submissions"), sdk.where("status", "==", "pending")))
+        ]);
+        if (turn !== generation || client.auth.currentUser?.uid !== client.user.uid) return;
+        tools.hidden = false;
         select.replaceChildren();
-        for (const item of levels.docs) {
-            const option = document.createElement("option");
-            option.value = item.id; option.textContent = item.data().name || item.id;
+        const placeholder = element("option", "", "Choose a level");
+        placeholder.value = "";
+        select.append(placeholder);
+        for (const level of sortLevels(results[0].docs.map(doc => ({ ...doc.data(), id: doc.id })))) {
+            const option = element("option", "", level.name || "Unnamed level");
+            option.value = level.id;
             select.append(option);
         }
-        await loadQueue();
-    } catch {
-        status.textContent = "Could not check staff access.";
-    }
-});
-
-async function loadQueue() {
-    queue.replaceChildren();
-    const loading = document.createElement("p");
-    loading.textContent = "Loading pending submissions…";
-    queue.append(loading);
-    try {
-        const snapshot = await getDocs(query(collection(db, "submissions"), where("status", "==", "pending")));
         queue.replaceChildren();
-        if (snapshot.empty) {
-            const empty = document.createElement("p");
-            empty.textContent = "There are no pending submissions.";
-            queue.append(empty);
-            return;
+        for (const doc of results[1].docs) queue.append(renderSubmission(doc.id, doc.data(), turn));
+        if (results[1].empty) queue.append(element("p", "muted", "There are no pending submissions."));
+        status.textContent = "Administrator access verified.";
+    } catch (error) {
+        if (turn === generation) {
+            tools.hidden = true;
+            status.textContent = dataMessage(error, "the staff review queue");
         }
-        for (const result of snapshot.docs) queue.append(renderSubmission(result.id, result.data()));
-    } catch {
-        queue.replaceChildren();
-        const error = document.createElement("p");
-        error.textContent = "Could not load the review queue. Check Firestore rules.";
-        queue.append(error);
     }
 }
+document.getElementById("refresh-queue").addEventListener("click", () => loadStaff(++generation));
+document.getElementById("staff-retry").addEventListener("click", () => loadStaff(++generation));
 
-function renderSubmission(id, data) {
-    const card = document.createElement("article");
-    card.className = "submission-item";
-    const title = document.createElement("h2");
-    title.textContent = data.levelName || "Untitled level";
-    const submittedBy = document.createElement("p");
-    submittedBy.textContent = `Submitted by ${data.submittedBy || "Unknown player"}`;
-    const info = document.createElement("p");
-    info.textContent = `Creator: ${data.creator || "—"} · Verifier: ${data.verifier || "—"}`;
-    const links = document.createElement("p");
-    const levelLink = safeLink(data.levelUrl, "Open level link");
-    const proofLink = safeLink(data.proofUrl, "Watch completion proof");
-    if (levelLink) links.append(levelLink, document.createTextNode(" · "));
-    if (proofLink) links.append(proofLink);
-    const notes = document.createElement("p");
-    notes.textContent = data.notes ? `Notes: ${data.notes}` : "No reviewer notes.";
-    const form = document.createElement("form");
-    form.className = "review-form";
-    const positionLabel = document.createElement("label");
-    positionLabel.textContent = "Position";
-    const position = document.createElement("input");
-    position.type = "number"; position.min = "1"; position.step = "1"; position.required = true;
-    positionLabel.append(position);
-    const pointsLabel = document.createElement("label");
-    pointsLabel.textContent = "Points";
-    const points = document.createElement("input");
-    points.type = "number"; points.min = "0"; points.step = "0.01"; points.required = true;
-    pointsLabel.append(points);
-    const approve = document.createElement("button");
-    approve.type = "submit"; approve.textContent = "Approve and publish";
-    const reject = document.createElement("button");
-    reject.type = "button"; reject.className = "secondary-button"; reject.textContent = "Reject";
-    const result = document.createElement("p");
-    result.setAttribute("role", "status");
-    form.append(positionLabel, pointsLabel, approve, reject, result);
+function renderSubmission(id, data, turn) {
+    const card = element("article", "review-item");
+    card.append(element("h3", "", data.levelName || "Untitled level"), element("p", "muted", `Submitted by ${data.submittedBy || "—"} · Creator: ${data.creator || "—"} · Verifier: ${data.verifier || "—"}`));
+    const links = element("div", "detail-actions");
+    for (const [url, label] of [[data.levelUrl, "Open level ↗"], [data.proofUrl, "Watch proof ↗"]]) {
+        const link = externalLink(url, label);
+        if (link) links.append(link);
+    }
+    card.append(links);
+    if (data.notes) card.append(element("p", "", data.notes));
+    const form = element("form", "review-form");
+    for (const [name, label, type] of [["position", "Position", "number"], ["points", "Points", "number"], ["difficulty", "Difficulty (optional)", "text"]]) {
+        const group = element("label", "", label);
+        const input = element("input");
+        input.name = name; input.type = type;
+        if (type === "number") { input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
+        else input.maxLength = 60;
+        group.append(input); form.append(group);
+    }
+    const approve = element("button", "", "Approve and publish");
+    approve.type = "submit";
+    const reject = element("button", "secondary-button", "Reject");
+    reject.type = "button";
+    const output = element("p", "form-status");
+    output.setAttribute("role", "status");
+    form.append(approve, reject, output);
     form.addEventListener("submit", async event => {
         event.preventDefault();
-        const rank = Number(position.value);
-        const score = Number(points.value);
-        if (!Number.isInteger(rank) || rank < 1 || !Number.isFinite(score) || score < 0) {
-            result.textContent = "Enter a positive whole-number position and non-negative points.";
-            return;
-        }
-        approve.disabled = reject.disabled = true;
+        if (form.dataset.busy === "true") return;
+        const rank = Number(form.elements.position.value);
+        const points = Number(form.elements.points.value);
+        const difficulty = form.elements.difficulty.value.trim();
+        if (!Number.isInteger(rank) || rank < 1 || !Number.isFinite(points) || points < 0) { output.textContent = "Enter a positive whole-number placement and non-negative points."; return; }
+        setBusy(form, true);
+        output.textContent = "Checking access and publishing…";
         try {
-            const levelRef = doc(collection(db, "levels"));
-            const batch = writeBatch(db);
-            batch.set(levelRef, {
-                name: data.levelName,
-                position: rank,
-                points: score,
-                creator: data.creator,
-                verifier: data.verifier,
-                levelUrl: data.levelUrl,
-                proofUrl: data.proofUrl,
-                difficulty: "Demon"
+            const client = await requireStaff();
+            if (turn !== generation || client.user.uid !== staffId) throw { code: "auth/requires-login" };
+            const sdk = client.storeSDK;
+            const submission = sdk.doc(client.db, "submissions", id);
+            const level = sdk.doc(sdk.collection(client.db, "levels"));
+            await sdk.runTransaction(client.db, async transaction => {
+                const snapshot = await transaction.get(submission);
+                if (!snapshot.exists() || snapshot.data().status !== "pending") throw new Error("This submission has already been reviewed. Refresh the queue.");
+                const saved = snapshot.data();
+                const entry = { name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
+                if (difficulty) entry.difficulty = difficulty;
+                transaction.set(level, entry);
+                transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });
-            batch.update(doc(db, "submissions", id), {
-                status: "approved",
-                levelId: levelRef.id,
-                reviewedBy: staffUser.uid,
-                reviewedAt: serverTimestamp()
-            });
-            await batch.commit();
-            card.remove();
-            status.textContent = "Level approved and added to the public Demonlist.";
-            if (!queue.children.length) {
-                const empty = document.createElement("p");
-                empty.textContent = "There are no pending submissions.";
-                queue.append(empty);
-            }
-        } catch {
-            result.textContent = "Could not publish this level. Check the required level fields and Firestore rules.";
-            approve.disabled = reject.disabled = false;
-        }
+            if (turn === generation) { status.textContent = "Level published."; await loadStaff(turn); }
+        } catch (error) {
+            if (turn === generation) output.textContent = error.code ? dataMessage(error, "this level") : error.message || "Could not publish this level.";
+        } finally { setBusy(form, false); }
     });
     reject.addEventListener("click", async () => {
-        reject.disabled = approve.disabled = true;
+        if (form.dataset.busy === "true") return;
+        setBusy(form, true);
+        output.textContent = "Checking access and rejecting…";
         try {
-            const batch = writeBatch(db);
-            batch.update(doc(db, "submissions", id), {
-                status: "rejected",
-                reviewedBy: staffUser.uid,
-                reviewedAt: serverTimestamp()
+            const client = await requireStaff();
+            if (turn !== generation || client.user.uid !== staffId) throw { code: "auth/requires-login" };
+            const sdk = client.storeSDK;
+            const reference = sdk.doc(client.db, "submissions", id);
+            await sdk.runTransaction(client.db, async transaction => {
+                const snapshot = await transaction.get(reference);
+                if (!snapshot.exists() || snapshot.data().status !== "pending") throw new Error("This submission has already been reviewed. Refresh the queue.");
+                transaction.update(reference, { status: "rejected", reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });
-            await batch.commit();
-            card.remove();
-            if (!queue.children.length) {
-                const empty = document.createElement("p");
-                empty.textContent = "There are no pending submissions.";
-                queue.append(empty);
-            }
-        } catch {
-            result.textContent = "Could not reject this submission.";
-            approve.disabled = reject.disabled = false;
-        }
+            if (turn === generation) await loadStaff(turn);
+        } catch (error) {
+            if (turn === generation) output.textContent = error.code ? dataMessage(error, "this submission") : error.message || "Could not reject this submission.";
+        } finally { setBusy(form, false); }
     });
-    card.append(title, submittedBy, info, links, notes, form);
+    card.append(form);
     return card;
 }
 
-function safeLink(value, label) {
-    try {
-        const url = new URL(value);
-        if (url.protocol !== "https:") return null;
-        const anchor = document.createElement("a");
-        anchor.href = url.href;
-        anchor.textContent = label;
-        anchor.target = "_blank";
-        anchor.rel = "noopener noreferrer";
-        return anchor;
-    } catch { return null; }
-}
-
-
-
 document.getElementById("victor-form").addEventListener("submit", async event => {
     event.preventDefault();
-    if (!staffUser) return;
     const form = event.currentTarget;
-    const button = form.querySelector("button");
+    if (form.dataset.busy === "true") return;
     const output = document.getElementById("victor-status");
     const player = form.elements.player.value.trim();
     const playerId = form.elements.playerId.value.trim();
     const levelId = form.elements.levelId.value;
-    if (!player || !playerId || !levelId) return;
-    button.disabled = true;
+    if (!player || player.length > 60 || !playerId || playerId.length > 100 || !levelId || !form.elements.checkedProof.checked) { output.textContent = "Complete the player and level fields and confirm the proof check."; return; }
+    const turn = generation;
+    setBusy(form, true);
+    output.textContent = "Checking access and saving the completion…";
     try {
-        // Stable pair key keeps repeated approvals from creating duplicate records.
+        const client = await requireStaff();
+        if (turn !== generation || client.user.uid !== staffId) throw { code: "auth/requires-login" };
         const key = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([playerId, levelId])))), byte => byte.toString(16).padStart(2, "0")).join("");
-        await setDoc(doc(db, "records", key), { player, playerId, levelId, progress: 100, approved: true });
-        output.textContent = "Victor added. The completion now appears on the list and in Stats.";
-        form.reset();
-    } catch { output.textContent = "Could not save the victor. Check staff access and database rules."; }
-    finally { button.disabled = false; }
+        // Existing stable pair key and record fields are preserved.
+        await client.storeSDK.setDoc(client.storeSDK.doc(client.db, "records", key), { player, playerId, levelId, progress: 100, approved: true });
+        if (turn === generation) { form.reset(); output.textContent = "Completion approved. It now appears in Records and Players."; }
+    } catch (error) {
+        if (turn === generation) output.textContent = dataMessage(error, "this completion");
+    } finally { setBusy(form, false); }
 });

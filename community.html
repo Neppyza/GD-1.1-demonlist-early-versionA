@@ -3,61 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Manage your private Demonlist profile and submit a level for review.">
-  <title>Player Hub · GD 1.1 Demonlist</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Sign in to Crux with Google, manage a private profile and track your level submissions.">
+  <meta property="og:title" content="Account · Crux">
+  <meta property="og:description" content="Sign in to Crux with Google, manage a private profile and track your level submissions.">
+  <meta property="og:type" content="website">
+  <title>Account · Crux</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <script src="theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header"><div class="header-inner">
-    <a class="site-title" href="index.html"><span class="brand-mark" aria-hidden="true">1.1</span> GD 1.1 <span>DEMONLIST</span></a>
-    <nav aria-label="Main navigation">
-        <a href="index.html">Demonlist</a>
-        <a href="stats.html">Stats Viewer</a>
-        <a class="active" aria-current="page" href="community.html">Player Hub</a>
-        <a href="index.html#about">About the list</a>
-      </nav>
-  </div></header>
-  <main class="feature-main community">
-    <p class="eyebrow">PLAYER HUB</p><h1>Profile & level submissions</h1>
-    <p>Sign in with Google to manage your private profile and send a level to the list team for review.</p>
-    <div class="auth-row"><button id="google-sign-in" type="button">Continue with Google</button><button id="google-sign-out" type="button" hidden>Sign out</button><span id="account-status" role="status">Sign in to continue.</span></div>
-    <section id="community-rules" class="form-panel" hidden aria-labelledby="rules-title">
-      <h2 id="rules-title">Keep the community welcoming</h2>
-      <ul><li>No swearing, slurs, harassment, or hateful language.</li><li>No sexual, violent, or otherwise inappropriate names, images, links, or content.</li><li>No spam, impersonation, cheating, or fake completion proof.</li><li>Respect other players. Staff review submissions and may reject content that breaks these rules.</li></ul>
-      <form id="community-rules-form"><label class="check-row"><input id="community-agreement" type="checkbox" required><span>I have read and agree to the community rules.</span></label><button type="submit">Accept and continue</button><p id="agreement-status" role="status"></p></form>
-    </section>
-    <div id="member-content" hidden>
-      <section class="form-panel">
-        <h2>Your private profile</h2>
-        <p>Your profile details are visible only to you. Your Google email is never shown on the public Demonlist.</p>
-        <form id="profile-form">
-          <label for="display-name">Demonlist name</label><input id="display-name" name="displayName" maxlength="24" minlength="3" required autocomplete="nickname">
-          <label for="profile-bio">About you <span>(optional, 300 characters max)</span></label><textarea id="profile-bio" name="bio" maxlength="300" rows="4"></textarea>
-          <button type="submit">Save private profile</button><p id="profile-status" role="status"></p>
-        </form>
-      </section>
-      <section class="form-panel">
-        <h2>Submit a level</h2>
-        <p>Submissions stay private while pending review. The list team checks every level and name before publishing.</p>
-        <div class="rules-box"><strong>Submission rules</strong><ul><li>Use respectful, appropriate player and level names. Inappropriate names or content will be rejected.</li><li>Include the level page link and a video link showing the completion.</li><li>Enter the level creator and verifier accurately. A verifier is the first player to complete and verify the level. Victors are players with approved 100% completion records.</li><li>Only submit a level you have permission to share. Staff decides its placement and points.</li></ul></div>
-        <form id="submission-form">
-          <label for="level-name">Level name</label><input id="level-name" name="levelName" maxlength="80" required>
-          <label for="level-url">Level link</label><input id="level-url" name="levelUrl" type="url" placeholder="https://…" required>
-          <label for="creator-name">Creator</label><input id="creator-name" name="creator" maxlength="60" required>
-          <label for="verifier-name">Verifier</label><input id="verifier-name" name="verifier" maxlength="60" required>
-          <label for="proof-url">Completion video link</label><input id="proof-url" name="proofUrl" type="url" placeholder="https://…" required>
-          <label for="submission-notes">Notes for the reviewers <span>(optional)</span></label><textarea id="submission-notes" name="notes" maxlength="500" rows="3"></textarea>
-          <label class="check-row"><input id="rules-accepted" type="checkbox" required><span>I have read the rules and confirm these details are accurate.</span></label>
-          <button type="submit">Send for review</button><p id="submission-status" role="status"></p>
-        </form>
-      </section>
-      <section class="form-panel"><h2>Your submissions</h2><div id="my-submissions"><p>Loading your submissions…</p></div></section>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Crux home">cru<span>x</span><small>GD 1.1</small></a>
+      <nav aria-label="Main navigation"><a href="index.html">Demonlist</a>
+<a href="stats.html">Players</a>
+<a href="records.html">Records</a>
+<a href="submit.html">Submit</a>
+<a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Staff</a></nav>
+      <div class="account-nav"><a href="community.html" data-account-link class="active" aria-current="page">Sign in</a><button type="button" class="text-button" data-auth-logout hidden>Sign out</button></div>
     </div>
-  </main>
+    <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
+  </header>
+  <main id="main" class="page"><div class="page-heading"><div><h1>Your account</h1><p>Manage your private profile and follow your level submissions.</p></div></div><div class="content-layout"><div><section class="auth-panel" aria-labelledby="signin-title"><h2 id="signin-title">Your Google account</h2><p>Sign in securely with Google. Your first sign-in creates a Crux account; no separate password is needed.</p><div class="auth-actions"><button type="button" data-auth-login disabled>Continue with Google</button><button type="button" class="secondary-button" data-auth-logout hidden>Sign out</button></div><p data-auth-status class="form-status" role="status">Restoring your session…</p></section><section id="community-rules" class="section-block" hidden aria-labelledby="consent-title"><h2 id="consent-title">Before you continue</h2><p>Read the <a href="rules.html">community rules</a> before creating a profile or submitting a level.</p><form id="community-rules-form"><label class="check-row"><input id="community-agreement" name="agreement" type="checkbox" required><span>I have read and agree to the community rules.</span></label><button type="submit">Accept and continue</button><p id="agreement-status" class="form-status" role="status" data-private-status></p></form></section><p id="member-status" class="form-status" role="status"></p><button id="account-retry" class="secondary-button" type="button" hidden>Retry account loading</button><div id="member-content" hidden>
+    <section class="section-block"><h2>Private profile</h2><p class="muted">Only you can read your profile. Your Google email is never shown on the public list.</p><form id="profile-form" class="stack-form"><label for="display-name">Player name</label><input id="display-name" name="displayName" minlength="3" maxlength="24" required autocomplete="nickname"><label for="profile-bio">About you <span class="muted">(optional)</span></label><textarea id="profile-bio" name="bio" maxlength="300" rows="4"></textarea><button type="submit">Save profile</button><p id="profile-status" class="form-status" role="status" data-private-status></p></form></section><section class="section-block"><div class="section-heading"><h2>Your submissions</h2><a href="submit.html">Submit a level →</a></div><div id="my-submissions"></div></section>
+    </div></div><aside class="help-column"><h2>One account, your progress</h2><p>A saved player name is required for level submissions. Pending submissions stay private until reviewed.</p><a href="submit.html">Submit a level →</a><a href="rules.html">Community rules →</a></aside></div></main>
+  <footer class="site-footer"><div><strong>Crux</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <script type="module" src="site.js"></script>
   <script type="module" src="community.js"></script>
 </body>
 </html>

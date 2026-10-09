@@ -1,0 +1,54 @@
+const fs = require('node:fs');
+const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
+const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, serverTimestamp } = require('firebase/firestore');
+
+(async () => {
+    const env = await initializeTestEnvironment({ projectId: 'demo-crux', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync('firestore.rules','utf8') } });
+    let passed = 0;
+    const check = async (label, promise, allowed) => { await (allowed ? assertSucceeds(promise) : assertFails(promise)); ++passed; console.log('PASS',label); };
+    const level = { name:'Emulator level', position:1, points:50, creator:'Creator', verifier:'Verifier', levelUrl:'https://example.org/level', proofUrl:'https://example.org/proof' };
+    const record = { player:'Player',playerId:'player-a',levelId:'level-a',progress:100,approved:true };
+    try {
+        await env.withSecurityRulesDisabled(async context => {
+            const db=context.firestore();
+            await setDoc(doc(db,'levels','level-a'),level);
+            await setDoc(doc(db,'records','record-a'),record);
+            await setDoc(doc(db,'records','private-record'),{...record,approved:false});
+        });
+        const guest=env.unauthenticatedContext().firestore();
+        const player=env.authenticatedContext('player-a',{firebase:{sign_in_provider:'google.com'}}).firestore();
+        const other=env.authenticatedContext('player-b',{firebase:{sign_in_provider:'google.com'}}).firestore();
+        const admin=env.authenticatedContext('staff-a',{admin:true,firebase:{sign_in_provider:'google.com'}}).firestore();
+        const passwordAdmin=env.authenticatedContext('staff-b',{admin:true,firebase:{sign_in_provider:'password'}}).firestore();
+        await check('public level reads',getDoc(doc(guest,'levels','level-a')),true);
+        await check('approved records query',getDocs(query(collection(guest,'records'),where('approved','==',true))),true);
+        await check('unapproved record stays private',getDoc(doc(guest,'records','private-record')),false);
+        await check('guest cannot publish a level',setDoc(doc(guest,'levels','guest-level'),level),false);
+        await check('guest cannot approve a record',setDoc(doc(guest,'records','guest-record'),record),false);
+        await check('member cannot publish a level',setDoc(doc(player,'levels','member-level'),level),false);
+        await check('member cannot approve a record',setDoc(doc(player,'records','member-record'),record),false);
+        await check('Google provider is required even for staff',setDoc(doc(passwordAdmin,'levels','password-level'),level),false);
+        await check('profile requires rules agreement',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',updatedAt:serverTimestamp()}),false);
+        await check('correct agreement version',setDoc(doc(player,'agreements','player-a'),{version:'2026-10-05',acceptedAt:serverTimestamp()}),true);
+        await check('profile save after agreement',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',updatedAt:serverTimestamp()}),true);
+        await check('profile owner can read it',getDoc(doc(player,'profiles','player-a')),true);
+        await check('another user cannot read a private profile',getDoc(doc(other,'profiles','player-a')),false);
+        await check('staff cannot read private player profiles',getDoc(doc(admin,'profiles','player-a')),false);
+        await check('cannot forge another user agreement',setDoc(doc(player,'agreements','player-b'),{version:'2026-10-05',acceptedAt:serverTimestamp()}),false);
+        await check('outdated agreement version rejected',setDoc(doc(player,'agreements','player-a'),{version:'old',acceptedAt:serverTimestamp()}),false);
+        const submission={ownerUid:'player-a',submittedBy:'Player A',levelName:'Submitted level',levelUrl:'https://example.org/level',creator:'Creator',verifier:'Verifier',proofUrl:'https://example.org/proof',notes:'',status:'pending',submittedAt:serverTimestamp()};
+        await check('signed-in member creates a pending submission',setDoc(doc(player,'submissions','submission-a'),submission),true);
+        await check('cannot submit as another user',setDoc(doc(player,'submissions','forged'),{...submission,ownerUid:'player-b'}),false);
+        await check('cannot self-approve a new submission',setDoc(doc(player,'submissions','approved'),{...submission,status:'approved'}),false);
+        await check('member cannot approve existing submission',updateDoc(doc(player,'submissions','submission-a'),{status:'approved'}),false);
+        await check('another member cannot read pending submissions',getDoc(doc(other,'submissions','submission-a')),false);
+        await check('owner can list their submissions',getDocs(query(collection(player,'submissions'),where('ownerUid','==','player-a'))),true);
+        await check('staff can review pending submissions',getDocs(query(collection(admin,'submissions'),where('status','==','pending'))),true);
+        await check('staff publishes a valid level',setDoc(doc(admin,'levels','staff-level'),level),true);
+        await check('staff cannot publish incomplete level fields',setDoc(doc(admin,'levels','incomplete'),{name:'Incomplete'}),false);
+        await check('staff approves a full completion',setDoc(doc(admin,'records','staff-record'),record),true);
+        await check('partial completion rejected by current rules',setDoc(doc(admin,'records','partial'),{...record,progress:99}),false);
+        await check('record must reference an existing level',setDoc(doc(admin,'records','missing-level'),{...record,levelId:'not-a-level'}),false);
+        console.log(`${passed} Firestore permission checks passed against the unchanged production rules in the emulator.`);
+    } finally { await env.cleanup(); }
+})().catch(error=>{console.error(error);process.exitCode=1;});
