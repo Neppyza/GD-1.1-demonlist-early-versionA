@@ -6,7 +6,7 @@ The existing vanilla HTML/CSS/JavaScript project and Firebase backend are retain
 
 ## Pages and implementation
 
-The Demonlist has a compact ranking table, real thumbnails with fallbacks, creator/verifier/category metadata, points, approved victor counts, search, placement/name/points sorting, and linked level details. Players, Records, Submit, Rules, Account, and Staff share the same typography, rust accent, accessible navigation, light/dark palettes, and responsive layout. Missing fields are displayed explicitly rather than filled with fictional data.
+The Demonlist has a thumbnail-led ranking rows and a separate ranking index, real thumbnails with fallbacks, creator/verifier/category metadata, points, approved victor counts, search, placement/name/points sorting, and linked level details. Players, Records, Submit, Rules, Account, and Staff share the same typography, blue accent, accessible navigation, light/dark palettes, and responsive layout. Missing fields are displayed explicitly rather than filled with fictional data.
 
 - `firebase.js`, `auth.js`, `messages.js`, `site.js`: one modular Firebase SDK version, shared actual authentication state, explicit local persistence, Google login/logout, visible failures, safe return destinations, and refreshed staff-claim checks.
 - `data.js`, `list-model.js`, `ui.js`: shared public collection listeners, real-data filtering/sorting, safe DOM rendering, validated external links, and loading/error/empty states.
@@ -33,7 +33,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser suite starts its own local HTTP server. It deliberately uses browser-only SDK fixtures so tests never write to production or fake a successful production login. It exercises search/sorting, one public listener per collection, record deduplication, detail routes, explicit auth failures, duplicate-action prevention, private-field cleanup, protected submissions/staff flows, and seven pages at widths 320, 390, 540, 768, 1024, and 1440. It saves screenshots to ignored `test-output/`.
+The browser suite starts its own local HTTP server. It deliberately uses browser-only SDK fixtures so tests never write to production or fake a successful production login. It exercises search/sorting, ranked/unranked section filters, one public listener per collection, record deduplication, detail routes, explicit auth failures, duplicate-action prevention, private-field cleanup, protected submissions/staff flows, and seven pages at widths 320, 390, 540, 768, 1024, and 1440. It saves screenshots to ignored `test-output/`.
 
 For permission checks, install Java 17 and use the Firebase CLI's local emulator:
 

@@ -26,15 +26,22 @@
     </div>
     <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
   </header>
-  <main id="main" class="page"><div class="page-heading"><div><h1>Demonlist</h1><p>The hardest levels in Roblox Geometry Dash 1.1, ranked by difficulty.</p></div><span class=page-note>Official placements</span></div>
-    <div class="list-toolbar"><div class="search-control"><label for="search">Search levels</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div></div>
-    <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
-    <p id="records-note" class="inline-error" role="status" hidden></p><p id="selection-status" role="status" hidden></p>
-    <p class="table-hint">Scroll across the table to see all level details.</p>
-    <div class="table-scroll" role="region" aria-label="Demonlist rankings" tabindex="0"><table id="demon-table" class="demon-table" aria-busy="true"><caption class="sr-only">Crux demon rankings</caption><thead><tr><th scope="col" data-sort="position">Pos.</th><th scope="col"><span class="sr-only">Preview</span></th><th scope="col" data-sort="name">Level</th><th scope="col">Creator</th><th scope="col">Verifier</th><th scope="col">Difficulty / category</th><th scope="col" data-sort="points" class="numeric">Points</th><th scope="col" class="numeric">Victors</th></tr></thead><tbody id="levels"><tr><td colspan="8" class="table-state">Loading the demonlist…</td></tr></tbody></table></div>
-    <div class="list-notes"><p>Missing details are shown as —. Unranked entries keep their database information and appear after ranked levels.</p><a href="submit.html">Submit a level →</a></div>
+  <main id="main" class="page list-page">
+    <div class="list-heading"><div><p class="eyebrow">ROBLOX GEOMETRY DASH 1.1</p><h1>The Demonlist</h1></div><a href="rules.html">Submission guidelines →</a></div>
+    <div class="list-sections" role="group" aria-label="Ranking sections"><button type="button" data-section="all" aria-pressed="true">All levels</button><button type="button" data-section="ranked" aria-pressed="false">Ranked</button><button type="button" data-section="unranked" aria-pressed="false">Unranked</button></div>
+    <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
+      <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div></div>
+      <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
+      <p id="records-note" class="inline-error" role="status" hidden></p><p id="selection-status" role="status" hidden></p>
+      <div id="demon-table" class="demon-list" aria-busy="true"><div id="levels"><div class="list-state">Loading the demonlist…</div></div></div>
+      <p class="list-footnote">Placements and level information come from the official database. Entries without a placement appear as unranked.</p>
+    </section><aside class="list-sidebar" aria-label="List information">
+      <section class="sidebar-section"><h2>Rankings</h2><p>Jump to a level’s details.</p><ol id="ranking-index" class="ranking-index"><li class="muted">Loading rankings…</li></ol></section>
+      <section class="sidebar-section"><h2>Guidelines</h2><p>Read the community and submission rules before sending a level or completion proof.</p><a class="sidebar-action" href="rules.html">Read the rules →</a></section>
+      <section class="sidebar-section"><h2>Contribute</h2><p>Submit a level with its creator, verifier and completion video. The list team reviews each submission before publication.</p><a class="sidebar-action" href="submit.html">Submit a level →</a><a class="sidebar-action" href="records.html">Approved records →</a><a class="sidebar-action" href="stats.html">Player rankings →</a></section>
+    </aside></div>
     <dialog id="level-dialog" aria-labelledby="detail-title"><button id="close-dialog" type="button" class="close-button" aria-label="Close level details">×</button><div id="level-detail"></div></dialog>
-</main>
+  </main>
   <footer class="site-footer"><div><strong>Crux</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
   <script type="module" src="site.js"></script>
   <script type="module" src="app.js"></script>

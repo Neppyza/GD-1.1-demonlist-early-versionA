@@ -1,7 +1,7 @@
 import { subscribeData, retryData } from "./data.js";
 import { filterLevels, sortLevels, rankLabel, position } from "./list-model.js";
 import { victorNames } from "./victors.js";
-import { element, thumbnail, externalLink, stateRow } from "./ui.js";
+import { element, thumbnail, externalLink } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
 const body = document.getElementById("levels");
@@ -13,6 +13,20 @@ const dialog = document.getElementById("level-dialog");
 let levelState = { status: "loading", items: [] };
 let recordState = { status: "loading", items: [] };
 let initialSelection = true;
+let section = "all";
+const ranking = document.getElementById("ranking-index");
+
+function listState(title, message, retry) {
+    const box = element("div", "list-state");
+    box.append(element("strong", "", title));
+    if (message) box.append(element("p", "", message));
+    if (retry) {
+        const button = element("button", "secondary-button", "Try again");
+        button.type = "button"; button.addEventListener("click", retry); box.append(button);
+    }
+    body.replaceChildren(box);
+    ranking.replaceChildren(element("li", "muted", title));
+}
 
 function levelLink(id, label, className = "") {
     const link = element("a", className, label);
@@ -28,52 +42,62 @@ function levelLink(id, label, className = "") {
 function render() {
     table.setAttribute("aria-busy", String(levelState.status === "loading"));
     if (levelState.status === "loading") {
-        stateRow(body, 8, "Loading the demonlist…");
+        listState( "Loading the demonlist…");
         status.textContent = "Loading levels…";
         return;
     }
     if (levelState.status === "error") {
-        stateRow(body, 8, "The demonlist is unavailable", dataMessage(levelState.error, "the rankings"), () => retryData("levels"));
+        listState( "The demonlist is unavailable", dataMessage(levelState.error, "the rankings"), () => retryData("levels"));
         status.textContent = "Rankings unavailable";
         return;
     }
     const records = recordState.status === "ready" ? recordState.items : [];
-    const filtered = sortLevels(filterLevels(levelState.items, records, search.value), sort.value);
+    const matching = filterLevels(levelState.items, records, search.value).filter(level => section === "all" || (section === "ranked" ? position(level.position) !== Infinity : position(level.position) === Infinity));
+    const filtered = sortLevels(matching, sort.value);
     status.textContent = `${filtered.length} of ${levelState.items.length} levels`;
     const recordNote = document.getElementById("records-note");
     recordNote.hidden = recordState.status !== "error";
     recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
-    for (const heading of table.querySelectorAll("th[data-sort]")) {
-        heading.setAttribute("aria-sort", heading.dataset.sort === sort.value ? sort.value === "points" ? "descending" : "ascending" : "none");
-    }
     body.replaceChildren();
     if (!filtered.length) {
-        stateRow(body, 8, levelState.items.length ? "No matching levels" : "No levels have been published yet", levelState.items.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
+        listState( levelState.items.length ? "No matching levels" : "No levels have been published yet", levelState.items.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
         if (search.value) {
             const clear = element("button", "secondary-button", "Clear search");
             clear.type = "button";
             clear.addEventListener("click", () => { search.value = ""; render(); search.focus(); });
-            body.querySelector("td").append(clear);
+            body.querySelector(".list-state").append(clear);
         }
     }
+    ranking.replaceChildren();
+    for (const level of sortLevels(matching)) {
+        const item = element("li");
+        const link = levelLink(level.id, "");
+        const name = element("span", "ranking-name", String(level.name || "Unnamed level").trim());
+        if (level.creator) name.append(element("small", "", level.creator));
+        link.append(element("span", "ranking-position", rankLabel(level)), name);
+        item.append(link); ranking.append(item);
+    }
+    if (!matching.length) ranking.append(element("li", "muted", "No levels in this view."));
     for (const level of filtered) {
-        const row = element("tr", "demon-row");
-        const rank = element("td", position(level.position) === Infinity ? "rank unranked" : "rank", position(level.position) === Infinity ? "—" : position(level.position));
-        rank.setAttribute("aria-label", rankLabel(level));
-        const preview = element("td", "preview-cell");
-        const previewLink = levelLink(level.id, "");
+        const row = element("article", "demon-row");
+        const previewLink = levelLink(level.id, "", "level-preview");
         previewLink.setAttribute("aria-label", `Details for ${String(level.name || "Unnamed level").trim()}`);
         previewLink.append(thumbnail(level));
-        preview.append(previewLink);
-        const name = element("td", "level-name");
-        name.append(levelLink(level.id, String(level.name || "Unnamed level").trim()));
-        const creator = element("td", "", level.creator || "—");
-        const verifier = element("td", "", level.verifier || "—");
-        const difficulty = element("td", "difficulty", level.category || level.difficulty || "—");
-        const points = element("td", "numeric", level.points ?? "—");
-        const victors = element("td", "numeric", recordState.status === "ready" ? victorNames(records, level.id).length : "—");
-        row.append(rank, preview, name, creator, verifier, difficulty, points, victors);
-        body.append(row);
+        const content = element("div", "level-summary");
+        const heading = element("h2", "level-name");
+        heading.append(element("span", "level-placement", `${rankLabel(level)} – `), levelLink(level.id, String(level.name || "Unnamed level").trim()));
+        const creator = element("p", "level-creator");
+        creator.append(document.createTextNode("Created by "), element("strong", "", level.creator || "—"));
+        const verifier = element("p", "level-verifier");
+        verifier.append(document.createTextNode("Verified by "), element("strong", "", level.verifier || "—"));
+        const meta = element("dl", "row-meta");
+        for (const [label, value, className] of [["Points", level.points ?? "—", ""], ["Difficulty / category", level.category || level.difficulty || "—", ""], ["Victors", recordState.status === "ready" ? victorNames(records, level.id).length : "—", "victor-count"]]) {
+            const group = element("div");
+            group.append(element("dt", "", label), element("dd", className, value));
+            meta.append(group);
+        }
+        content.append(heading, creator, verifier, meta);
+        row.append(previewLink, content); body.append(row);
     }
     if (dialog.open) {
         if (levelState.items.some(level => level.id === dialog.dataset.levelId)) showDetails(dialog.dataset.levelId);
@@ -128,6 +152,11 @@ function showDetails(id) {
     if (!dialog.open) dialog.showModal();
 }
 
+for (const button of document.querySelectorAll("[data-section]")) button.addEventListener("click", () => {
+    section = button.dataset.section;
+    for (const item of document.querySelectorAll("[data-section]")) item.setAttribute("aria-pressed", String(item === button));
+    render();
+});
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
 document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
