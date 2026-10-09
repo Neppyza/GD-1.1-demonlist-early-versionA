@@ -47,6 +47,10 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('duplicate tags rejected',setDoc(doc(player,'players','player-a'),{...publicProfile,tags:['Player','Player']}),false);
         await check('public profile must match private player name',setDoc(doc(player,'players','player-a'),{...publicProfile,displayName:'Different name'}),false);
         await check('member publishes their own valid public profile',setDoc(doc(player,'players','player-a'),publicProfile),true);
+        await check('optional profile country is accepted',setDoc(doc(player,'players','player-a'),{...publicProfile,country:'FR'}),true);
+        await check('unknown profile country is denied',setDoc(doc(player,'players','player-a'),{...publicProfile,country:'ZZ'}),false);
+        await check('free-text profile country is denied',setDoc(doc(player,'players','player-a'),{...publicProfile,country:'France'}),false);
+        await check('non-string profile country is denied',setDoc(doc(player,'players','player-a'),{...publicProfile,country:12}),false);
         await check('guest can list public players',getDocs(collection(guest,'players')),true);
         await check('another member cannot update a player',updateDoc(doc(other,'players','player-a'),{bio:'Forged'}),false);
         await check('cannot add a privileged field later',updateDoc(doc(player,'players','player-a'),{admin:true}),false);
@@ -63,6 +67,10 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('cannot delete another player',deleteDoc(doc(other,'players','player-a')),false);
         const submission={ownerUid:'player-a',submittedBy:'Player A',levelName:'Submitted level',levelUrl:'https://example.org/level',creator:'Creator',verifier:'Verifier',proofUrl:'https://example.org/proof',notes:'',status:'pending',submittedAt:serverTimestamp()};
         await check('signed-in member creates a pending submission',setDoc(doc(player,'submissions','submission-a'),submission),true);
+        await check('pending submission accepts an optional country',setDoc(doc(player,'submissions','country-submission'),{...submission,country:'FR'}),true);
+        await check('pending submission rejects unknown country',setDoc(doc(player,'submissions','bad-country'),{...submission,country:'ZZ'}),false);
+        await check('pending submission rejects non-string country',setDoc(doc(player,'submissions','country-number'),{...submission,country:12}),false);
+        await check('country submission stays private from other players',getDoc(doc(other,'submissions','country-submission')),false);
         await check('cannot submit as another user',setDoc(doc(player,'submissions','forged'),{...submission,ownerUid:'player-b'}),false);
         await check('cannot self-approve a new submission',setDoc(doc(player,'submissions','approved'),{...submission,status:'approved'}),false);
         await check('member cannot approve existing submission',updateDoc(doc(player,'submissions','submission-a'),{status:'approved'}),false);

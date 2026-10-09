@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sign in to GD 1.1 Demonlist with your Google account.">
+  <meta property="og:title" content="Sign in · GD 1.1 Demonlist">
+  <meta property="og:description" content="Sign in with Google to create your player profile and submit levels.">
+  <meta property="og:type" content="website">
+  <title>Sign in · GD 1.1 Demonlist</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="GD 1.1 Demonlist home"><span class="brand-game">GD 1.1</span><span class="brand-name">DEMONLIST</span></a>
+      <nav aria-label="Main navigation"><a href="index.html">Demonlist</a>
+<a href="stats.html">Players</a>
+<a href="records.html">Records</a>
+<a href="submit.html">Submit</a>
+<a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Staff</a></nav>
+      <div class="account-nav"><a href="login.html" data-account-link>Sign in</a><button type="button" class="text-button" data-auth-logout hidden>Sign out</button></div>
+    </div>
+    <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
+  </header>
+  <main id="main" class="page login-page">
+    <div class="login-layout">
+      <section class="login-panel" aria-labelledby="login-title">
+        <p class="eyebrow">GD 1.1 DEMONLIST</p>
+        <h1 id="login-title">Sign in</h1>
+        <p class="login-intro">Join the list, keep your player profile, and send levels to the review team.</p>
+        <div class="auth-actions"><button type="button" class="google-signin" data-auth-login disabled>Continue with Google</button></div>
+        <p data-auth-status class="form-status" role="status">Restoring your session…</p>
+        <button type="button" class="secondary-button" data-profile-retry hidden>Retry account check</button>
+        <div class="login-notes"><h2>New to the list?</h2><p>Your first Google sign-in creates your account. Next, choose your player name, country and tags in Account.</p><p>Your Google email stays private. Your chosen player profile appears on the leaderboard.</p></div>
+        <p class="login-links"><a href="rules.html">Community rules</a><a href="index.html">Browse the demonlist →</a></p>
+      </section>
+      <aside class="login-aside" aria-label="About your account"><h2>Your place on the list</h2><dl><div><dt>Player profile</dt><dd>A name, an optional country and bio, and your player tags.</dd></div><div><dt>Leaderboard</dt><dd>Start at 0 points. Approved completions build your score.</dd></div><div><dt>Submissions</dt><dd>Send level information and proof to the list team for review.</dd></div></dl></aside>
+    </div>
+  </main>
+  <footer class="site-footer"><div><strong>GD 1.1 Demonlist</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <script type="module" src="site.js"></script>
+</body>
+</html>

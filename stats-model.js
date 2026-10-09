@@ -5,7 +5,7 @@ export function buildStats(levels, records, profiles = []) {
     const players = new Map();
     for (const profile of profiles) {
         if (!profile.id || !validPlayerProfile(profile)) continue;
-        players.set(String(profile.id), { id: String(profile.id), name: profile.displayName, bio: profile.bio, tags: [...profile.tags], registered: true, completed: new Map() });
+        players.set(String(profile.id), { id: String(profile.id), name: profile.displayName, bio: profile.bio, tags: [...profile.tags], country: profile.country || "", registered: true, completed: new Map() });
     }
     for (const record of records) {
         if (record.approved !== true || Number(record.progress) !== 100 || !record.playerId || !record.player) continue;

@@ -2,6 +2,7 @@ import { subscribeData, retryData } from "./data.js";
 import { buildStats } from "./stats-model.js";
 import { element, stateRow } from "./ui.js";
 import { dataMessage } from "./messages.js";
+import { countryName } from "./countries.js";
 
 const body = document.getElementById("players");
 const table = document.getElementById("players-table");
@@ -35,7 +36,7 @@ function render() {
     table.setAttribute("aria-busy", "false");
     const ranked = buildStats(levels.items, records.items, profiles.items).map((player, index) => ({ ...player, rank: index + 1 }));
     const term = search.value.toLowerCase().trim();
-    const filtered = ranked.filter(player => [player.name, ...player.tags].join(" ").toLowerCase().includes(term));
+    const filtered = ranked.filter(player => [player.name, ...player.tags, countryName(player.country)].join(" ").toLowerCase().includes(term));
     if (sort.value === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
     if (sort.value === "completions") filtered.sort((a,b) => b.completed.length - a.completed.length || a.rank - b.rank);
     body.replaceChildren();
@@ -55,6 +56,7 @@ function render() {
             detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
         });
         name.append(link, tagList(player.tags));
+        if (player.country) name.append(element("small", "player-location", countryName(player.country)));
         row.append(element("td", "rank", player.rank), name, element("td", "numeric", player.points.toLocaleString(undefined,{maximumFractionDigits:2})), element("td", "numeric", player.completed.length), element("td", "", player.completed[0]?.name || "—"));
         body.append(row);
     }
@@ -75,6 +77,7 @@ function showPlayer(player) {
         row.append(link, element("span", "muted", `${level.points ?? "—"} points`)); list.append(row);
     }
     detail.replaceChildren(element("h2", "", player.name), tagList(player.tags));
+    if (player.country) detail.append(element("p", "player-location", countryName(player.country)));
     if (player.bio) detail.append(element("p", "player-bio", player.bio));
     detail.append(element("p", "muted", `${player.points.toLocaleString()} points · ${player.completed.length} approved completions`));
     if (player.registered) detail.append(element("p", "muted", "Tags describe the player's interests; they do not grant staff access or certify completions."));

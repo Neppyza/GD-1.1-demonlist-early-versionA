@@ -2,6 +2,7 @@ import { subscribeAuth, requireUser } from "./auth.js";
 import { dataMessage } from "./messages.js";
 import { element, setBusy } from "./ui.js";
 import { validPlayerProfile } from "./player-profile.js";
+import { validCountry, fillCountries, countryName } from "./countries.js";
 
 export const rulesVersion = "2026-10-05";
 const content = document.getElementById("member-content");
@@ -14,6 +15,9 @@ let memberId;
 let generation = 0;
 let acceptedRules = false;
 let savedName = "";
+let savedCountry = "";
+fillCountries(profileForm?.elements.country);
+fillCountries(submissionForm?.elements.country);
 
 function current(user, turn) { return memberId === user.uid && generation === turn; }
 function clearPrivateData() {
@@ -21,6 +25,7 @@ function clearPrivateData() {
     rulesPanel.hidden = true;
     acceptedRules = false;
     savedName = "";
+    savedCountry = "";
     memberStatus.textContent = "";
     retry.hidden = true;
     document.getElementById("community-rules-form").reset();
@@ -64,10 +69,12 @@ async function loadMember(user, turn) {
         const profile = snapshot.exists() ? snapshot.data() : {};
         const publicProfile = publicSnapshot.exists() ? publicSnapshot.data() : null;
         savedName = validPlayerProfile(publicProfile) ? publicProfile.displayName : "";
+        savedCountry = validCountry(publicProfile?.country) ? publicProfile.country : "";
         content.hidden = false;
         if (profileForm) {
             profileForm.elements.displayName.value = savedName || profile.displayName || user.displayName || "";
             profileForm.elements.bio.value = publicProfile?.bio ?? profile.bio ?? "";
+            profileForm.elements.country.value = savedCountry;
             for (const checkbox of profileForm.querySelectorAll('[name="tags"]')) checkbox.checked = (publicProfile?.tags || ["Player"]).includes(checkbox.value);
             document.getElementById("profile-status").textContent = savedName ? "Your public player profile is saved." : "Complete your player profile to join the leaderboard.";
             const view = document.getElementById("view-profile");
@@ -77,6 +84,7 @@ async function loadMember(user, turn) {
             if (savedName) window.dispatchEvent(new CustomEvent("player-profile-ready", { detail: { uid: user.uid } }));
         }
         if (submissionForm) {
+            submissionForm.elements.country.value = savedCountry;
             document.getElementById("submitter-name").textContent = savedName || "No player name saved";
             document.getElementById("profile-required").hidden = Boolean(savedName);
             submissionForm.querySelector("fieldset").disabled = !savedName;
@@ -113,6 +121,7 @@ async function loadSubmissions(client, turn) {
             const title = element("h3", "", item.levelName || "Level submission");
             const status = element("span", "submission-status", item.status || "pending");
             row.append(title, status, element("p", "muted", `Creator: ${item.creator || "—"} · Verifier: ${item.verifier || "—"}`));
+            if (validCountry(item.country)) row.append(element("p", "muted", `Submitter country: ${countryName(item.country)}`));
             box.append(row);
         }
     } catch (error) {
@@ -146,7 +155,9 @@ profileForm?.addEventListener("submit", async event => {
     const name = form.elements.displayName.value.trim();
     const bio = form.elements.bio.value.trim();
     const tags = [...form.querySelectorAll('[name="tags"]:checked')].map(input => input.value);
-    if (!validPlayerProfile({ displayName: name, bio, tags })) {
+    const country = form.elements.country.value;
+    const publicProfile = { displayName: name, bio, tags, ...(country ? { country } : {}) };
+    if (!validPlayerProfile(publicProfile)) {
         output.textContent = "Use a name of 3–24 characters, a bio of at most 300 characters, and choose at least one player tag.";
         return;
     }
@@ -160,10 +171,11 @@ profileForm?.addEventListener("submit", async event => {
         const updatedAt = sdk.serverTimestamp();
         const batch = sdk.writeBatch(client.db);
         batch.set(sdk.doc(client.db, "profiles", client.user.uid), { displayName: name, bio, updatedAt });
-        batch.set(sdk.doc(client.db, "players", client.user.uid), { displayName: name, bio, tags, updatedAt });
+        batch.set(sdk.doc(client.db, "players", client.user.uid), { ...publicProfile, updatedAt });
         await batch.commit();
         if (!current(client.user, turn)) return;
         savedName = name;
+        savedCountry = country;
         output.textContent = "Profile saved. You now appear on the Players leaderboard.";
         const view = document.getElementById("view-profile");
         view.hidden = false;
@@ -181,6 +193,9 @@ submissionForm?.addEventListener("submit", async event => {
     const output = document.getElementById("submission-status");
     const values = Object.fromEntries(new FormData(form));
     const fields = { levelName: String(values.levelName || "").trim(), creator: String(values.creator || "").trim(), verifier: String(values.verifier || "").trim(), levelUrl: String(values.levelUrl || "").trim(), proofUrl: String(values.proofUrl || "").trim(), notes: String(values.notes || "").trim() };
+    const country = String(values.country || "");
+    if (country && !validCountry(country)) { output.textContent = "Choose a valid country or leave it unshared."; return; }
+    if (country) fields.country = country;
     const https = value => { try { return new URL(value).protocol === "https:"; } catch { return false; } };
     if (!savedName || !acceptedRules) { output.textContent = "Sign in, accept the rules, and save a player name in Account before submitting."; return; }
     if (!fields.levelName || fields.levelName.length > 80 || !fields.creator || fields.creator.length > 60 || !fields.verifier || fields.verifier.length > 60 || fields.notes.length > 500 || fields.levelUrl.length > 2000 || fields.proofUrl.length > 2000 || !https(fields.levelUrl) || !https(fields.proofUrl) || !form.elements.confirmed.checked) {
@@ -196,6 +211,7 @@ submissionForm?.addEventListener("submit", async event => {
         await client.storeSDK.addDoc(client.storeSDK.collection(client.db, "submissions"), { ownerUid: client.user.uid, submittedBy: savedName, ...fields, status: "pending", submittedAt: client.storeSDK.serverTimestamp() });
         if (!current(client.user, turn)) return;
         form.reset();
+        form.elements.country.value = savedCountry;
         output.textContent = "Submission received. It remains private until the list team reviews it.";
     } catch (error) {
         if (turn === generation) output.textContent = dataMessage(error, "your level submission");

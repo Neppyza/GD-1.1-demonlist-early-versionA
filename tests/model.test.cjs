@@ -65,3 +65,20 @@ test('profiles reject missing, duplicate and privileged tags', async () => {
     for(const tags of [[],['Owner'],['Player','Player'],['Player','Admin'],null]) assert.equal(validPlayerProfile({...profile,tags}),false);
     assert.equal(validPlayerProfile({...profile,displayName:'   '}),false);
 });
+test('optional countries preserve existing profiles and use only supported codes', async () => {
+    const { validPlayerProfile }=await import('../player-profile.js');
+    const { countryCodes, validCountry, countryName }=await import('../countries.js');
+    assert.equal(countryCodes.length,249);
+    assert.equal(new Set(countryCodes).size,249);
+    const profile={displayName:'Player',bio:'',tags:['Player']};
+    assert.equal(validPlayerProfile(profile),true);
+    assert.equal(validPlayerProfile({...profile,country:'FR'}),true);
+    for(const country of ['fr','ZZ','France',12,null,'']) {
+        assert.equal(validCountry(country),false);
+        assert.equal(validPlayerProfile({...profile,country}),false);
+    }
+    assert.equal(countryName('FR'),'France');
+    assert.equal(countryName('ZZ'),'');
+    const {buildStats}=await import('../stats-model.js');
+    assert.equal(buildStats([],[],[{...profile,id:'uid',country:'FR'}])[0].country,'FR');
+});
