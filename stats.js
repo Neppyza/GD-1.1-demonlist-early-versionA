@@ -25,6 +25,9 @@ function render() {
         retry.type = "button";
         retry.addEventListener("click", () => retryData("players"));
         directoryStatus.append(retry);
+        stateRow(body, 5, "Players are unavailable", "Player profiles could not be loaded. Retry to load the current leaderboard.");
+        status.textContent = "Player rankings unavailable";
+        table.setAttribute("aria-busy", "false"); detail.hidden = true; return;
     }
     if (levels.status === "error" || records.status === "error") {
         const error = levels.error || records.error;

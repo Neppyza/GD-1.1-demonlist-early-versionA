@@ -14,9 +14,37 @@ service cloud.firestore {
         && request.resource.data.version == '2026-10-05'
         && request.resource.data.acceptedAt == request.time;
     }
+    function owner() {
+      return signedIn() && request.auth.token.get('owner', false) == true;
+    }
     function staff() {
-      return signedIn() &&
-        (request.auth.token.get('owner', false) == true || request.auth.token.get('admin', false) == true);
+      return owner() || (signedIn() &&
+        (exists(/databases/$(database)/documents/team/$(request.auth.uid))
+          ? get(/databases/$(database)/documents/team/$(request.auth.uid)).data.role == 'moderator'
+            && get(/databases/$(database)/documents/team/$(request.auth.uid)).data.active == true
+          : request.auth.token.get('admin', false) == true));
+    }
+    function activePlayer(uid) {
+      return !exists(/databases/$(database)/documents/players/$(uid))
+        || get(/databases/$(database)/documents/players/$(uid)).data.get('removed', false) == false;
+    }
+    match /team/{uid} {
+      allow get: if owner() || (signedIn() && request.auth.uid == uid);
+      allow list: if owner();
+      allow create, update: if owner()
+        && request.resource.data.keys().hasOnly(['role', 'active', 'displayName', 'updatedBy', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['role', 'active', 'displayName', 'updatedBy', 'updatedAt'])
+        && request.resource.data.role == 'moderator'
+        && request.resource.data.active is bool
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 3 && request.resource.data.displayName.size() <= 60
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && (!request.resource.data.active ||
+          (exists(/databases/$(database)/documents/players/$(uid)) && activePlayer(uid)
+            && request.resource.data.displayName == get(/databases/$(database)/documents/players/$(uid)).data.displayName));
+      // Keep revocations so an old admin claim cannot silently restore access.
+      allow delete: if false;
     }
     function httpsLink(value) {
       return value is string && value.size() <= 2000 && value.matches('^https://.+');
@@ -47,6 +75,7 @@ service cloud.firestore {
     match /players/{uid} {
       allow read: if true;
       allow create, update: if acceptedRules() && request.auth.uid == uid
+        && activePlayer(uid)
         && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'updatedAt'])
         && request.resource.data.keys().hasAll(['displayName', 'bio', 'tags', 'updatedAt'])
         && request.resource.data.displayName is string
@@ -61,7 +90,38 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.displayName == request.resource.data.displayName
         && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.bio == request.resource.data.bio;
-      allow delete: if signedIn() && request.auth.uid == uid;
+      allow create: if staff()
+        && request.resource.data.keys().hasOnly(['removed', 'moderatedBy', 'moderatedAt'])
+        && validModeration();
+      allow update: if staff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['removed', 'moderatedBy', 'moderatedAt'])
+        && validModeration();
+      allow delete: if signedIn() && request.auth.uid == uid && activePlayer(uid);
+      function validModeration() {
+        return request.resource.data.removed is bool
+          && request.resource.data.moderatedBy == request.auth.uid
+          && request.resource.data.moderatedAt == request.time;
+      }
+    }
+    match /completionSubmissions/{id} {
+      allow create: if acceptedRules() && activePlayer(request.auth.uid)
+        && request.resource.data.keys().hasOnly(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasAll(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.player == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.displayName
+        && request.resource.data.levelId is string
+        && exists(/databases/$(database)/documents/levels/$(request.resource.data.levelId))
+        && httpsLink(request.resource.data.proofUrl)
+        && request.resource.data.notes is string && request.resource.data.notes.size() <= 500
+        && request.resource.data.status == 'pending' && request.resource.data.submittedAt == request.time;
+      allow get, list: if staff() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow update: if staff() && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'recordId', 'reviewedAt', 'reviewedBy'])
+        && (!('recordId' in request.resource.data) || request.resource.data.recordId is string);
+      allow delete: if staff();
     }
     match /submissions/{submissionId} {
       allow create: if acceptedRules()

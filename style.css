@@ -34,7 +34,8 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }
-body { margin: 0; color: var(--ink); background: var(--background); font: 300 14px/1.6 "Montserrat", Arial, sans-serif; }
+/* Pointercrate uses regular Montserrat for copy and bold Montserrat for titles. */
+body { margin: 0; color: var(--ink); background: var(--background); font: 400 16px/1.6 "Montserrat", Arial, sans-serif; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button, input, textarea, select { font: inherit; }
@@ -70,9 +71,9 @@ fieldset:disabled { opacity: .55; }
 .brand { display: flex; flex-direction: column; gap: 2px; color: var(--ink); line-height: 1.1; }
 .brand:hover { text-decoration: none; }
 .brand-game { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .5px; }
-.brand-name { color: var(--ink); font-size: 19px; font-weight: 800; letter-spacing: -.4px; }
+.brand-name { color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: 0; }
 .header-inner nav { display: flex; align-self: stretch; align-items: stretch; gap: 22px; margin-right: auto; }
-.header-inner nav a { display: flex; align-items: center; min-height: 44px; padding-top: 2px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.header-inner nav a { display: flex; align-items: center; min-height: 44px; padding-top: 2px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 15px; font-weight: 600; white-space: nowrap; }
 .header-inner nav a:hover, .header-inner nav a.active { color: var(--ink); text-decoration: none; }
 .header-inner nav a.active { border-color: var(--accent); }
 .account-nav { display: flex; align-items: center; gap: 14px; font-size: 12px; white-space: nowrap; }
@@ -253,16 +254,16 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 .level-name > a { color: var(--ink); }
 .level-name > a:hover { color: var(--accent); }
 .level-placement { color: var(--ink); white-space: nowrap; }
-.level-creator { margin: 0 0 1px; font-size: 14px; font-weight: 600; }
-.level-verifier { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
-.level-creator strong, .level-verifier strong { font-weight: 600; }
+.level-creator { margin: 0 0 1px; font-size: 16px; font-weight: 400; }
+.level-verifier { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.level-creator strong, .level-verifier strong { font-weight: 700; }
 .row-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; }
 .row-meta dt { margin: 0; font-size: 9px; }
 .row-meta dd { margin: 0; font-size: 11px; }
 .list-footnote { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
 .sidebar-section { margin-bottom: 24px; padding: 22px 20px; border: 1px solid var(--line); }
 .sidebar-section h2 { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); font-size: 22px; text-align: center; }
-.sidebar-section > p { margin-bottom: 16px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.sidebar-section > p { margin-bottom: 16px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .sidebar-action { display: block; margin-top: 12px; font-size: 12px; }
 .ranking-index { max-height: 360px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
 .ranking-index li + li { border-top: 1px solid var(--line); }
@@ -308,6 +309,22 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 }
 
 /* Public player profiles use the same compact community styling. */
+/* Administrator tools */
+.admin-sections { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+.admin-access-help { margin-top: 14px; font-size: 12px; }
+.management-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 20px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.management-info { min-width: 0; }
+.management-info h3 { overflow-wrap: anywhere; }
+.management-info p { margin: 2px 0; font-size: 12px; }
+.management-row > .form-status { grid-column: 1 / -1; }
+.danger-button { color: var(--error); border-color: var(--error); background: var(--paper); }
+#admin-player-search { max-width: 680px; margin-top: 6px; }
+@media (max-width: 540px) {
+    .management-row { grid-template-columns: minmax(0, 1fr); }
+    .management-row > button { justify-self: start; }
+    .section-heading { align-items: flex-start; flex-wrap: wrap; }
+}
+
 .player-tags { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: 10px; vertical-align: middle; }
 .player-tag { padding: 2px 7px; border: 1px solid var(--line); background: var(--soft); color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.5; }
 #player-details .player-tags { margin: 0 0 12px; }

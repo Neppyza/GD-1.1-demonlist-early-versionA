@@ -1,4 +1,5 @@
-import { subscribeAuth, requireStaff } from "./auth.js";
+import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
+import { completionKey } from "./completion-model.js";
 import { dataMessage } from "./messages.js";
 import { sortLevels } from "./list-model.js";
 import { element, externalLink, setBusy } from "./ui.js";
@@ -13,7 +14,7 @@ let staffId = null;
 
 subscribeAuth(state => {
     if (!state.ready) return;
-    const key = `${state.user?.uid || ""}:${state.staff}`;
+    const key = `${state.user?.uid || ""}:${state.staff}:${state.owner}`;
     if (identity === key) return;
     identity = key;
     ++generation;
@@ -62,7 +63,17 @@ async function loadStaff(turn) {
     }
 }
 document.getElementById("refresh-queue").addEventListener("click", () => loadStaff(++generation));
-document.getElementById("staff-retry").addEventListener("click", () => loadStaff(++generation));
+document.getElementById("staff-retry").addEventListener("click", async () => {
+    const before = identity;
+    status.textContent = "Refreshing your administrator access…";
+    try {
+        await refreshStaffAccess();
+        if (before === identity) {
+            if (staffId) await loadStaff(++generation);
+            else status.textContent = "This account does not have administrator access.";
+        }
+    } catch (error) { status.textContent = dataMessage(error, "administrator access"); }
+});
 
 function renderSubmission(id, data, turn) {
     const card = element("article", "review-item");
@@ -157,11 +168,17 @@ document.getElementById("victor-form").addEventListener("submit", async event =>
     try {
         const client = await requireStaff();
         if (turn !== generation || client.user.uid !== staffId) throw { code: "auth/requires-login" };
-        const key = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([playerId, levelId])))), byte => byte.toString(16).padStart(2, "0")).join("");
+        const key = await completionKey(playerId, levelId);
         // Existing stable pair key and record fields are preserved.
-        await client.storeSDK.setDoc(client.storeSDK.doc(client.db, "records", key), { player, playerId, levelId, progress: 100, approved: true });
+        const sdk = client.storeSDK;
+        await sdk.runTransaction(client.db, async transaction => {
+            const reference = sdk.doc(client.db, "records", key);
+            const existing = await transaction.get(reference);
+            if (existing.exists() && existing.data().approved === true) throw new Error("This completion is already approved.");
+            transaction.set(reference, { player, playerId, levelId, progress: 100, approved: true });
+        });
         if (turn === generation) { form.reset(); output.textContent = "Completion approved. It now appears in Records and Players."; }
     } catch (error) {
-        if (turn === generation) output.textContent = dataMessage(error, "this completion");
+        if (turn === generation) output.textContent = error.code ? dataMessage(error, "this completion") : error.message;
     } finally { setBusy(form, false); }
 });

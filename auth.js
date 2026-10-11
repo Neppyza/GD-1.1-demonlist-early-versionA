@@ -1,7 +1,7 @@
 import { getFirebase } from "./firebase.js";
 import { authMessage } from "./messages.js";
 
-let state = { ready: false, user: null, staff: false, busy: false, error: "" };
+let state = { ready: false, user: null, staff: false, owner: false, busy: false, error: "" };
 const subscribers = new Set();
 let startup;
 let generation = 0;
@@ -9,6 +9,24 @@ let generation = 0;
 function publish(values) {
     state = { ...state, ...values };
     for (const callback of subscribers) callback(state);
+}
+
+async function rolesFor(client, user, force = false) {
+    if (!user) return { owner: false, staff: false };
+    const token = await client.authSDK.getIdTokenResult(user, force);
+    const owner = token.claims.owner === true;
+    if (owner) return { owner: true, staff: true };
+    let membership;
+    try {
+        membership = await client.storeSDK.getDoc(client.storeSDK.doc(client.db, "team", user.uid));
+    } catch (error) {
+        // Existing deployments may not have the new team rules yet.
+        if (error.code !== "permission-denied") throw error;
+    }
+    const staff = membership?.exists()
+        ? membership.data().role === "moderator" && membership.data().active === true
+        : token.claims.admin === true;
+    return { owner: false, staff };
 }
 
 export function subscribeAuth(callback) {
@@ -27,19 +45,19 @@ export function startAuth() {
                 client.authSDK.onIdTokenChanged(client.auth, async user => {
                     const turn = ++generation;
                     try {
-                        const token = user ? await client.authSDK.getIdTokenResult(user) : null;
+                        const roles = await rolesFor(client, user);
                         if (turn !== generation || client.auth.currentUser?.uid !== user?.uid) return;
-                        publish({ ready: true, user, staff: token?.claims.owner === true || token?.claims.admin === true, error: "" });
+                        publish({ ready: true, user, ...roles, error: "" });
                     } catch (error) {
                         if (turn !== generation) return;
-                        publish({ ready: true, user: client.auth.currentUser, staff: false, error: authMessage(error) });
+                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, error: authMessage(error) });
                     }
                     resolve();
                 }, reject);
             });
             return client;
         } catch (error) {
-            publish({ ready: true, user: null, staff: false, error: authMessage(error) });
+            publish({ ready: true, user: null, staff: false, owner: false, error: authMessage(error) });
             startup = null;
             return null;
         }
@@ -84,11 +102,23 @@ export async function requireUser() {
     return { ...client, user };
 }
 
-export async function requireStaff() {
+export async function refreshStaffAccess() {
     const client = await requireUser();
-    const token = await client.authSDK.getIdTokenResult(client.user, true);
+    const roles = await rolesFor(client, client.user, true);
     if (client.auth.currentUser?.uid !== client.user.uid) throw { code: "auth/requires-login" };
-    if (token.claims.owner !== true && token.claims.admin !== true) throw { code: "auth/insufficient-permission" };
+    publish({ user: client.user, ...roles });
+    return { ...client, ...roles };
+}
+
+export async function requireStaff() {
+    const client = await refreshStaffAccess();
+    if (!client.staff) throw { code: "auth/insufficient-permission" };
+    return client;
+}
+
+export async function requireOwner() {
+    const client = await refreshStaffAccess();
+    if (!client.owner) throw { code: "auth/insufficient-permission" };
     return client;
 }
 
