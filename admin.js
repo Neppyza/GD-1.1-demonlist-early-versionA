@@ -2,7 +2,7 @@ import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
 import { completionKey } from "./completion-model.js";
 import { dataMessage } from "./messages.js";
 import { sortLevels } from "./list-model.js";
-import { element, externalLink, setBusy } from "./ui.js";
+import { element, externalLink, safeURL, setBusy } from "./ui.js";
 
 const tools = document.getElementById("staff-tools");
 const queue = document.getElementById("review-queue");
@@ -86,11 +86,12 @@ function renderSubmission(id, data, turn) {
     card.append(links);
     if (data.notes) card.append(element("p", "", data.notes));
     const form = element("form", "review-form");
-    for (const [name, label, type] of [["position", "Position", "number"], ["points", "Points", "number"], ["difficulty", "Difficulty (optional)", "text"]]) {
+    for (const [name, label, type] of [["position", "Position", "number"], ["points", "Points", "number"], ["difficulty", "Difficulty (optional)", "text"], ["thumbnail", "Thumbnail URL (optional)", "url"]]) {
         const group = element("label", "", label);
         const input = element("input");
         input.name = name; input.type = type;
         if (type === "number") { input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
+        else if (type === "url") { input.maxLength = 2000; input.placeholder = "https://example.com/thumbnail.jpg"; }
         else input.maxLength = 60;
         group.append(input); form.append(group);
     }
@@ -107,7 +108,9 @@ function renderSubmission(id, data, turn) {
         const rank = Number(form.elements.position.value);
         const points = Number(form.elements.points.value);
         const difficulty = form.elements.difficulty.value.trim();
+        const thumbnailURL = form.elements.thumbnail.value.trim();
         if (!Number.isInteger(rank) || rank < 1 || !Number.isFinite(points) || points < 0) { output.textContent = "Enter a positive whole-number placement and non-negative points."; return; }
+        if (thumbnailURL && (thumbnailURL.length > 2000 || !thumbnailURL.startsWith("https://") || !safeURL(thumbnailURL))) { output.textContent = "Use a public HTTPS image link for the thumbnail, or leave it empty."; return; }
         setBusy(form, true);
         output.textContent = "Checking access and publishing…";
         try {
@@ -122,6 +125,7 @@ function renderSubmission(id, data, turn) {
                 const saved = snapshot.data();
                 const entry = { name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
+                if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 transaction.set(level, entry);
                 transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });

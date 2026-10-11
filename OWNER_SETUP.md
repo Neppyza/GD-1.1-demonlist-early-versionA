@@ -60,6 +60,36 @@ To attach a registered player's approved completions, staff must use that user's
 
 Website claims grant website privileges only. They do not grant Firebase Console or Google Cloud IAM access. An existing project administrator manages Console permissions separately.
 
+### Assign owner access by email
+
+Each intended owner must first sign in to the website with **Continue with Google**, so their account exists in this Firebase project. In a trusted administrator environment with Node.js, install the Admin SDK and configure Application Default Credentials for an account allowed to manage Firebase Authentication in **gd11-demonlist**. GitHub access and the public website API key cannot perform this step.
+
+From the repository directory, replace the example addresses with the owners' actual Google emails:
+
+```sh
+npm install --no-save --package-lock=false firebase-admin
+node scripts/grant-owner.cjs --email first-owner@example.com second-owner@example.com --dry-run
+node scripts/grant-owner.cjs --email first-owner@example.com second-owner@example.com
+```
+
+The dry run verifies both existing identities without changing claims. The grant command resolves all targets before writing, requires enabled verified Google accounts, and preserves their other custom claims. If an account is missing, sign in with that Google account first. If a later write fails after an earlier grant, the script prints each completed grant; check the reported error and rerun after resolving it.
+
+After successful assignment, both accounts can open **Admin** and select **Retry access check**, or sign out and in again. Each owner can manage players, completions and moderators. Publish the repository's Firestore rules as described above so these operations are permitted. Email addresses are supplied to the trusted script; they are not added as a frontend role shortcut.
+
+## Add levels and thumbnails
+
+1. Sign in with Google, accept the rules, and save your player name in **Account**. To publish a submission, your Google account also needs owner/moderator access and the current Firestore rules must be deployed.
+2. Open **Submit → Submit a new level**. Enter its **Level name**, **Creator**, **Verifier**, **Level link** and **Completion video**. The level link opens the playable level; the completion video is the verifier's proof. Both links must start with `https://`. Add optional reviewer notes, tick the confirmation and choose **Send for review**.
+3. Open **Admin → Levels** and choose **Refresh queue**. Find your submission and watch its proof. Enter **Position** (a whole number starting at 1), **Points** (0 or higher), optional **Difficulty**, and optional **Thumbnail URL**. Position 1 is the hardest listed level. Choose an unused placement; publishing does not automatically shift the other levels' positions.
+4. For a thumbnail, paste a direct, public HTTPS image link, for example `https://your-image-host.example/level-preview.jpg`. Open it in a private browser tab first: it should display the image without signing in. A video watch page or image-sharing gallery page is not a direct image link. A screenshot of the level works well; a wide image around 16:9 suits the existing preview box. Leave the field empty if you do not have an image yet.
+5. Choose **Approve and publish**. The level appears on the Demonlist with the selected rank, points and thumbnail. If its image URL is unavailable, the preview shows **No preview**. Publishing a level does not automatically award the verifier a completion: use **Submit a completion**, then review it in **Admin → Completions**, or use **Approve a completion manually** with their existing player ID.
+
+For an already-published level, an administrator with **Firebase Console** permissions can open **Firestore Database → Data → levels**, select its existing document, and add or edit the `thumbnail` field as a **string** containing the direct HTTPS image URL. Preserve the document ID and all other fields. Refresh the website to check the image. The website's owner role does not itself grant Firebase Console access.
+
+To host a thumbnail in this public GitHub repository, open the repository and choose **Add file → Upload files**, select a PNG/JPEG screenshot such as `my-level.png`, then commit it through a branch and merge its pull request. If the file is at the root of `main`, its direct image link is `https://raw.githubusercontent.com/Neppyza/GD-1.1-demonlist-early-versionA/main/my-level.png`. Replace `my-level.png` with the exact filename, including capitalization. Test that link before pasting it into **Thumbnail URL**. See [GitHub's upload instructions](https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository).
+
+If **Admin** says the account has no access, finish the owner setup above and select **Retry access check**. If saving is denied, verify the deployed Firestore rules and signed-in account. If a thumbnail shows **No preview**, check that the URL is direct, public, and still accessible; some image hosts block embeds.
+
 ## Existing data and moderation
 
 - `levels`: existing public level documents and fields are preserved, including numeric strings for positions and points. Missing positions are displayed as unranked after ranked entries. No migration is required.
