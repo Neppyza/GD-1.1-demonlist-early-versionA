@@ -65,3 +65,25 @@ test('profiles reject missing, duplicate and privileged tags', async () => {
     for(const tags of [[],['Owner'],['Player','Player'],['Player','Admin'],null]) assert.equal(validPlayerProfile({...profile,tags}),false);
     assert.equal(validPlayerProfile({...profile,displayName:'   '}),false);
 });
+
+test('removed registered and legacy players stay out of rankings and can be restored without deleting records', async () => {
+    const {buildStats}=await import('../stats-model.js');
+    const levels=[{id:'a',points:50,position:1,name:'A'}];
+    const records=[{approved:true,progress:100,levelId:'a',playerId:'registered',player:'Saved Player'},{approved:true,progress:100,levelId:'a',playerId:'legacy',player:'Legacy Player'}];
+    const profiles=[{id:'registered',displayName:'Saved Player',bio:'',tags:['Player'],removed:true},{id:'legacy',removed:true}];
+    assert.deepEqual(buildStats(levels,records,profiles),[]);
+    const restored=buildStats(levels,records,profiles.map(profile=>({...profile,removed:false})));
+    assert.equal(restored.length,2); assert.deepEqual(restored.map(player=>player.points),[50,50]);
+    assert.equal(records.length,2);
+});
+
+test('completion proof validation and pair keys reject unsafe input and avoid ambiguous identities', async () => {
+    const {validCompletion,completionKey}=await import('../completion-model.js');
+    assert.equal(validCompletion({levelId:'a',proofUrl:'https://example.org/proof',notes:''}),true);
+    for(const proofUrl of ['javascript:alert(1)','http://example.org/proof','not a link','https://']) assert.equal(validCompletion({levelId:'a',proofUrl}),false);
+    assert.equal(validCompletion({levelId:'bad/path',proofUrl:'https://example.org'}),false);
+    assert.equal(validCompletion({levelId:'a',proofUrl:'https://example.org',notes:'x'.repeat(501)}),false);
+    assert.equal(await completionKey('player','level'),await completionKey('player','level'));
+    assert.notEqual(await completionKey('a,b','c'),await completionKey('a','b,c'));
+    assert.notEqual(await completionKey('player','level'),await completionKey('other','level'));
+});

@@ -19,6 +19,7 @@ async function checkProfile(uid, turn) {
         if (turn !== profileGeneration || client.user.uid !== uid) return;
         const snapshot = await client.storeSDK.getDoc(client.storeSDK.doc(client.db, "players", uid));
         if (turn !== profileGeneration || client.auth.currentUser?.uid !== uid) return;
+        if (snapshot.exists() && snapshot.data().removed === true) return;
         const complete = snapshot.exists() && validPlayerProfile(snapshot.data());
         if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search)}`);
     } catch (error) {

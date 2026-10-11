@@ -2,6 +2,9 @@ import { subscribeAuth, requireUser } from "./auth.js";
 import { dataMessage } from "./messages.js";
 import { element, setBusy } from "./ui.js";
 import { validPlayerProfile } from "./player-profile.js";
+import { validCompletion } from "./completion-model.js";
+import { subscribeData, retryData } from "./data.js";
+import { sortLevels } from "./list-model.js";
 
 export const rulesVersion = "2026-10-05";
 const content = document.getElementById("member-content");
@@ -10,10 +13,13 @@ const memberStatus = document.getElementById("member-status");
 const retry = document.getElementById("account-retry");
 const profileForm = document.getElementById("profile-form");
 const submissionForm = document.getElementById("submission-form");
+const completionForm = document.getElementById("completion-form");
 let memberId;
 let generation = 0;
 let acceptedRules = false;
 let savedName = "";
+let playerRemoved = false;
+let completionLevelsReady = false;
 
 function current(user, turn) { return memberId === user.uid && generation === turn; }
 function clearPrivateData() {
@@ -21,6 +27,7 @@ function clearPrivateData() {
     rulesPanel.hidden = true;
     acceptedRules = false;
     savedName = "";
+    playerRemoved = false;
     memberStatus.textContent = "";
     retry.hidden = true;
     document.getElementById("community-rules-form").reset();
@@ -30,9 +37,12 @@ function clearPrivateData() {
     const uid = document.getElementById("player-uid");
     if (uid) uid.textContent = "";
     submissionForm?.reset();
+    completionForm?.reset();
+    document.getElementById("my-completions")?.replaceChildren();
     document.getElementById("my-submissions")?.replaceChildren();
     for (const output of document.querySelectorAll("[data-private-status]")) output.textContent = "";
     if (submissionForm) submissionForm.querySelector("fieldset").disabled = true;
+    if (completionForm) completionForm.querySelector("fieldset").disabled = true;
 }
 subscribeAuth(state => {
     if (!state.ready) return;
@@ -63,6 +73,13 @@ async function loadMember(user, turn) {
         if (!current(user, turn)) return;
         const profile = snapshot.exists() ? snapshot.data() : {};
         const publicProfile = publicSnapshot.exists() ? publicSnapshot.data() : null;
+        playerRemoved = publicProfile?.removed === true;
+        if (playerRemoved) {
+            content.hidden = true;
+            memberStatus.textContent = "Your player profile has been removed by the list team. Ask an administrator to restore it before editing your profile or submitting a completion.";
+            retry.hidden = false;
+            return;
+        }
         savedName = validPlayerProfile(publicProfile) ? publicProfile.displayName : "";
         content.hidden = false;
         if (profileForm) {
@@ -81,7 +98,9 @@ async function loadMember(user, turn) {
             document.getElementById("profile-required").hidden = Boolean(savedName);
             submissionForm.querySelector("fieldset").disabled = !savedName;
         }
+        if (completionForm) completionForm.querySelector("fieldset").disabled = !savedName || !completionLevelsReady;
         if (document.getElementById("my-submissions")) await loadSubmissions(client, turn);
+        if (document.getElementById("my-completions")) await loadCompletions(client, turn);
     } catch (error) {
         if (!current(user, turn)) return;
         content.hidden = true;
@@ -120,6 +139,23 @@ async function loadSubmissions(client, turn) {
     }
 }
 
+async function loadCompletions(client, turn) {
+    const box = document.getElementById("my-completions");
+    box.textContent = "Loading your completions…";
+    try {
+        const sdk = client.storeSDK;
+        const snapshot = await sdk.getDocs(sdk.query(sdk.collection(client.db, "completionSubmissions"), sdk.where("ownerUid", "==", client.user.uid)));
+        if (!current(client.user, turn)) return;
+        box.replaceChildren();
+        for (const doc of snapshot.docs) {
+            const data = doc.data(); const row = element("article", "submission-item");
+            row.append(element("h3", "", `Completion · ${data.levelId}`), element("span", "submission-status", data.status), element("p", "muted", data.status === "approved" ? "Accepted by the list team. Your points come from this level's approved record." : data.status === "rejected" ? "The list team rejected this completion proof." : "Waiting for the list team to review your 100% proof."));
+            box.append(row);
+        }
+        if (snapshot.empty) box.append(element("p", "muted", "You have no completion submissions yet."));
+    } catch (error) { if (current(client.user, turn)) box.textContent = dataMessage(error, "your completion submissions"); }
+}
+
 document.getElementById("community-rules-form").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -143,6 +179,7 @@ profileForm?.addEventListener("submit", async event => {
     const form = event.currentTarget;
     if (form.dataset.busy === "true") return;
     const output = document.getElementById("profile-status");
+    if (playerRemoved) { output.textContent = "An administrator must restore your player profile first."; return; }
     const name = form.elements.displayName.value.trim();
     const bio = form.elements.bio.value.trim();
     const tags = [...form.querySelectorAll('[name="tags"]:checked')].map(input => input.value);
@@ -173,6 +210,38 @@ profileForm?.addEventListener("submit", async event => {
         if (turn === generation) output.textContent = dataMessage(error, "your profile");
     } finally { setBusy(form, false); }
 });
+
+if (completionForm) {
+    const select = completionForm.elements.levelId;
+    const output = document.getElementById("completion-level-status");
+    subscribeData("levels", value => {
+        completionLevelsReady = value.status === "ready" && value.items.length > 0;
+        const selected = select.value;
+        select.replaceChildren(); const placeholder = element("option", "", "Choose a level"); placeholder.value = ""; select.append(placeholder);
+        if (value.status === "ready") {
+            for (const level of sortLevels(value.items)) { const option = element("option", "", level.name || "Unnamed level"); option.value = level.id; select.append(option); }
+            if (value.items.some(level => level.id === selected)) select.value = selected;
+        }
+        output.textContent = value.status === "error" ? dataMessage(value.error, "levels") : value.status === "loading" ? "Loading levels…" : value.items.length ? "" : "There are no levels to submit a completion for yet.";
+        document.getElementById("retry-completion-levels").hidden = value.status !== "error";
+        completionForm.querySelector("fieldset").disabled = !savedName || playerRemoved || !completionLevelsReady;
+    });
+    document.getElementById("retry-completion-levels").addEventListener("click", () => retryData("levels"));
+    completionForm.addEventListener("submit", async event => {
+        event.preventDefault(); if (completionForm.dataset.busy === "true") return;
+        const output = document.getElementById("completion-status");
+        const values = { levelId: completionForm.elements.levelId.value, proofUrl: completionForm.elements.proofUrl.value.trim(), notes: completionForm.elements.notes.value.trim() };
+        if (!savedName || !acceptedRules || playerRemoved) { output.textContent = "Sign in and save an active player profile first."; return; }
+        if (!validCompletion(values) || !completionLevelsReady || !completionForm.elements.confirmed.checked) { output.textContent = "Choose a level, add an HTTPS link to your 100% proof, and confirm the rules."; return; }
+        const turn = generation; setBusy(completionForm, true); output.textContent = "Sending your completion for review…";
+        try {
+            const client = await requireUser(); if (!current(client.user, turn)) throw { code: "auth/requires-login" };
+            await client.storeSDK.addDoc(client.storeSDK.collection(client.db, "completionSubmissions"), { ownerUid: client.user.uid, player: savedName, ...values, status: "pending", submittedAt: client.storeSDK.serverTimestamp() });
+            if (current(client.user, turn)) { completionForm.reset(); output.textContent = "Completion submitted. The list team will review your 100% proof before awarding points."; }
+        } catch (error) { if (turn === generation) output.textContent = dataMessage(error, "your completion submission"); }
+        finally { setBusy(completionForm, false); }
+    });
+}
 
 submissionForm?.addEventListener("submit", async event => {
     event.preventDefault();

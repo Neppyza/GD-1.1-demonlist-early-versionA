@@ -1,56 +1,72 @@
 # GD 1.1 Demonlist
 
-A community-maintained Roblox Geometry Dash 1.1 Demonlist.
+A community-maintained Roblox Geometry Dash 1.1 Demonlist using vanilla HTML/CSS/JavaScript, the existing Firebase project, and GitHub Pages. No runtime build step is required.
 
-The existing vanilla HTML/CSS/JavaScript project and Firebase backend are retained. There is no runtime build step, replacement database, demo dataset, schema migration, or new Firebase project. Serve the repository over HTTP or publish through its existing GitHub Pages setup.
+The shared typography uses self-hosted Montserrat, regular body text and bold headings to match Pointercrate’s font treatment. Light/dark themes and mobile layouts are supported.
 
-## Pages and implementation
+## Accounts and moderation
 
-The Demonlist has thumbnail-led ranking rows and a separate ranking index, real thumbnails with fallbacks, creator/verifier/category metadata, points, approved victor counts, search, placement/name/points sorting, and linked level details. Players, Records, Submit, Rules, Account, and Staff share the same typography, blue accent, accessible navigation, light/dark palettes, and responsive layout. Missing fields are displayed explicitly rather than filled with fictional data.
+Players sign in with Google, accept the community rules, and publish their name, bio and self-described tags. New profiles start with zero points. Approved 100% completion records determine leaderboard scores.
 
-- `firebase.js`, `auth.js`, `messages.js`, `site.js`: one modular Firebase SDK version, shared actual authentication state, explicit local persistence, Google login/logout, visible failures, safe return destinations, and refreshed staff-claim checks.
-- `data.js`, `list-model.js`, `ui.js`: shared public collection listeners, real-data filtering/sorting, safe DOM rendering, validated external links, and loading/error/empty states.
-- `app.js`, `stats.js`, `records.js`, `victors.js`: ranking/details, Players, approved records, and deduplicated full completions. `stats-model.js` joins registered profiles and approved completions by UID while retaining legacy players. `player-profile.js` validates the allowed self-described tags.
-- `community.js`, `admin.js`: public player onboarding/tags with atomic private/public saves, unchanged rule agreements and pending submissions, staff review transactions, and the existing stable completion-record keys. Private fields clear when identity changes or the user signs out.
-- `index.html`, `stats.html`, `records.html`, `submit.html`, `rules.html`, `community.html`, `admin.html`, `profile.html`: GD 1.1 Demonlist branding and metadata throughout; the legacy profile route still redirects to Account.
-- `style.css`, `theme.js`, `favicon.svg`, `fonts/`: shared visual system and text logo, with self-hosted Montserrat typography and its OFL license. Existing theme preferences are respected.
-- `OWNER_SETUP.md`, `ROBLOX_SETUP.md`: setup, earlier authentication blocker, preserved data fields, and manual checks.
-- `package.json`, `package-lock.json`, `.gitignore`, `firebase.json`, `tests/`: development-only verification tools. The project IDs, existing collection schemas, images, and `scripts/grant-owner.cjs` are retained. `firestore.rules` adds only the new public `players` collection; see owner setup before deploying.
+The **Admin** panel at `admin.html` supports:
 
-## Authentication setup
+- Reviewing and publishing pending level submissions.
+- Watching proof, accepting or rejecting pending completion submissions.
+- Approving a completion manually using the existing stable player/level record key.
+- Searching registered and legacy players, removing them from Players, and restoring them.
+- Adding and revoking moderators from the owner’s Team section.
 
-The existing project's real Auth configuration endpoint returned **CONFIGURATION_NOT_FOUND** on 9 October 2026. The previous popup handler concealed this with a generic failure message. The redesign exposes the error and never treats it as a successful login. The existing default persistence was already local; the redesign makes it explicit and tests restoration behavior.
+Owners are identified by a trusted Firebase `owner: true` custom claim. The owner chooses an existing registered player to add to `team/{uid}` as a moderator. Moderators can review submissions and manage players; they cannot grant roles or manage the team. Existing admin claims continue working unless the owner explicitly revokes that user through a team entry. Firestore rules enforce the permissions independently of the interface.
 
-The owner has since confirmed Google sign-in works. The original troubleshooting instructions remain available. The public-player feature requires publishing the reviewed `players` security rules before deployment. See [OWNER_SETUP.md](OWNER_SETUP.md) for exact steps. No frontend environment variables or private credentials are needed.
+Removing a player sets a moderation flag in their public `players/{id}` document. It hides both their profile and record-derived leaderboard entry, preserves their approved completion history, and prevents them from deleting the flag or republishing their profile. Restore makes their existing scores visible again. Removal does not delete the Google account.
+
+Completion proofs are stored privately in `completionSubmissions`. Accepting a proof updates its review state and creates an approved record in a transaction. Repeated proof submissions for the same player/level share the existing record key and do not duplicate points or overwrite a previously accepted proof. Submitters can follow review status in Account.
+
+## Deploy and enable owner access
+
+1. Review and publish this repository’s `firestore.rules` in the existing **gd11-demonlist** project. The update adds `team` and `completionSubmissions` permissions and player moderation rules. A GitHub Pages deployment does not publish Firebase rules.
+2. Deploy the website through its existing GitHub Pages setup.
+3. Open Admin, sign in with your owner Google account, and copy your Firebase UID.
+4. Have an administrator of the Firebase project run the existing trusted `scripts/grant-owner.cjs` script for that UID. Select **Retry access check** afterward.
+5. Teammates sign in and save their player profile. As owner, open Admin → Team, select the correct player/UID and choose **Add moderator**. They can open Admin and retry access.
+
+See [OWNER_SETUP.md](OWNER_SETUP.md) for owner setup, deployment, data fields and Google sign-in troubleshooting. Firebase project administration and website ownership are separate permissions.
+
+## Implementation
+
+- `auth.js`, `site.js`: Google authentication, session restoration, refreshed owner/moderator permissions and profile onboarding.
+- `admin.js`, `admin-management.js`: level review, manual records, completion review, player moderation and owner-only team management.
+- `community.js`, `completion-model.js`: account/profile setup, private submissions, completion validation and stable record keys.
+- `data.js`, `list-model.js`, `stats-model.js`, `victors.js`: shared public listeners, filtering/sorting, deduplicated scores and removed-player exclusion.
+- `style.css`, `theme.js`, `fonts/`: shared responsive styles, themes and Montserrat with its OFL license.
+- `firestore.rules`: enforced member, moderator and owner permissions.
+
+Existing Firebase configuration, collection fields, private profile access, images, stable record identities and rule agreement version are retained. The new moderation fields and collections are documented in owner setup.
 
 ## Run checks
 
-Use Node 22 or later. Install development dependencies with `npm ci`.
+Use Node 22 or later:
 
 ```sh
+npm ci
 npm test
 npx playwright install chromium
 npm run test:browser
 ```
 
-The browser suite starts its own local HTTP server. It deliberately uses browser-only SDK fixtures so tests never write to production or fake a successful production login. It exercises search/sorting, required public-profile onboarding, zero-point leaderboard entries, player tags, deep links, hover/reduced-motion behavior, one public listener per collection, record deduplication, detail routes, explicit auth failures, duplicate-action prevention, private-field cleanup, protected submissions/staff flows, and seven pages at widths 320, 390, 540, 768, 1024, and 1440. It saves screenshots to ignored `test-output/`.
-
-For permission checks, install Java 17 and use the Firebase CLI's local emulator:
+For Firestore permission checks, install Java 17 and run the local emulator:
 
 ```sh
 npx firebase-tools@14.17.0 emulators:exec --only firestore --project demo-demonlist 'npm run test:rules'
 ```
 
-`demo-demonlist` is an emulator-only namespace. No Firebase project is created. The suite loads the proposed `firestore.rules`, seeds only local fixtures, and asserts public-read, private-data, member-write, provider, agreement, and administrator permissions. Never run these rule fixtures against production.
+The `demo-demonlist` namespace is used only by the local emulator. Browser tests intercept the SDK with test fixtures and do not write to the production database. Test screenshots are saved in ignored `test-output/`. A preinstalled browser can be supplied with `DEMONLIST_CHROMIUM`; `DEMONLIST_PLAYWRIGHT_MODULE` and `DEMONLIST_TEST_OUTPUT` support constrained test environments.
 
-For a preinstalled browser in a constrained environment, `DEMONLIST_CHROMIUM` supplies its executable and `DEMONLIST_PLAYWRIGHT_MODULE` supplies an existing Playwright module. `DEMONLIST_TEST_OUTPUT` changes the screenshot directory. These variables are test tools only, not site configuration.
+## Verification
 
-## Verification performed
+- All 10 model tests passed, including removed-player restoration, proof validation and collision-safe completion keys.
+- The full browser suite passed: completion submission/review/rejection, duplicate proof preservation, denied-write recovery, owner-only moderator management, access refresh/revocation, removal/restoration with history retained, font loading, authentication and seven pages at six viewport widths.
+- All 81 Firestore emulator permission checks passed, including privilege escalation attempts, private proof access, moderation bypasses and revoked moderator/admin access.
+- Desktop/mobile layouts were visually inspected. Syntax and whitespace checks passed.
 
-- Eight model tests passed: numeric legacy rankings, sorting, search, deduplication, safe redirects, readable errors, UID joins/zero-point users, and tag validation.
-- All browser assertions passed, including seven pages at six widths, local routes, light/dark themes, and no uncaught JavaScript errors. Authentication restoration and successful staff UI paths in this suite use SDK fixtures.
-- All 45 Firestore emulator permission assertions passed against the proposed rules, including rejecting administrative writes from guests, ordinary members, and accounts using the wrong provider.
-- A separate read-only browser run with the actual Firebase modular SDK loaded the existing project's three real level documents and zero approved records, verified search/sorting, and confirmed the actual `auth/configuration-not-found` failure displays clearly while the user remains signed out. No uncaught JavaScript errors occurred in that run.
-- Syntax and whitespace checks passed. Production data was not modified.
-
-The owner reports successful production Google sign-in. This update was tested locally with SDK fixtures and the actual Firestore rules emulator. Publish the reviewed rules and check real profile creation, refresh/session restoration, public leaderboard entries, and staff workflows using `OWNER_SETUP.md`. No production account or database writes were performed by these tests.
+Production owner claims and rules deployment require access to the Firebase project and were not changed by these tests.

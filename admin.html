@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Administrator tools for reviewing private submissions and approving verified completions.">
-  <meta property="og:title" content="Staff review · GD 1.1 Demonlist">
-  <meta property="og:description" content="Administrator tools for reviewing private submissions and approving verified completions.">
+  <meta name="description" content="Owner and moderator tools for reviewing completions, managing players and running the list team.">
+  <meta property="og:title" content="Admin panel · GD 1.1 Demonlist">
+  <meta property="og:description" content="Owner and moderator tools for reviewing completions, managing players and running the list team.">
   <meta property="og:type" content="website">
-  <title>Staff review · GD 1.1 Demonlist</title>
+  <title>Admin panel · GD 1.1 Demonlist</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <script src="theme.js"></script>
+  <link rel="preload" href="fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,14 +22,64 @@
 <a href="stats.html">Players</a>
 <a href="records.html">Records</a>
 <a href="submit.html">Submit</a>
-<a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Staff</a></nav>
+<a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Admin</a></nav>
       <div class="account-nav"><a href="community.html" data-account-link>Sign in</a><button type="button" class="text-button" data-auth-logout hidden>Sign out</button></div>
     </div>
     <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
   </header>
-  <main id="main" class="page"><div class="page-heading"><div><h1>Staff review</h1><p>Review private level submissions and approve completion records.</p></div></div><section class="auth-panel" aria-labelledby="signin-title"><h2 id="signin-title">Your Google account</h2><p>Sign in securely with Google. Your first sign-in creates an account; no separate password is needed.</p><div class="auth-actions"><button type="button" data-auth-login disabled>Continue with Google</button><button type="button" class="secondary-button" data-auth-logout hidden>Sign out</button></div><p data-auth-status class="form-status" role="status">Restoring your session…</p></section><p id="staff-status" class="form-status" role="status">Checking access…</p><p id="staff-uid" class="account-uid"></p><button id="staff-retry" class="secondary-button" type="button">Retry access check</button><div id="staff-tools" hidden><section class="section-block"><div class="section-heading"><h2>Pending submissions</h2><button id="refresh-queue" type="button" class="secondary-button">Refresh queue</button></div><div id="review-queue"></div></section><section class="section-block narrow-form"><h2>Approve a completion</h2><p class="muted">Check the player's 100% completion proof. For a registered player, use their Firebase UID shown in Account as the player ID. Keep existing IDs for legacy players.</p><form id="victor-form" class="stack-form"><label for="victor-level">Level</label><select id="victor-level" name="levelId" required></select><label for="victor-player">Player name</label><input id="victor-player" name="player" maxlength="60" required><label for="victor-id">Player ID (Firebase UID for registered players)</label><input id="victor-id" name="playerId" maxlength="100" required><label class="check-row"><input name="checkedProof" type="checkbox" required><span>I verified the completion proof and checked the community rules.</span></label><button type="submit">Approve completion</button><p id="victor-status" class="form-status" role="status"></p></form></section></div></main>
+  <main id="main" class="page">
+    <div class="page-heading"><div><h1>Admin panel</h1><p>Review submissions, accept completions, and manage players and your team.</p></div></div>
+    <section class="auth-panel" aria-labelledby="signin-title">
+      <h2 id="signin-title">Your Google account</h2>
+      <p>Sign in with your owner or moderator Google account.</p>
+      <div class="auth-actions"><button type="button" data-auth-login disabled>Continue with Google</button><button type="button" class="secondary-button" data-auth-logout hidden>Sign out</button></div>
+      <p data-auth-status class="form-status" role="status">Restoring your session…</p>
+    </section>
+    <p id="staff-status" class="form-status" role="status">Checking access…</p>
+    <p id="staff-uid" class="account-uid"></p>
+    <button id="staff-retry" class="secondary-button" type="button">Retry access check</button>
+    <p class="admin-access-help muted">If you own this site, follow the <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#staff-access" target="_blank" rel="noopener noreferrer">owner setup instructions ↗</a> once, then retry access.</p>
+    <div id="staff-tools" hidden>
+      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Players</a><a href="#level-review">Levels</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
+      <section id="completion-review" class="section-block">
+        <div class="section-heading"><h2>Pending completions</h2><button id="refresh-completions" type="button" class="secondary-button">Refresh completions</button></div>
+        <p class="muted">Watch the submitted 100% proof before accepting a completion.</p>
+        <p id="completion-review-status" class="form-status" role="status"></p>
+        <div id="completion-queue"></div>
+      </section>
+      <section id="player-management" class="section-block">
+        <div class="section-heading"><h2>Manage players</h2><button id="refresh-players" type="button" class="secondary-button">Refresh players</button></div>
+        <p class="muted">Remove players from the leaderboard or restore them. Completion history is kept.</p>
+        <label for="admin-player-search">Find a player by name or player ID</label><input id="admin-player-search" type="search" placeholder="Search players" aria-controls="admin-players">
+        <p id="player-management-status" class="form-status" role="status"></p>
+        <div id="admin-players"></div>
+      </section>
+      <section id="team-management" class="section-block" hidden>
+        <div class="section-heading"><h2>Your moderator team</h2><button id="refresh-team" type="button" class="secondary-button">Refresh team</button></div>
+        <p class="muted">Only the owner can manage moderators. Moderators can review levels and completions and manage players.</p>
+        <form id="moderator-form" class="stack-form narrow-form">
+          <label for="moderator-player">Registered player</label><select id="moderator-player" name="playerId" required><option value="">Choose a player</option></select>
+          <p class="muted">Your teammate must sign in and save a player profile first. Check their player ID before granting access.</p>
+          <button type="submit">Add moderator</button><p id="moderator-status" class="form-status" role="status"></p>
+        </form>
+        <div id="moderator-list"></div>
+      </section>
+      <section id="level-review" class="section-block"><div class="section-heading"><h2>Pending level submissions</h2><button id="refresh-queue" type="button" class="secondary-button">Refresh queue</button></div><div id="review-queue"></div></section>
+      <section class="section-block narrow-form">
+        <h2>Approve a completion manually</h2><p class="muted">Check the player's 100% proof. Use their player ID shown in Account, or keep the existing ID for a legacy player.</p>
+        <form id="victor-form" class="stack-form">
+          <label for="victor-level">Level</label><select id="victor-level" name="levelId" required></select>
+          <label for="victor-player">Player name</label><input id="victor-player" name="player" maxlength="60" required>
+          <label for="victor-id">Player ID</label><input id="victor-id" name="playerId" maxlength="100" required>
+          <label class="check-row"><input name="checkedProof" type="checkbox" required><span>I verified the 100% proof and checked the community rules.</span></label>
+          <button type="submit">Approve completion</button><p id="victor-status" class="form-status" role="status"></p>
+        </form>
+      </section>
+    </div>
+  </main>
   <footer class="site-footer"><div><strong>GD 1.1 Demonlist</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
   <script type="module" src="site.js"></script>
   <script type="module" src="admin.js"></script>
+  <script type="module" src="admin-management.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import { validPlayerProfile } from "./player-profile.js";
 
 export function buildStats(levels, records, profiles = []) {
+    const removed = new Set(profiles.filter(profile => profile.removed === true).map(profile => String(profile.id)));
     const byLevel = new Map(levels.map(level => [level.id, level]));
     const players = new Map();
     for (const profile of profiles) {
@@ -12,6 +13,7 @@ export function buildStats(levels, records, profiles = []) {
         const level = byLevel.get(record.levelId);
         if (!level) continue;
         const id = String(record.playerId);
+        if (removed.has(id)) continue;
         if (!players.has(id)) players.set(id, { id, name: String(record.player), bio: "", tags: [], registered: false, completed: new Map() });
         players.get(id).completed.set(level.id, level);
     }
