@@ -1,5 +1,5 @@
 import { subscribeAuth, signInGoogle, signOutUser, returnDestination, requireUser } from "./auth.js";
-import { validPlayerProfile } from "./player-profile.js";
+import { completePlayerProfile } from "./player-profile.js";
 import { dataMessage } from "./messages.js";
 
 const page = location.pathname.split("/").pop() || "index.html";
@@ -20,7 +20,7 @@ async function checkProfile(uid, turn) {
         const snapshot = await client.storeSDK.getDoc(client.storeSDK.doc(client.db, "players", uid));
         if (turn !== profileGeneration || client.auth.currentUser?.uid !== uid) return;
         if (snapshot.exists() && snapshot.data().removed === true) return;
-        const complete = snapshot.exists() && validPlayerProfile(snapshot.data());
+        const complete = snapshot.exists() && completePlayerProfile(snapshot.data());
         if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search)}`);
     } catch (error) {
         if (turn !== profileGeneration) return;

@@ -87,3 +87,29 @@ test('completion proof validation and pair keys reject unsafe input and avoid am
     assert.notEqual(await completionKey('a,b','c'),await completionKey('a','b,c'));
     assert.notEqual(await completionKey('player','level'),await completionKey('other','level'));
 });
+
+test('country choices cover the catalog and reject unsupported country identifiers', async () => {
+    const {countries,getCountry,isCountryCode}=await import('../countries.js');
+    assert.equal(countries.length,250);
+    assert.equal(new Set(countries.map(country=>country.code)).size,250);
+    for(const code of ['FR','CD','US','BR','IN','JP','ZA','PS','TW','XK','AX']) assert.ok(getCountry(code));
+    for(const code of ['ZZ','fr','France','../us','GB-SCT','',null]) assert.equal(isCountryCode(code),false);
+});
+test('legacy profiles stay visible while completed onboarding requires a valid country', async () => {
+    const {validPlayerProfile,completePlayerProfile}=await import('../player-profile.js');
+    const profile={displayName:'Player',bio:'',tags:['Player']};
+    assert.equal(validPlayerProfile(profile),true);
+    assert.equal(completePlayerProfile(profile),false);
+    assert.equal(completePlayerProfile({...profile,countryCode:'CD'}),true);
+    assert.equal(validPlayerProfile({...profile,countryCode:'ZZ'}),false);
+});
+test('changing a country preserves the player identity, points and completion history', async () => {
+    const {buildStats}=await import('../stats-model.js');
+    const levels=[{id:'a',name:'Level',position:1,points:50}];
+    const records=[{approved:true,progress:100,levelId:'a',playerId:'one',player:'Old Name'}];
+    const profile={id:'one',displayName:'Player',bio:'',tags:['Player']};
+    for(const countryCode of [undefined,'FR','CD']){
+        const stats=buildStats(levels,records,[{...profile,...(countryCode?{countryCode}:{})}]);
+        assert.equal(stats.length,1);assert.equal(stats[0].id,'one');assert.equal(stats[0].points,50);assert.equal(stats[0].completed.length,1);assert.equal(stats[0].countryCode,countryCode||null);
+    }
+});
