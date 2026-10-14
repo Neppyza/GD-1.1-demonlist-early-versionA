@@ -48,7 +48,7 @@ export const writeBatch=()=>{const pending=[];return{set:(ref,data)=>pending.pus
 export const addDoc=async(ref,data)=>{const item=doc(ref);save(item,data);return item};
 export const runTransaction=async(db,callback)=>{const pending=[];await callback({get:getDoc,set:(ref,data,options)=>pending.push([ref,data,options?.merge===true]),update:(ref,data)=>pending.push([ref,data,true])});if(test.writeError)throw{code:test.writeError};for(const [ref,data,merge]of pending)save(ref,data,merge)};
 `;
-const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff2':'font/woff2'};
+const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.woff2':'font/woff2'};
 const server=http.createServer((req,res)=>{
     const pathname=new URL(req.url,'http://localhost').pathname;
     const file=path.join(root,pathname==='/'?'index.html':pathname);
