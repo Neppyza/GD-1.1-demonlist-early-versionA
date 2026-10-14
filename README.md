@@ -1,8 +1,10 @@
-# GD 1.1 Demonlist
+# GD1.1 Demonlist
 
 A community-maintained Roblox Geometry Dash 1.1 Demonlist using vanilla HTML/CSS/JavaScript, the existing Firebase project, and GitHub Pages. No runtime build step is required.
 
-The shared typography uses self-hosted Montserrat, regular body text and bold headings to match Pointercrate’s font treatment. Light/dark themes and mobile layouts are supported.
+**Public website:** [GD1.1 Demonlist](https://neppyza.github.io/GD-1.1-demonlist-early-versionA/).
+
+The public site uses consistent GD1.1 Demonlist branding, a refreshed blue layout, self-hosted Montserrat, and responsive light/dark themes. Level detail links update the URL and support browser Back/Forward. Canonical URLs, social preview metadata, a public sitemap and a recovery page are included.
 
 Join the community through the **Join our Discord** section on the list page or **Join Discord** in every page footer: [Discord server](https://discord.gg/BKFhzNkBW).
 
