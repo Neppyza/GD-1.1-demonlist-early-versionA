@@ -1,4 +1,4 @@
-# GD 1.1 Demonlist: Firebase and staff setup
+# GD1.1 Demonlist: Firebase and staff setup
 
 The website keeps the existing `gd11-demonlist` Firebase project and Google sign-in. New Google users create their Firebase account through the same **Continue with Google** button. Email/password and Roblox OAuth are not configured by this website.
 

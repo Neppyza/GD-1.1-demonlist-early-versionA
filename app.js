@@ -33,7 +33,7 @@ function levelLink(id, label, className = "") {
     link.addEventListener("click", event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
-        showDetails(id);
+        showDetails(id, true);
     });
     return link;
 }
@@ -113,9 +113,17 @@ function render() {
     }
 }
 
-function showDetails(id) {
+function showDetails(id, updateURL = false) {
     const level = levelState.items.find(item => item.id === id);
     if (!level) return;
+    if (updateURL) {
+        const url = new URL(location.href);
+        if (url.searchParams.get("level") !== id) {
+            url.searchParams.set("level", id);
+            history.pushState(null, "", url);
+        }
+    }
+    document.getElementById("selection-status").hidden = true;
     dialog.dataset.levelId = id;
     const detail = document.getElementById("level-detail");
     const title = element("h2", "", String(level.name || "Unnamed level").trim());
@@ -154,6 +162,18 @@ function showDetails(id) {
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
 document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
+dialog.addEventListener("close", () => {
+    const url = new URL(location.href);
+    if (url.searchParams.get("level") === dialog.dataset.levelId) {
+        url.searchParams.delete("level");
+        history.replaceState(history.state, "", url);
+    }
+});
+window.addEventListener("popstate", () => {
+    const selected = new URLSearchParams(location.search).get("level");
+    if (levelState.items.some(level => level.id === selected)) showDetails(selected);
+    else if (dialog.open) dialog.close();
+});
 dialog.addEventListener("click", event => {
     if (event.target !== dialog) return;
     const bounds = dialog.getBoundingClientRect();
