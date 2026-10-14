@@ -123,7 +123,7 @@ tbody tr { transition: background-color 120ms ease; }
 .table-state strong { display: block; color: var(--ink); font-size: 15px; font-weight: 600; }
 .table-state p { max-width: 580px; margin: 8px auto 16px; font-size: 12px; }
 .table-state button { margin-top: 8px; }
-#players-table { min-width: 650px; }
+#players-table { min-width: 800px; }
 #records-table { min-width: 750px; }
 .completion-list { max-width: 700px; margin: 16px 0 0; padding: 0; list-style: none; }
 .completion-list li { display: flex; justify-content: space-between; gap: 24px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
@@ -358,6 +358,12 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 .player-tag { padding: 2px 7px; border: 1px solid var(--line); background: var(--soft); color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.5; }
 #player-details .player-tags { margin: 0 0 12px; }
 .player-bio { white-space: pre-wrap; overflow-wrap: anywhere; }
+.player-country { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 12px; line-height: 1.5; }
+.player-country img { flex: 0 0 auto; width: 24px; height: 18px; border: 1px solid var(--line); border-radius: 2px; object-fit: cover; }
+.country-cell { min-width: 150px; }
+#country-preview { margin: 4px 0 8px; }
+.country-help { color: var(--muted); font-size: 12px; }
+#player-details > .player-country { display: flex; margin: 12px 0 16px; }
 .player-id { font-size: 11px; overflow-wrap: anywhere; }
 .tag-options { margin: 0; padding: 14px; border: 1px solid var(--line); }
 .tag-options legend { padding: 0 5px; font-weight: 600; }

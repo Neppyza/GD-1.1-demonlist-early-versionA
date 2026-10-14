@@ -6,7 +6,7 @@ export function buildStats(levels, records, profiles = []) {
     const players = new Map();
     for (const profile of profiles) {
         if (!profile.id || !validPlayerProfile(profile)) continue;
-        players.set(String(profile.id), { id: String(profile.id), name: profile.displayName, bio: profile.bio, tags: [...profile.tags], registered: true, completed: new Map() });
+        players.set(String(profile.id), { id: String(profile.id), name: profile.displayName, bio: profile.bio, countryCode: profile.countryCode || null, tags: [...profile.tags], registered: true, completed: new Map() });
     }
     for (const record of records) {
         if (record.approved !== true || Number(record.progress) !== 100 || !record.playerId || !record.player) continue;
@@ -14,7 +14,7 @@ export function buildStats(levels, records, profiles = []) {
         if (!level) continue;
         const id = String(record.playerId);
         if (removed.has(id)) continue;
-        if (!players.has(id)) players.set(id, { id, name: String(record.player), bio: "", tags: [], registered: false, completed: new Map() });
+        if (!players.has(id)) players.set(id, { id, name: String(record.player), bio: "", countryCode: null, tags: [], registered: false, completed: new Map() });
         players.get(id).completed.set(level.id, level);
     }
     return [...players.values()].map(player => {

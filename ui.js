@@ -1,8 +1,24 @@
+import { getCountry } from "./countries.js";
+
 export function element(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
     if (text !== undefined) node.textContent = String(text);
     return node;
+}
+
+export function countryIndicator(code) {
+    const country = getCountry(code);
+    const badge = element("span", "player-country");
+    if (!country) { badge.append(element("span", "muted", "Not set")); return badge; }
+    const flag = element("img");
+    flag.src = `flags/${country.code.toLowerCase()}.svg`;
+    flag.alt = "";
+    flag.width = 24; flag.height = 18;
+    flag.loading = "lazy"; flag.decoding = "async";
+    flag.addEventListener("error", () => { flag.hidden = true; }, { once: true });
+    badge.append(flag, element("span", "", country.name));
+    return badge;
 }
 
 export function safeURL(value) {

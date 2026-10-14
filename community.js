@@ -1,7 +1,8 @@
 import { subscribeAuth, requireUser } from "./auth.js";
 import { dataMessage } from "./messages.js";
-import { element, setBusy } from "./ui.js";
-import { validPlayerProfile } from "./player-profile.js";
+import { element, setBusy, countryIndicator } from "./ui.js";
+import { validPlayerProfile, completePlayerProfile } from "./player-profile.js";
+import { countries, isCountryCode } from "./countries.js";
 import { validCompletion } from "./completion-model.js";
 import { subscribeData, retryData } from "./data.js";
 import { sortLevels } from "./list-model.js";
@@ -21,6 +22,23 @@ let savedName = "";
 let playerRemoved = false;
 let completionLevelsReady = false;
 
+const countrySelect = profileForm?.elements.countryCode;
+const countryPreview = document.getElementById("country-preview");
+function renderCountryPreview() {
+    if (!countryPreview) return;
+    countryPreview.hidden = !isCountryCode(countrySelect.value);
+    countryPreview.replaceChildren();
+    if (!countryPreview.hidden) countryPreview.append(countryIndicator(countrySelect.value));
+}
+if (countrySelect) {
+    for (const country of countries) {
+        const option = element("option", "", country.name);
+        option.value = country.code;
+        countrySelect.append(option);
+    }
+    countrySelect.addEventListener("change", renderCountryPreview);
+}
+
 function current(user, turn) { return memberId === user.uid && generation === turn; }
 function clearPrivateData() {
     content.hidden = true;
@@ -32,6 +50,7 @@ function clearPrivateData() {
     retry.hidden = true;
     document.getElementById("community-rules-form").reset();
     profileForm?.reset();
+    renderCountryPreview();
     const view = document.getElementById("view-profile");
     if (view) { view.hidden = true; view.removeAttribute("href"); }
     const uid = document.getElementById("player-uid");
@@ -80,13 +99,16 @@ async function loadMember(user, turn) {
             retry.hidden = false;
             return;
         }
-        savedName = validPlayerProfile(publicProfile) ? publicProfile.displayName : "";
+        savedName = completePlayerProfile(publicProfile) ? publicProfile.displayName : "";
         content.hidden = false;
         if (profileForm) {
-            profileForm.elements.displayName.value = savedName || profile.displayName || user.displayName || "";
+            profileForm.elements.displayName.value = (validPlayerProfile(publicProfile) ? publicProfile.displayName : profile.displayName) || user.displayName || "";
             profileForm.elements.bio.value = publicProfile?.bio ?? profile.bio ?? "";
+            const code = publicProfile?.countryCode ?? profile.countryCode;
+            countrySelect.value = isCountryCode(code) ? code : "";
+            renderCountryPreview();
             for (const checkbox of profileForm.querySelectorAll('[name="tags"]')) checkbox.checked = (publicProfile?.tags || ["Player"]).includes(checkbox.value);
-            document.getElementById("profile-status").textContent = savedName ? "Your public player profile is saved." : "Complete your player profile to join the leaderboard.";
+            document.getElementById("profile-status").textContent = savedName ? "Your public player profile is saved." : validPlayerProfile(publicProfile) ? "Choose your country and save your profile to continue." : "Complete your player profile and choose your country to join the leaderboard.";
             const view = document.getElementById("view-profile");
             view.hidden = !savedName;
             view.href = `stats.html?player=${encodeURIComponent(user.uid)}`;
@@ -182,8 +204,14 @@ profileForm?.addEventListener("submit", async event => {
     if (playerRemoved) { output.textContent = "An administrator must restore your player profile first."; return; }
     const name = form.elements.displayName.value.trim();
     const bio = form.elements.bio.value.trim();
+    const countryCode = form.elements.countryCode.value;
     const tags = [...form.querySelectorAll('[name="tags"]:checked')].map(input => input.value);
-    if (!validPlayerProfile({ displayName: name, bio, tags })) {
+    if (!isCountryCode(countryCode)) {
+        output.textContent = "Choose your country before saving your profile.";
+        countrySelect.focus();
+        return;
+    }
+    if (!completePlayerProfile({ displayName: name, bio, tags, countryCode })) {
         output.textContent = "Use a name of 3–24 characters, a bio of at most 300 characters, and choose at least one player tag.";
         return;
     }
@@ -196,8 +224,8 @@ profileForm?.addEventListener("submit", async event => {
         const sdk = client.storeSDK;
         const updatedAt = sdk.serverTimestamp();
         const batch = sdk.writeBatch(client.db);
-        batch.set(sdk.doc(client.db, "profiles", client.user.uid), { displayName: name, bio, updatedAt });
-        batch.set(sdk.doc(client.db, "players", client.user.uid), { displayName: name, bio, tags, updatedAt });
+        batch.set(sdk.doc(client.db, "profiles", client.user.uid), { displayName: name, bio, countryCode, updatedAt });
+        batch.set(sdk.doc(client.db, "players", client.user.uid), { displayName: name, bio, tags, countryCode, updatedAt });
         await batch.commit();
         if (!current(client.user, turn)) return;
         savedName = name;

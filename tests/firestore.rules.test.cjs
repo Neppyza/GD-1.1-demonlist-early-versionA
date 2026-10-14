@@ -30,15 +30,15 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('member cannot publish a level',setDoc(doc(player,'levels','member-level'),level),false);
         await check('member cannot approve a record',setDoc(doc(player,'records','member-record'),record),false);
         await check('Google provider is required even for staff',setDoc(doc(passwordAdmin,'levels','password-level'),level),false);
-        await check('profile requires rules agreement',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',updatedAt:serverTimestamp()}),false);
+        await check('profile requires rules agreement',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',countryCode:'FR',updatedAt:serverTimestamp()}),false);
         await check('correct agreement version',setDoc(doc(player,'agreements','player-a'),{version:'2026-10-05',acceptedAt:serverTimestamp()}),true);
-        await check('profile save after agreement',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',updatedAt:serverTimestamp()}),true);
+        await check('profile save after agreement',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',countryCode:'FR',updatedAt:serverTimestamp()}),true);
         await check('profile owner can read it',getDoc(doc(player,'profiles','player-a')),true);
         await check('another user cannot read a private profile',getDoc(doc(other,'profiles','player-a')),false);
         await check('staff cannot read private player profiles',getDoc(doc(admin,'profiles','player-a')),false);
         await check('cannot forge another user agreement',setDoc(doc(player,'agreements','player-b'),{version:'2026-10-05',acceptedAt:serverTimestamp()}),false);
         await check('outdated agreement version rejected',setDoc(doc(player,'agreements','player-a'),{version:'old',acceptedAt:serverTimestamp()}),false);
-        const publicProfile={displayName:'Player A',bio:'',tags:['Player','Creator'],updatedAt:serverTimestamp()};
+        const publicProfile={displayName:'Player A',bio:'',countryCode:'FR',tags:['Player','Creator'],updatedAt:serverTimestamp()};
         await check('guest cannot register a public player',setDoc(doc(guest,'players','player-a'),publicProfile),false);
         await check('public profile requires rules agreement',setDoc(doc(other,'players','player-b'),publicProfile),false);
         await check('cannot publish another player profile',setDoc(doc(player,'players','player-b'),publicProfile),false);
@@ -49,17 +49,28 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('duplicate tags rejected',setDoc(doc(player,'players','player-a'),{...publicProfile,tags:['Player','Player']}),false);
         await check('public profile must match private player name',setDoc(doc(player,'players','player-a'),{...publicProfile,displayName:'Different name'}),false);
         await check('member publishes their own valid public profile',setDoc(doc(player,'players','player-a'),publicProfile),true);
+        for (const countryCode of ['ZZ','fr','France','../us','']) await check('invalid country rejected: '+countryCode,setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',countryCode,updatedAt:serverTimestamp()}),false);
+        await check('country is required on private profile writes',setDoc(doc(player,'profiles','player-a'),{displayName:'Player A',bio:'',updatedAt:serverTimestamp()}),false);
+        const {countryCode: omittedCountry,...withoutCountry}=publicProfile;
+        await check('country is required on public profile writes',setDoc(doc(player,'players','player-a'),withoutCountry),false);
+        await check('public country must match the private profile',setDoc(doc(player,'players','player-a'),{...publicProfile,countryCode:'CD'}),false);
+
         await check('guest can list public players',getDocs(collection(guest,'players')),true);
         await check('another member cannot update a player',updateDoc(doc(other,'players','player-a'),{bio:'Forged'}),false);
         await check('cannot add a privileged field later',updateDoc(doc(player,'players','player-a'),{admin:true}),false);
         await check('public profile must match private bio',updateDoc(doc(player,'players','player-a'),{bio:'Changed',updatedAt:serverTimestamp()}),false);
         const batch=writeBatch(player);
-        batch.set(doc(player,'profiles','player-a'),{displayName:'Updated Player',bio:'Public bio',updatedAt:serverTimestamp()});
-        batch.set(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',tags:['Verifier'],updatedAt:serverTimestamp()});
+        batch.set(doc(player,'profiles','player-a'),{displayName:'Updated Player',bio:'Public bio',countryCode:'FR',updatedAt:serverTimestamp()});
+        batch.set(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',countryCode:'FR',tags:['Verifier'],updatedAt:serverTimestamp()});
         await check('profile and directory update atomically using getAfter',batch.commit(),true);
+        const countryBatch=writeBatch(player);
+        countryBatch.set(doc(player,'profiles','player-a'),{displayName:'Updated Player',bio:'Public bio',countryCode:'CD',updatedAt:serverTimestamp()});
+        countryBatch.set(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',tags:['Verifier'],countryCode:'CD',updatedAt:serverTimestamp()});
+        await check('country changes save atomically to both profiles',countryBatch.commit(),true);
+
         const badBatch=writeBatch(player);
-        badBatch.set(doc(player,'profiles','player-a'),{displayName:'Should not save',bio:'',updatedAt:serverTimestamp()});
-        badBatch.set(doc(player,'players','player-a'),{displayName:'Should not save',bio:'',tags:['Owner'],updatedAt:serverTimestamp()});
+        badBatch.set(doc(player,'profiles','player-a'),{displayName:'Should not save',bio:'',countryCode:'FR',updatedAt:serverTimestamp()});
+        badBatch.set(doc(player,'players','player-a'),{displayName:'Should not save',bio:'',countryCode:'FR',tags:['Owner'],updatedAt:serverTimestamp()});
         await check('invalid public profile rejects the entire batch',badBatch.commit(),false);
         if((await getDoc(doc(player,'profiles','player-a'))).data().displayName!=='Updated Player') throw new Error('Failed batch modified private profile');
         await check('cannot delete another player',deleteDoc(doc(other,'players','player-a')),false);
@@ -78,7 +89,7 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('record must reference an existing level',setDoc(doc(admin,'records','missing-level'),{...record,levelId:'not-a-level'}),false);
         const membership={role:'moderator',active:true,displayName:'Moderator Player',updatedBy:'owner-a',updatedAt:serverTimestamp()};
         await env.withSecurityRulesDisabled(async context=>{
-            await setDoc(doc(context.firestore(),'players','moderator-a'),{displayName:'Moderator Player',bio:'',tags:['Player'],updatedAt:serverTimestamp()});
+            await setDoc(doc(context.firestore(),'players','moderator-a'),{displayName:'Moderator Player',bio:'',countryCode:'FR',tags:['Player'],updatedAt:serverTimestamp()});
         });
         await check('member cannot add themselves to the team',setDoc(doc(moderator,'team','moderator-a'),{...membership,updatedBy:'moderator-a'}),false);
         await check('legacy admin cannot manage the owner team',setDoc(doc(admin,'team','moderator-a'),{...membership,updatedBy:'staff-a'}),false);
@@ -95,7 +106,7 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('member cannot forge a moderation flag',updateDoc(doc(player,'players','player-a'),{...moderation,moderatedBy:'player-a'}),false);
         await check('moderator can remove a registered player',updateDoc(doc(moderator,'players','player-a'),moderation),true);
         await check('removed player cannot erase the marker',deleteDoc(doc(player,'players','player-a')),false);
-        await check('removed player cannot republish the profile',setDoc(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',tags:['Verifier'],updatedAt:serverTimestamp()}),false);
+        await check('removed player cannot republish the profile',setDoc(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',countryCode:'FR',tags:['Verifier'],updatedAt:serverTimestamp()}),false);
         await check('moderator cannot edit private profile fields',updateDoc(doc(moderator,'players','player-a'),{...moderation,displayName:'Forged player'}),false);
         await check('moderator can remove a legacy record-only player',setDoc(doc(moderator,'players','legacy-player'),moderation),true);
         await check('owner can restore a player',updateDoc(doc(owner,'players','player-a'),{removed:false,moderatedBy:'owner-a',moderatedAt:serverTimestamp()}),true);

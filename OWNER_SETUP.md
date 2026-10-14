@@ -113,3 +113,17 @@ Staff must review proof and reject inappropriate names or content. Approval publ
 - Verify the live Firestore rules match the reviewed rules, then check ranks, search, record links, mobile layout, and the browser console on the deployed GitHub Pages URL.
 
 The owner reports live Google sign-in now works. The earlier live test was blocked by `CONFIGURATION_NOT_FOUND`. The new public-profile flow still needs the reviewed rules published and a real signed-in account check. The repository's browser fixtures and Firestore emulator tests cover these UI and permission paths without pretending to authenticate against production.
+
+## Player countries and flags
+
+Account setup requires a country or territory chosen by the player. The picker has 250 entries (the ISO 3166-1 catalog plus Kosovo). Flag SVGs are served from this repository, so they also work on Windows browsers that do not render flag emoji. Country names and flags appear in the Players table and public profile details; country names and codes are searchable.
+
+Both `profiles/{uid}` and `players/{uid}` store an uppercase `countryCode` chosen from `countries.js`. Profile saves update both documents in a single batch. The proposed Firestore rules require a supported code and enforce that the private and public profiles match. Country choices describe the player’s chosen representation; they do not verify citizenship or grant any role.
+
+Deploy the repository’s updated `firestore.rules` to **gd11-demonlist** before merging the country feature. GitHub Pages publishes the website, and Firebase separately publishes its database rules. With an authorized Firebase CLI account, run:
+
+```sh
+npx firebase-tools@14.17.0 deploy --only firestore:rules --project gd11-demonlist
+```
+
+An administrator can also paste the complete `firestore.rules` file into Firebase Console → Firestore Database → Rules and publish it. Existing accounts do not need to be recreated: legacy profiles remain visible with “Not set” until the player next signs in and chooses a country. Points and approved records stay joined to the same Firebase UID.

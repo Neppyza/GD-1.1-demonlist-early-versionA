@@ -57,27 +57,49 @@ service cloud.firestore {
         && data.verifier is string && data.verifier.size() > 0 && data.verifier.size() <= 60
         && httpsLink(data.levelUrl) && httpsLink(data.proofUrl);
     }
+    function validCountry(code) {
+      return code is string && code in [
+          'AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AW', 'AX',
+          'AZ', 'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BN', 'BO', 'BQ',
+          'BR', 'BS', 'BT', 'BV', 'BW', 'BY', 'BZ', 'CA', 'CC', 'CD', 'CF', 'CG', 'CH', 'CI', 'CK',
+          'CL', 'CM', 'CN', 'CO', 'CR', 'CU', 'CV', 'CW', 'CX', 'CY', 'CZ', 'DE', 'DJ', 'DK', 'DM',
+          'DO', 'DZ', 'EC', 'EE', 'EG', 'EH', 'ER', 'ES', 'ET', 'FI', 'FJ', 'FK', 'FM', 'FO', 'FR',
+          'GA', 'GB', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GL', 'GM', 'GN', 'GP', 'GQ', 'GR', 'GS',
+          'GT', 'GU', 'GW', 'GY', 'HK', 'HM', 'HN', 'HR', 'HT', 'HU', 'ID', 'IE', 'IL', 'IM', 'IN',
+          'IO', 'IQ', 'IR', 'IS', 'IT', 'JE', 'JM', 'JO', 'JP', 'KE', 'KG', 'KH', 'KI', 'KM', 'KN',
+          'KP', 'KR', 'KW', 'KY', 'KZ', 'LA', 'LB', 'LC', 'LI', 'LK', 'LR', 'LS', 'LT', 'LU', 'LV',
+          'LY', 'MA', 'MC', 'MD', 'ME', 'MF', 'MG', 'MH', 'MK', 'ML', 'MM', 'MN', 'MO', 'MP', 'MQ',
+          'MR', 'MS', 'MT', 'MU', 'MV', 'MW', 'MX', 'MY', 'MZ', 'NA', 'NC', 'NE', 'NF', 'NG', 'NI',
+          'NL', 'NO', 'NP', 'NR', 'NU', 'NZ', 'OM', 'PA', 'PE', 'PF', 'PG', 'PH', 'PK', 'PL', 'PM',
+          'PN', 'PR', 'PS', 'PT', 'PW', 'PY', 'QA', 'RE', 'RO', 'RS', 'RU', 'RW', 'SA', 'SB', 'SC',
+          'SD', 'SE', 'SG', 'SH', 'SI', 'SJ', 'SK', 'SL', 'SM', 'SN', 'SO', 'SR', 'SS', 'ST', 'SV',
+          'SX', 'SY', 'SZ', 'TC', 'TD', 'TF', 'TG', 'TH', 'TJ', 'TK', 'TL', 'TM', 'TN', 'TO', 'TR',
+          'TT', 'TV', 'TW', 'TZ', 'UA', 'UG', 'UM', 'US', 'UY', 'UZ', 'VA', 'VC', 'VE', 'VG', 'VI',
+          'VN', 'VU', 'WF', 'WS', 'XK', 'YE', 'YT', 'ZA', 'ZM', 'ZW'
+      ];
+    }
     match /profiles/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, update: if acceptedRules() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'updatedAt'])
-        && request.resource.data.keys().hasAll(['displayName', 'bio', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'countryCode', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'bio', 'countryCode', 'updatedAt'])
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 3
         && request.resource.data.displayName.size() <= 24
         && request.resource.data.bio is string
         && request.resource.data.bio.size() <= 300
+        && validCountry(request.resource.data.countryCode)
         && request.resource.data.updatedAt == request.time;
       allow delete: if signedIn() && request.auth.uid == uid;
     }
-    // Public directory; private profiles above keep their existing schema and access.
+    // Public directory. Country codes match the private profile; existing reads remain compatible.
     // Identity is the document UID. Scores and staff roles cannot be self-assigned.
     match /players/{uid} {
       allow read: if true;
       allow create, update: if acceptedRules() && request.auth.uid == uid
         && activePlayer(uid)
-        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'updatedAt'])
-        && request.resource.data.keys().hasAll(['displayName', 'bio', 'tags', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'countryCode', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'bio', 'tags', 'countryCode', 'updatedAt'])
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 3
         && request.resource.data.displayName.size() <= 24
@@ -87,9 +109,11 @@ service cloud.firestore {
         && request.resource.data.tags.size() >= 1 && request.resource.data.tags.size() <= 3
         && request.resource.data.tags.toSet().size() == request.resource.data.tags.size()
         && request.resource.data.tags.hasOnly(['Player', 'Creator', 'Verifier'])
+        && validCountry(request.resource.data.countryCode)
         && request.resource.data.updatedAt == request.time
         && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.displayName == request.resource.data.displayName
-        && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.bio == request.resource.data.bio;
+        && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.bio == request.resource.data.bio
+        && getAfter(/databases/$(database)/documents/profiles/$(uid)).data.countryCode == request.resource.data.countryCode;
       allow create: if staff()
         && request.resource.data.keys().hasOnly(['removed', 'moderatedBy', 'moderatedAt'])
         && validModeration();
