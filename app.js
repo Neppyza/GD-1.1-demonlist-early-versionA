@@ -4,6 +4,33 @@ import { victorNames } from "./victors.js";
 import { element, thumbnail, externalLink } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
+import { readWatchlist, writeWatchlist } from "./watchlist.js";
+const saved = readWatchlist();
+const savedOnly = document.getElementById("saved-only");
+const challenge = document.getElementById("random-challenge");
+function matchingLevels(records) {
+    return filterLevels(levelState.items, records, search.value).filter(level => !savedOnly.checked || saved.has(level.id));
+}
+function saveButton(level) {
+    const button = element("button", "secondary-button", saved.has(level.id) ? "★ Saved" : "☆ Save level");
+    button.type = "button";
+    button.setAttribute("aria-label", `Save ${level.name || "level"} to watchlist`);
+    button.setAttribute("aria-pressed", String(saved.has(level.id)));
+    button.addEventListener("click", () => {
+        if (!saved.has(level.id) && saved.size >= 1000) {
+            document.getElementById("watchlist-status").textContent = "Watchlist full (1,000 levels). Remove a saved level first.";
+            return;
+        }
+        saved.has(level.id) ? saved.delete(level.id) : saved.add(level.id);
+        const persisted = writeWatchlist(saved);
+        document.getElementById("watchlist-status").textContent = persisted ? `${saved.size} saved · This browser only` : "Browser storage unavailable. Changes last for this page session only.";
+        render();
+    });
+    return button;
+}
+function connectionStatus() {
+    document.getElementById("connection-status").textContent = !navigator.onLine ? "Offline · Reconnect to load current rankings." : levelState.status === "error" ? "Rankings connection failed · Use Try again below." : levelState.status === "ready" ? "Rankings loaded · Listening for updates" : "Connecting to rankings…";
+}
 const body = document.getElementById("levels");
 const table = document.getElementById("demon-table");
 const search = document.getElementById("search");
@@ -39,6 +66,8 @@ function levelLink(id, label, className = "") {
 }
 
 function render() {
+    connectionStatus();
+    challenge.disabled = true;
     table.setAttribute("aria-busy", String(levelState.status === "loading"));
     if (levelState.status === "loading") {
         listState( "Loading the demonlist…");
@@ -51,7 +80,8 @@ function render() {
         return;
     }
     const records = recordState.status === "ready" ? recordState.items : [];
-    const matching = filterLevels(levelState.items, records, search.value);
+    const matching = matchingLevels(records);
+    challenge.disabled = matching.length === 0;
     const filtered = sortLevels(matching, sort.value);
     status.textContent = `${filtered.length} of ${levelState.items.length} levels`;
     const recordNote = document.getElementById("records-note");
@@ -95,7 +125,7 @@ function render() {
             group.append(element("dt", "", label), element("dd", className, value));
             meta.append(group);
         }
-        content.append(heading, creator, verifier, meta);
+        content.append(heading, creator, verifier, meta, saveButton(level));
         row.append(previewLink, content); body.append(row);
     }
     if (dialog.open) {
@@ -144,6 +174,7 @@ function showDetails(id, updateURL = false) {
         const link = externalLink(value, label);
         if (link) links.append(link);
     }
+    links.append(saveButton(level));
     detail.append(links, element("h3", "", "Approved victors"));
     if (recordState.status === "ready") {
         const names = victorNames(recordState.items, id);
@@ -159,6 +190,13 @@ function showDetails(id, updateURL = false) {
     if (!dialog.open) dialog.showModal();
 }
 
+savedOnly.addEventListener("change", render);
+challenge.addEventListener("click", () => {
+    const choices = matchingLevels(recordState.status === "ready" ? recordState.items : []);
+    if (choices.length) showDetails(choices[Math.floor(Math.random() * choices.length)].id, true);
+});
+window.addEventListener("offline", connectionStatus);
+window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
 document.getElementById("close-dialog").addEventListener("click", () => dialog.close());

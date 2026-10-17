@@ -148,7 +148,7 @@ service cloud.firestore {
       allow delete: if staff();
     }
     match /submissions/{submissionId} {
-      allow create: if acceptedRules()
+      allow create: if acceptedRules() && activePlayer(request.auth.uid)
         && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.keys().hasAll(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.ownerUid == request.auth.uid
@@ -172,7 +172,10 @@ service cloud.firestore {
         && request.resource.data.submittedAt == request.time
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
       allow get, list: if staff() || (signedIn() && resource.data.ownerUid == request.auth.uid);
-      allow update: if staff()
+      allow update: if staff() && resource.data.status == 'pending'
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt == request.time
+        && (!('levelId' in request.resource.data) || request.resource.data.levelId is string)
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.status in ['approved', 'rejected']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'levelId', 'reviewedAt', 'reviewedBy']);

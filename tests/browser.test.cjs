@@ -93,6 +93,20 @@ const server=http.createServer((req,res)=>{
     await page.goto(origin);await page.locator('.demon-row').first().waitFor();await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});
     await page.getByRole('button',{name:'Switch to dark theme'}).click();await page.reload();await page.locator('.demon-row').first().waitFor();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.screenshot({path:path.join(output,'dark.png'),fullPage:true});await page.getByRole('button',{name:'Switch to light theme'}).click();
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(output,'mobile.png'),fullPage:true});
+    await page.getByRole('button',{name:'Save Fixture Alpha to watchlist',exact:true}).click();
+    await page.locator('#saved-only').check();
+    assert.equal(await page.locator('.demon-row').count(),1);
+    await page.locator('#random-challenge').click();
+    assert.equal(await page.locator('#detail-title').innerText(),'Fixture Alpha');
+    await page.getByRole('button',{name:'Close level details'}).click();
+    await page.reload();await page.locator('.demon-row').first().waitFor();
+    assert.equal(await page.getByRole('button',{name:'Save Fixture Alpha to watchlist',exact:true}).getAttribute('aria-pressed'),'true');
+    await page.locator('#saved-only').check();
+    await page.getByRole('button',{name:'Save Fixture Alpha to watchlist',exact:true}).click();
+    assert.equal(await page.locator('.demon-row').count(),0);
+    assert.equal(await page.locator('#random-challenge').isDisabled(),true);
+    await page.locator('#saved-only').uncheck();
+    console.log('PASS watchlist persistence, saved filter, random challenge and empty selection.');
     console.log('PASS list: database snapshots, sorting, all search fields, deduplicated victors, details, shareable URLs, browser Back/Forward, deep links, retry and single listeners.');
 
     await page.goto(origin+'/community.html');await ready();

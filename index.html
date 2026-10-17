@@ -46,6 +46,9 @@
     </section>
     <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
       <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div></div>
+      <div class="challenge-toolbar"><label><input id="saved-only" type="checkbox"> My watchlist</label><button id="random-challenge" type="button" class="secondary-button" disabled>Pick my next challenge</button></div>
+      <p id="watchlist-status" class="muted" role="status">Watchlist saved on this browser only.</p>
+      <p id="connection-status" class="muted" role="status">Connecting to rankings…</p>
       <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
       <p id="records-note" class="inline-error" role="status" hidden></p><p id="selection-status" role="status" hidden></p>
       <div id="demon-table" class="demon-list" aria-busy="true"><div id="levels"><div class="list-state">Loading the demonlist…</div></div></div>
