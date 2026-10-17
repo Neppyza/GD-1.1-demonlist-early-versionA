@@ -85,3 +85,11 @@ Production owner claims and rules deployment require access to the Firebase proj
 ## Watchlist and watchdog
 
 The list now includes a browser-local saved-level watchlist, a random challenge picker that respects filters, and connection status. See [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md) for activating the scheduled watchdog, deploying the rule updates, backup setup and incident response. These operational steps require owner action; adding this source alone does not activate Firebase protections.
+
+## Correct an individual player's points
+
+Deploy the updated `firestore.rules` to `gd11-demonlist` **before publishing this frontend**. The leaderboard now reads `pointAdjustments`; older rules will deny that collection and rankings will show an error instead of silently displaying incorrect totals.
+
+As an owner, open Admin → Players, find the player, and enter **Point correction (+ / −)**. Example: if completion points are 100 and the correct total is 90, enter `-10`. Save the correction. Enter `0` to reset. This replaces the previous correction, rather than adding it repeatedly. Future completions and level point changes continue to affect the total. Totals are clamped at zero.
+
+Corrections are stored separately from profiles and completion records; profile updates cannot erase them. Only a trusted Firebase owner claim can write them. Moderators and players cannot. Amount, last editor UID and server timestamp are public, with no private notes. Concurrent edits to the correction require refreshing. For an incorrect completion itself, revoke its record instead.
