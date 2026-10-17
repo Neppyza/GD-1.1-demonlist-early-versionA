@@ -179,7 +179,7 @@ document.getElementById("victor-form").addEventListener("submit", async event =>
             const reference = sdk.doc(client.db, "records", key);
             const existing = await transaction.get(reference);
             if (existing.exists() && existing.data().approved === true) throw new Error("This completion is already approved.");
-            transaction.set(reference, { player, playerId, levelId, progress: 100, approved: true });
+            transaction.set(reference, { player, playerId, levelId, progress: 100, approved: true }, { merge: true });
         });
         if (turn === generation) { form.reset(); output.textContent = "Completion approved. It now appears in Records and Players."; }
     } catch (error) {

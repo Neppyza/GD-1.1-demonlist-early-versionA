@@ -113,3 +113,16 @@ test('changing a country preserves the player identity, points and completion hi
         assert.equal(stats.length,1);assert.equal(stats[0].id,'one');assert.equal(stats[0].points,50);assert.equal(stats[0].completed.length,1);assert.equal(stats[0].countryCode,countryCode||null);
     }
 });
+
+test('point changes and revoked completions recalculate scores and public victors', async () => {
+    const {buildStats}=await import('../stats-model.js');
+    const {victorNames}=await import('../victors.js');
+    const records=[{approved:true,progress:100,levelId:'a',playerId:'one',player:'Player'}, {approved:true,progress:100,levelId:'a',playerId:'one',player:'Player'}];
+    const profiles=[{id:'one',displayName:'Player',bio:'',tags:['Player']}];
+    assert.equal(buildStats([{id:'a',points:0}],records,profiles)[0].points,0);
+    assert.equal(buildStats([{id:'a',points:20}],records,profiles)[0].points,20);
+    const revoked=records.map(record=>({...record,approved:false}));
+    assert.equal(buildStats([{id:'a',points:20}],revoked,profiles)[0].points,0);
+    assert.equal(buildStats([{id:'a',points:20}],revoked,profiles)[0].completed.length,0);
+    assert.deepEqual(victorNames(revoked,'a'),[]);
+});

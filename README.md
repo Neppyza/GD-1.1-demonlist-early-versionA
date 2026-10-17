@@ -17,7 +17,9 @@ The **Admin** panel at `admin.html` supports:
 - Reviewing and publishing pending level submissions.
 - Adding an optional public HTTPS thumbnail link when publishing a level.
 - Watching proof, accepting or rejecting pending completion submissions.
-- Approving a completion manually using the existing stable player/level record key.
+- Approving a completion manually using the existing stable player/level record key, preserving stored proof when reapproving.
+- Editing published level names, positions, optional difficulty labels, and points (including 0) in **Manage levels**. Scores recalculate automatically. Position edits apply only to the selected level; other levels keep their positions. Existing level IDs, links, and completion history are preserved. If another moderator edits the level first, refresh before saving.
+- Removing a victor from a level by revoking all loaded approved records for that player/level, including legacy duplicates. Records and proofs are retained; manual approval can restore the completion. Refresh levels to see recent changes.
 - Searching registered and legacy players, removing them from Players, and restoring them.
 - Adding and revoking moderators from the owner’s Team section.
 
