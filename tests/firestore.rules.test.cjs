@@ -141,6 +141,20 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
             await setDoc(doc(context.firestore(),'team','staff-a'),{...membership,active:false});
         });
         await check('revocation also overrides an old admin claim',setDoc(doc(admin,'records','revoked-legacy-admin'),record),false);
+        const activeAdmin=env.authenticatedContext('active-admin',{admin:true,firebase:{sign_in_provider:'google.com'}}).firestore();
+        const adjustment={delta:-10,updatedBy:'owner-a',updatedAt:serverTimestamp()};
+        await check('owner creates point correction',setDoc(doc(owner,'pointAdjustments','player-a'),adjustment),true);
+        await check('public reads point correction',getDoc(doc(guest,'pointAdjustments','player-a')),true);
+        await check('public lists point corrections',getDocs(collection(guest,'pointAdjustments')),true);
+        await check('member cannot correct points',setDoc(doc(player,'pointAdjustments','player-a'),{...adjustment,updatedBy:'player-a'}),false);
+        await check('staff cannot correct points',setDoc(doc(activeAdmin,'pointAdjustments','player-a'),{...adjustment,updatedBy:'active-admin'}),false);
+        await check('owner cannot forge correction author',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,updatedBy:'other'}),false);
+        await check('correction requires server timestamp',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,updatedAt:0}),false);
+        await check('correction rejects extra fields',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,email:'private'}),false);
+        await check('correction rejects strings',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,delta:'10'}),false);
+        await check('correction rejects unbounded values',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,delta:1000001}),false);
+        await check('owner resets correction',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,delta:0}),true);
+        await check('player cannot delete correction',deleteDoc(doc(player,'pointAdjustments','player-a')),false);
         console.log(`${passed} Firestore permission checks passed against the proposed rules in the emulator.`);
     } finally { await env.cleanup(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
