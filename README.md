@@ -88,7 +88,7 @@ The list now includes a browser-local saved-level watchlist, a random challenge 
 
 ## Correct an individual player's points
 
-Deploy the updated `firestore.rules` to `gd11-demonlist` **before publishing this frontend**. The leaderboard now reads `pointAdjustments`; older rules will deny that collection and rankings will show an error instead of silently displaying incorrect totals.
+Deploy the updated `firestore.rules` to `gd11-demonlist` **before publishing this frontend**. The leaderboard now reads `pointAdjustments`; older rules deny that collection. During a failed or pending correction load, the directory remains visible with explicitly labelled completion-only scores and provisional ranks; Admin hides point correction forms until the collection can be read.
 
 As an owner, admin or active team moderator, open Admin → Players, find the player, and enter **Point correction (+ / −)**. Example: if completion points are 100 and the correct total is 90, enter `-10`. Save the correction. Enter `0` to reset. This replaces the previous correction, rather than adding it repeatedly. Future completions and level point changes continue to affect the total. Totals are clamped at zero.
 

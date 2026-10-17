@@ -31,14 +31,24 @@ function render() {
         status.textContent = "Player rankings unavailable";
         table.setAttribute("aria-busy", "false"); detail.hidden = true; return;
     }
-    if (levels.status === "error" || records.status === "error" || adjustments.status === "error") {
-        const error = levels.error || records.error || adjustments.error;
+    if (levels.status === "error" || records.status === "error") {
+        const error = levels.error || records.error;
         stateRow(body, 6, "Players are unavailable", dataMessage(error, "player rankings"), () => { retryData("levels"); retryData("records"); retryData("pointAdjustments"); });
         status.textContent = "Player rankings unavailable"; table.setAttribute("aria-busy", "false"); detail.hidden = true; return;
     }
-    if (levels.status !== "ready" || records.status !== "ready" || profiles.status === "loading" || adjustments.status !== "ready") { stateRow(body, 6, "Loading player rankings…"); table.setAttribute("aria-busy", "true"); detail.hidden = true; return; }
+    if (levels.status !== "ready" || records.status !== "ready" || profiles.status === "loading") { stateRow(body, 6, "Loading player rankings…"); table.setAttribute("aria-busy", "true"); detail.hidden = true; return; }
+    if (adjustments.status !== "ready") {
+        directoryStatus.append(element("p", "form-status", adjustments.status === "error"
+            ? "Point corrections are unavailable. Showing completion-only scores and provisional ranks; corrected totals may differ."
+            : "Loading point corrections. Scores and ranks below are provisional."));
+        if (adjustments.status === "error") {
+            const retry = element("button", "secondary-button", "Retry point corrections");
+            retry.type = "button"; retry.addEventListener("click", () => retryData("pointAdjustments"));
+            directoryStatus.append(retry);
+        }
+    }
     table.setAttribute("aria-busy", "false");
-    const ranked = buildStats(levels.items, records.items, profiles.items, adjustments.items).map((player, index) => ({ ...player, rank: index + 1 }));
+    const ranked = buildStats(levels.items, records.items, profiles.items, adjustments.status === "ready" ? adjustments.items : []).map((player, index) => ({ ...player, rank: index + 1 }));
     const term = search.value.toLowerCase().trim();
     const filtered = ranked.filter(player => [player.name, ...player.tags, getCountry(player.countryCode)?.name || "", player.countryCode || ""].join(" ").toLowerCase().includes(term));
     if (sort.value === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
