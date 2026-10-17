@@ -1,0 +1,10 @@
+{
+  "score": 4,
+  "summary": "Source review only; deployed rules and project IAM were not verified. Existing rules use trusted claims, owner-only team grants and private-profile ownership. This patch closes removed-player submission and review-attribution gaps. Operational protections still require Firebase project access.",
+  "findings": [
+    {"check":"Business Logic vs. Rules","severity":"minor","issue":"Removed players could create level submissions. Fixed in proposed rules.","recommendation":"Deploy and run the added removed-player denial test."},
+    {"check":"The Update Bypass","severity":"moderate","issue":"Level review updates lacked enforced reviewer identity and timestamps, and allowed repeated review. Fixed in proposed rules.","recommendation":"Deploy and run the added review forgery and repeated-review denial tests."},
+    {"check":"Storage Abuse","severity":"minor","issue":"Authenticated users can submit multiple separate pending entries; schema bounds do not provide per-user rate limiting.","recommendation":"For sustained abuse, move submission creation behind a rate-limited trusted endpoint and integrate App Check after assessing legitimate clients."},
+    {"check":"Authority Source","severity":"minor","issue":"Public level and approved record schemas permit additional moderator-written fields. This is not a member privilege escalation but can expose accidentally stored sensitive fields.","recommendation":"Audit existing legacy fields before introducing compatible allowlists; keep private information out of public documents."}
+  ]
+}
