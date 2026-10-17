@@ -84,7 +84,7 @@ function showPlayer(player) {
     detail.replaceChildren(element("h2", "", player.name), tagList(player.tags), countryIndicator(player.countryCode));
     if (player.bio) detail.append(element("p", "player-bio", player.bio));
     detail.append(element("p", "muted", `${player.points.toLocaleString()} points · ${player.completed.length} approved completions`));
-    if (player.pointCorrection) detail.append(element("p", "muted", `Completion points: ${player.basePoints} · Owner correction: ${player.pointCorrection > 0 ? "+" : ""}${player.pointCorrection} · Total cannot fall below zero.`));
+    if (player.pointCorrection) detail.append(element("p", "muted", `Completion points: ${player.basePoints} · Staff correction: ${player.pointCorrection > 0 ? "+" : ""}${player.pointCorrection} · Total cannot fall below zero.`));
     if (player.registered) detail.append(element("p", "muted", "Tags describe the player's interests; they do not grant staff access or certify completions."));
     if (player.completed.length) detail.append(list);
     else detail.append(element("p", "muted", "No approved completions yet."));
