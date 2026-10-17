@@ -147,7 +147,12 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('public reads point correction',getDoc(doc(guest,'pointAdjustments','player-a')),true);
         await check('public lists point corrections',getDocs(collection(guest,'pointAdjustments')),true);
         await check('member cannot correct points',setDoc(doc(player,'pointAdjustments','player-a'),{...adjustment,updatedBy:'player-a'}),false);
-        await check('staff cannot correct points',setDoc(doc(activeAdmin,'pointAdjustments','player-a'),{...adjustment,updatedBy:'active-admin'}),false);
+        await check('active admin can correct points',setDoc(doc(activeAdmin,'pointAdjustments','player-a'),{...adjustment,updatedBy:'active-admin'}),true);
+        await check('revoked moderator cannot correct points',setDoc(doc(moderator,'pointAdjustments','player-a'),{...adjustment,updatedBy:'moderator-a'}),false);
+        await check('revoked admin claim cannot correct points',setDoc(doc(admin,'pointAdjustments','player-a'),{...adjustment,updatedBy:'staff-a'}),false);
+        await check('owner restores team moderator',setDoc(doc(owner,'team','moderator-a'),{...membership,active:true,updatedBy:'owner-a',updatedAt:serverTimestamp()}),true);
+        await check('active team moderator can correct points',setDoc(doc(moderator,'pointAdjustments','player-a'),{...adjustment,updatedBy:'moderator-a'}),true);
+        await check('moderator cannot forge editor',setDoc(doc(moderator,'pointAdjustments','player-a'),adjustment),false);
         await check('owner cannot forge correction author',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,updatedBy:'other'}),false);
         await check('correction requires server timestamp',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,updatedAt:0}),false);
         await check('correction rejects extra fields',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,email:'private'}),false);

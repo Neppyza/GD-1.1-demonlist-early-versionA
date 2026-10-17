@@ -184,7 +184,7 @@ service cloud.firestore {
     // Separate from editable profiles so players cannot erase or forge corrections.
     match /pointAdjustments/{uid} {
       allow read: if true;
-      allow create, update: if owner()
+      allow create, update: if staff()
         && request.resource.data.keys().hasOnly(['delta', 'updatedBy', 'updatedAt'])
         && request.resource.data.keys().hasAll(['delta', 'updatedBy', 'updatedAt'])
         && request.resource.data.delta is number

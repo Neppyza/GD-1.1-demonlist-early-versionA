@@ -81,7 +81,7 @@ function pointCorrectionForm(player, turn) {
         if (!Number.isFinite(delta) || Math.abs(delta) > 1000000) return;
         setBusy(form, true); input.disabled = true; output.textContent = "Saving correction…";
         try {
-            const client = await requireOwner(); if (!current(client, turn)) return;
+            const client = await requireStaff(); if (!current(client, turn)) return;
             const sdk = client.storeSDK;
             await sdk.runTransaction(client.db, async transaction => {
                 const ref = sdk.doc(client.db, "pointAdjustments", player.id);
@@ -130,7 +130,7 @@ function renderPlayers(turn) {
             finally { setBusy(row, false); }
         });
         row.append(info, button, output);
-        if (isOwner) row.append(pointCorrectionForm(player, turn));
+        row.append(pointCorrectionForm(player, turn));
         playerList.append(row);
     }
     if (!playerList.childElementCount) playerList.append(element("p", "muted", players.length ? "No matching players." : "There are no players yet."));
