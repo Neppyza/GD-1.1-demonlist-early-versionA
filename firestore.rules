@@ -181,6 +181,18 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'levelId', 'reviewedAt', 'reviewedBy']);
       allow delete: if staff();
     }
+    // Separate from editable profiles so players cannot erase or forge corrections.
+    match /pointAdjustments/{uid} {
+      allow read: if true;
+      allow create, update: if owner()
+        && request.resource.data.keys().hasOnly(['delta', 'updatedBy', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['delta', 'updatedBy', 'updatedAt'])
+        && request.resource.data.delta is number
+        && request.resource.data.delta >= -1000000 && request.resource.data.delta <= 1000000
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /levels/{id} {
       allow read: if true;
       allow create, update: if staff() && validLevel(request.resource.data);
