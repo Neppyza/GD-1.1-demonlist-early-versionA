@@ -15,6 +15,7 @@ const moderatorForm = document.getElementById("moderator-form");
 const moderatorStatus = document.getElementById("moderator-status");
 let identity, staffId, generation = 0, isOwner = false;
 let players = [];
+let correctionsAvailable = false;
 let playerLoad = 0, completionLoad = 0, teamLoad = 0;
 
 function current(client, turn) {
@@ -46,9 +47,14 @@ async function loadPlayers(turn) {
         const client = await requireStaff();
         if (!current(client, turn)) return;
         const sdk = client.storeSDK;
-        const results = await Promise.all(["levels", "records", "players", "pointAdjustments"].map(name => sdk.getDocs(sdk.collection(client.db, name))));
+        const results = await Promise.all(["levels", "records", "players"].map(name => sdk.getDocs(sdk.collection(client.db, name))));
+        let correctionSnapshot = null;
+        try { correctionSnapshot = await sdk.getDocs(sdk.collection(client.db, "pointAdjustments")); }
+        catch { /* Keep existing player management usable during a rules rollout. */ }
         if (!current(client, turn) || load !== playerLoad) return;
-        const [levels, records, profiles, adjustments] = results.map(snapshot => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+        correctionsAvailable = correctionSnapshot !== null;
+        const adjustments = correctionSnapshot ? correctionSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) : [];
+        const [levels, records, profiles] = results.map(snapshot => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
         const ranked = new Map(buildStats(levels, records, profiles.map(profile => ({ ...profile, removed: false })), adjustments).map(player => [player.id, player]));
         for (const profile of profiles) {
             if (!ranked.has(profile.id)) ranked.set(profile.id, { id: profile.id, name: profile.displayName || profile.id, points: Math.max(0, adjustments.find(a => a.id === profile.id)?.delta || 0), pointCorrection: adjustments.find(a => a.id === profile.id)?.delta || 0, tags: [] });
@@ -56,7 +62,7 @@ async function loadPlayers(turn) {
         }
         players = [...ranked.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
         renderPlayers(turn);
-        playerStatus.textContent = `${players.length} players · ${players.filter(player => player.removed).length} removed`;
+        playerStatus.textContent = `${players.length} players · ${players.filter(player => player.removed).length} removed${correctionsAvailable ? "" : " · Point corrections unavailable: completion-only scores shown. Refresh after Firebase permissions are deployed."}`;
     } catch (error) {
         if (turn === generation && load === playerLoad) { players = []; playerList.replaceChildren(); playerStatus.textContent = errorText(error, "players"); }
     }
@@ -130,7 +136,7 @@ function renderPlayers(turn) {
             finally { setBusy(row, false); }
         });
         row.append(info, button, output);
-        row.append(pointCorrectionForm(player, turn));
+        if (correctionsAvailable) row.append(pointCorrectionForm(player, turn));
         playerList.append(row);
     }
     if (!playerList.childElementCount) playerList.append(element("p", "muted", players.length ? "No matching players." : "There are no players yet."));
