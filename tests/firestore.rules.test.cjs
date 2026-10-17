@@ -82,6 +82,10 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('another member cannot read pending submissions',getDoc(doc(other,'submissions','submission-a')),false);
         await check('owner can list their submissions',getDocs(query(collection(player,'submissions'),where('ownerUid','==','player-a'))),true);
         await check('staff can review pending submissions',getDocs(query(collection(admin,'submissions'),where('status','==','pending'))),true);
+        await check('review requires reviewer identity',updateDoc(doc(admin,'submissions','submission-a'),{status:'rejected'}),false);
+        await check('review cannot impersonate another moderator',updateDoc(doc(admin,'submissions','submission-a'),{status:'rejected',reviewedBy:'forged',reviewedAt:serverTimestamp()}),false);
+        await check('valid level submission review',updateDoc(doc(admin,'submissions','submission-a'),{status:'rejected',reviewedBy:'staff-a',reviewedAt:serverTimestamp()}),true);
+        await check('level submission review cannot be rewritten',updateDoc(doc(admin,'submissions','submission-a'),{status:'approved',reviewedBy:'staff-a',reviewedAt:serverTimestamp()}),false);
         await check('staff publishes a valid level',setDoc(doc(admin,'levels','staff-level'),level),true);
         await check('staff cannot publish incomplete level fields',setDoc(doc(admin,'levels','incomplete'),{name:'Incomplete'}),false);
         await check('staff approves a full completion',setDoc(doc(admin,'records','staff-record'),record),true);
@@ -105,6 +109,7 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('member cannot remove another player',updateDoc(doc(other,'players','player-a'),{...moderation,moderatedBy:'player-b'}),false);
         await check('member cannot forge a moderation flag',updateDoc(doc(player,'players','player-a'),{...moderation,moderatedBy:'player-a'}),false);
         await check('moderator can remove a registered player',updateDoc(doc(moderator,'players','player-a'),moderation),true);
+        await check('removed player cannot submit levels',setDoc(doc(player,'submissions','removed-submission'),submission),false);
         await check('removed player cannot erase the marker',deleteDoc(doc(player,'players','player-a')),false);
         await check('removed player cannot republish the profile',setDoc(doc(player,'players','player-a'),{displayName:'Updated Player',bio:'Public bio',countryCode:'FR',tags:['Verifier'],updatedAt:serverTimestamp()}),false);
         await check('moderator cannot edit private profile fields',updateDoc(doc(moderator,'players','player-a'),{...moderation,displayName:'Forged player'}),false);
