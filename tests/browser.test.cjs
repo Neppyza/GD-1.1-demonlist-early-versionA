@@ -311,6 +311,16 @@ const server=http.createServer((req,res)=>{
     assert.deepEqual(await management.locator('#players tr').filter({hasText:'Saved Player'}).locator('td.numeric').allTextContents(),['50','1']);
     await management.goto(origin+'/admin.html');await management.locator('#team-management').waitFor({state:'visible'});
     for(const width of [320,390,540,768,1024,1440]){await management.setViewportSize({width,height:900});assert.equal(await management.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`Admin overflow at ${width}px`)}
+    await management.getByRole('button',{name:'Refresh players',exact:true}).click();
+    const correction = management.getByRole('spinbutton',{name:'Point correction for Saved Player',exact:true});
+    await correction.waitFor();
+    await correction.fill('-10');
+    await correction.locator('xpath=ancestor::form').getByRole('button',{name:'Save point correction'}).click();
+    await management.waitForFunction(()=>window.__test.data.pointAdjustments?.['fixture-user']?.delta === -10);
+    await management.waitForFunction(()=>document.getElementById('player-management-status').textContent.includes('players ·'));
+    await correction.fill('0');
+    await correction.locator('xpath=ancestor::form').getByRole('button',{name:'Save point correction'}).click();
+    await management.waitForFunction(()=>window.__test.data.pointAdjustments['fixture-user'].delta === 0);
     await management.setViewportSize({width:1440,height:950});await management.screenshot({path:path.join(output,'owner-panel.png'),fullPage:true});
     const font=await management.evaluate(async()=>{await document.fonts.load('400 16px Montserrat');return{loaded:[...document.fonts].some(face=>face.family==='Montserrat'&&face.status==='loaded'),weight:getComputedStyle(document.body).fontWeight}});
     assert.equal(font.loaded,true);assert.equal(font.weight,'400');
