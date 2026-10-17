@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/model.test.cjs tests/grant-owner.test.cjs",
+    "test": "node --test tests/model.test.cjs tests/grant-owner.test.cjs tests/watchdog.test.js",
     "test:browser": "node tests/browser.test.cjs",
     "test:rules": "node tests/firestore.rules.test.cjs"
   },
