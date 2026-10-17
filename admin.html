@@ -73,12 +73,16 @@
         <div id="moderator-list"></div>
       </section>
       <section id="level-management" class="section-block">
-        <div class="section-heading"><h2>Manage level points and victors</h2><button id="refresh-levels" type="button" class="secondary-button">Refresh levels</button></div>
-        <p class="muted">Change the points awarded to every victor, or set points to 0 to remove this level's score. Removing a victor revokes their completion while keeping the record and proof.</p>
+        <div class="section-heading"><h2>Manage levels and victors</h2><button id="refresh-levels" type="button" class="secondary-button">Refresh levels</button></div>
+        <p class="muted">Edit a level's name, position, difficulty, and points. Set points to 0 to remove this level's score. Removing a victor revokes their completion while keeping the record and proof.</p>
         <form id="level-management-form" class="stack-form narrow-form">
           <label for="managed-level">Level</label><select id="managed-level" name="levelId" required></select>
+          <label for="managed-name">Level name</label><input id="managed-name" name="levelName" maxlength="80" required>
+          <label for="managed-position">Position</label><input id="managed-position" name="position" type="number" min="1" step="1" required aria-describedby="managed-position-help">
+          <p id="managed-position-help" class="muted">Position changes apply to this level only. Other levels keep their positions.</p>
+          <label for="managed-difficulty">Difficulty (optional)</label><input id="managed-difficulty" name="difficulty" maxlength="60" placeholder="e.g. Extreme Demon">
           <label for="managed-points">Points per completion</label><input id="managed-points" name="points" type="number" min="0" step="0.01" required>
-          <button type="submit">Save level points</button>
+          <button type="submit">Save level changes</button>
         </form>
         <p id="level-management-status" class="form-status" role="status"></p>
         <h3>Approved victors</h3><div id="managed-victors"></div>

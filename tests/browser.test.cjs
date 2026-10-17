@@ -124,9 +124,41 @@ const server=http.createServer((req,res)=>{
     await page.locator('#managed-level').selectOption('alpha');
     await page.getByRole('button',{name:'Remove victor Approved Player',exact:true}).waitFor();
     page.on('dialog',dialog=>dialog.accept());
+    assert.equal(await page.locator('#managed-name').inputValue(),'Fixture Alpha');
+    assert.equal(await page.locator('#managed-position').inputValue(),'1');
+    assert.equal(await page.locator('#managed-difficulty').inputValue(),'Extreme Demon');
+    for (const [field,value,expected] of [['#managed-name','   ','level name'],['#managed-position','0','whole-number'],['#managed-position','1.5','whole-number'],['#managed-difficulty','x'.repeat(61),'60 characters']]) {
+        const original=await page.locator(field).inputValue();
+        await page.locator(field).evaluate((input,value)=>input.value=value,value);
+        const writes=await page.evaluate(()=>window.__test.writes.length);
+        await page.locator('#level-management-form').evaluate(form=>form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true})));
+        assert.ok((await page.locator('#level-management-status').innerText()).includes(expected));
+        assert.equal(await page.evaluate(()=>window.__test.writes.length),writes);
+        await page.locator(field).fill(original);
+    }
+    await page.locator('#managed-name').fill('Renamed Alpha');
+    await page.locator('#managed-position').fill('4');
+    await page.locator('#managed-difficulty').fill('Insane Demon');
     await page.locator('#managed-points').fill('0');
-    await page.getByRole('button',{name:'Save level points',exact:true}).click();
+    await page.getByRole('button',{name:'Save level changes',exact:true}).click();
     await page.waitForFunction(()=>window.__test.data.levels.alpha.points===0);
+    assert.deepEqual(await page.evaluate(()=>{const l=window.__test.data.levels.alpha;return [l.name,l.position,l.difficulty,l.levelUrl,l.creator,window.__test.data.levels.beta.position]}),['Renamed Alpha',4,'Insane Demon','https://example.org/alpha','Creator A',2]);
+    assert.equal(await page.locator('#managed-level option:checked').innerText(),'Renamed Alpha');
+    assert.equal(await page.locator('#managed-level').inputValue(),'alpha');
+    // Concurrent staff edits are not silently overwritten.
+    await page.evaluate(()=>window.__test.data.levels.alpha.name='Another staff edit');
+    await page.getByRole('button',{name:'Save level changes',exact:true}).click();
+    await page.waitForFunction(()=>document.getElementById('level-management-status').textContent.includes('changed since'));
+    assert.equal(await page.evaluate(()=>window.__test.data.levels.alpha.name),'Another staff edit');
+    await page.getByRole('button',{name:'Refresh levels',exact:true}).click();
+    await page.waitForFunction(()=>document.getElementById('managed-name').value==='Another staff edit');
+    await page.locator('#managed-name').fill('Renamed Alpha');
+    await page.locator('#managed-difficulty').fill('');
+    await page.getByRole('button',{name:'Save level changes',exact:true}).click();
+    await page.waitForFunction(()=>window.__test.data.levels.alpha.difficulty==='');
+    await page.locator('#managed-difficulty').fill('Insane Demon');
+    await page.getByRole('button',{name:'Save level changes',exact:true}).click();
+    await page.waitForFunction(()=>window.__test.data.levels.alpha.difficulty==='Insane Demon');
     await page.evaluate(()=>{const record=Object.values(window.__test.data.records)[0];record.proofUrl='https://example.org/original-proof';window.__test.data.records.legacyDuplicate={...record}});
     await page.getByRole('button',{name:'Refresh levels',exact:true}).click();
     await page.getByRole('button',{name:'Remove victor Approved Player',exact:true}).waitFor();
@@ -145,13 +177,13 @@ const server=http.createServer((req,res)=>{
     await page.getByRole('button',{name:'Refresh levels',exact:true}).click();
     await page.getByRole('button',{name:'Remove victor Approved Player',exact:true}).waitFor();
     await page.evaluate(()=>window.__test.writeError='permission-denied');
-    await page.locator('#managed-points').fill('20');await page.getByRole('button',{name:'Save level points',exact:true}).click();
+    await page.locator('#managed-points').fill('20');await page.getByRole('button',{name:'Save level changes',exact:true}).click();
     await page.waitForFunction(()=>document.getElementById('level-management-status').textContent.includes('denied'));
     assert.equal(await page.evaluate(()=>window.__test.data.levels.alpha.points),0);
     await page.evaluate(()=>window.__test.writeError=null);
-    await page.locator('#managed-points').fill('25');await page.getByRole('button',{name:'Save level points',exact:true}).click();
+    await page.locator('#managed-points').fill('25');await page.getByRole('button',{name:'Save level changes',exact:true}).click();
     await page.waitForFunction(()=>window.__test.data.levels.alpha.points===25);
-    console.log('PASS zero points, duplicate victor revocation, proof-preserving reapproval, denied-write recovery and responsive level management.');
+    console.log('PASS level name/position/difficulty edits, invalid values, stale-edit protection, optional difficulty clearing, zero points, duplicate victor revocation, proof-preserving reapproval, denied-write recovery and responsive level management.');
     await page.locator('.auth-panel [data-auth-logout]').click();await page.locator('#staff-tools').waitFor({state:'hidden'});assert.equal(await page.locator('#review-queue').innerText(),'');
     console.log('PASS protected flows: saved-name submission schema, duplicate-submit prevention, denied member staff writes, verified staff claims, approval transaction, stable victor key and logout cleanup. Firestore rule enforcement is tested separately in the emulator.');
 

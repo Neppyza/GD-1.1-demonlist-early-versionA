@@ -6,6 +6,19 @@ import { dataMessage } from "./messages.js";
 const form = document.getElementById("level-management-form");
 const select = form.elements.levelId;
 const points = form.elements.points;
+const nameInput = form.elements.levelName;
+const positionInput = form.elements.position;
+const difficultyInput = form.elements.difficulty;
+const editableFields = ["name", "position", "difficulty", "points"];
+
+function renderOptions(selected = select.value) {
+    const placeholder = element("option", "", "Choose a level"); placeholder.value = "";
+    select.replaceChildren(placeholder);
+    for (const level of sortLevels(levels)) {
+        const option = element("option", "", level.name || "Unnamed level"); option.value = level.id; select.append(option);
+    }
+    if (levels.some(level => level.id === selected)) select.value = selected;
+}
 const output = document.getElementById("level-management-status");
 const victors = document.getElementById("managed-victors");
 let generation = 0, request = 0, staffId = null, identity, levels = [];
@@ -33,12 +46,7 @@ async function load(turn) {
         if (!current(client, turn) || ticket !== request) return;
         const selected = select.value;
         levels = sortLevels(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-        const placeholder = element("option", "", "Choose a level"); placeholder.value = "";
-        select.replaceChildren(placeholder);
-        for (const level of levels) {
-            const option = element("option", "", level.name || "Unnamed level"); option.value = level.id; select.append(option);
-        }
-        if (levels.some(level => level.id === selected)) select.value = selected;
+        renderOptions(selected);
         output.textContent = "";
         await showLevel(turn);
     } catch (error) { if (turn === generation && ticket === request) output.textContent = message(error); }
@@ -47,7 +55,10 @@ async function load(turn) {
 async function showLevel(turn) {
     const ticket = ++request, levelId = select.value;
     const level = levels.find(level => level.id === levelId);
-    points.value = level ? level.points ?? "" : "";
+    points.value = level?.points ?? "";
+    nameInput.value = level?.name ?? "";
+    positionInput.value = level?.position ?? "";
+    difficultyInput.value = level?.difficulty ?? "";
     victors.replaceChildren();
     if (!level) return;
     victors.append(element("p", "muted", "Loading victors…"));
@@ -108,22 +119,32 @@ document.getElementById("refresh-levels").addEventListener("click", () => load(g
 form.addEventListener("submit", async event => {
     event.preventDefault();
     if (form.dataset.busy === "true") return;
-    const levelId = select.value, value = Number(points.value), turn = generation;
+    const levelId = select.value, turn = generation;
     const level = levels.find(level => level.id === levelId);
-    if (!level || !points.value.trim() || !Number.isFinite(value) || value < 0) { output.textContent = "Choose a level and enter non-negative points."; return; }
-    if (!confirm(`Change ${level.name} from ${level.points} to ${value} points for every victor?`)) return;
-    setBusy(form, true); output.textContent = "Saving points…";
+    const changes = { name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
+    if (!level) { output.textContent = "Choose a level first."; return; }
+    if (!changes.name || changes.name.length > 80) { output.textContent = "Enter a level name between 1 and 80 characters."; return; }
+    if (!Number.isSafeInteger(changes.position) || changes.position < 1) { output.textContent = "Enter a positive whole-number position."; return; }
+    if (changes.difficulty.length > 60) { output.textContent = "Keep difficulty to 60 characters or fewer, or leave it empty."; return; }
+    if (!points.value.trim() || !Number.isFinite(changes.points) || changes.points < 0) { output.textContent = "Enter non-negative points."; return; }
+    const before = Object.fromEntries(editableFields.map(field => [field, level[field]]));
+    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nPosition: ${changes.position} (other levels keep their positions)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}`)) return;
+    setBusy(form, true); output.textContent = "Saving level changes…";
     try {
         const client = await requireStaff(); if (!current(client, turn)) return;
         const sdk = client.storeSDK;
         await sdk.runTransaction(client.db, async transaction => {
             const ref = sdk.doc(client.db, "levels", levelId), saved = await transaction.get(ref);
             if (!saved.exists()) throw new Error("This level no longer exists. Refresh levels.");
-            if (saved.data().points !== level.points) throw new Error("The points changed since you loaded them. Refresh levels and try again.");
+            if (editableFields.some(field => saved.data()[field] !== before[field])) throw new Error("This level changed since you loaded it. Refresh levels and try again.");
             if (!current(client, turn)) throw { code: "auth/requires-login" };
-            transaction.update(ref, { points: value });
+            transaction.update(ref, changes);
         });
-        if (current(client, turn)) { level.points = value; output.textContent = `${level.name} now awards ${value} points. Leaderboard scores update automatically.`; }
+        if (current(client, turn)) {
+            Object.assign(level, changes);
+            renderOptions();
+            output.textContent = `${changes.name} saved at position ${changes.position}. Level details and leaderboard scores update automatically.`;
+        }
     } catch (error) { if (turn === generation) output.textContent = message(error); }
     finally { setBusy(form, false); }
 });
