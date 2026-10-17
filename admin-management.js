@@ -46,12 +46,12 @@ async function loadPlayers(turn) {
         const client = await requireStaff();
         if (!current(client, turn)) return;
         const sdk = client.storeSDK;
-        const results = await Promise.all(["levels", "records", "players"].map(name => sdk.getDocs(sdk.collection(client.db, name))));
+        const results = await Promise.all(["levels", "records", "players", "pointAdjustments"].map(name => sdk.getDocs(sdk.collection(client.db, name))));
         if (!current(client, turn) || load !== playerLoad) return;
-        const [levels, records, profiles] = results.map(snapshot => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-        const ranked = new Map(buildStats(levels, records, profiles.map(profile => ({ ...profile, removed: false }))).map(player => [player.id, player]));
+        const [levels, records, profiles, adjustments] = results.map(snapshot => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+        const ranked = new Map(buildStats(levels, records, profiles.map(profile => ({ ...profile, removed: false })), adjustments).map(player => [player.id, player]));
         for (const profile of profiles) {
-            if (!ranked.has(profile.id)) ranked.set(profile.id, { id: profile.id, name: profile.displayName || profile.id, points: 0, tags: [] });
+            if (!ranked.has(profile.id)) ranked.set(profile.id, { id: profile.id, name: profile.displayName || profile.id, points: Math.max(0, adjustments.find(a => a.id === profile.id)?.delta || 0), pointCorrection: adjustments.find(a => a.id === profile.id)?.delta || 0, tags: [] });
             ranked.get(profile.id).removed = profile.removed === true;
         }
         players = [...ranked.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
@@ -60,6 +60,42 @@ async function loadPlayers(turn) {
     } catch (error) {
         if (turn === generation && load === playerLoad) { players = []; playerList.replaceChildren(); playerStatus.textContent = errorText(error, "players"); }
     }
+}
+
+function pointCorrectionForm(player, turn) {
+    const form = element("form", "stack-form");
+    const label = element("label", "", "Point correction (+ / −)");
+    const input = element("input"); input.type = "number"; input.step = "any";
+    input.min = "-1000000"; input.max = "1000000"; input.required = true;
+    input.value = String(player.pointCorrection || 0);
+    input.setAttribute("aria-label", `Point correction for ${player.name}`);
+    label.append(input);
+    const help = element("p", "muted", "Added to completion points. Use 0 to reset; the displayed total cannot fall below 0. Future completions still earn points.");
+    const save = element("button", "secondary-button", "Save point correction"); save.type = "submit";
+    const output = element("p", "form-status"); output.setAttribute("role", "status");
+    form.append(label, help, save, output);
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (form.dataset.busy === "true" || !form.reportValidity()) return;
+        const delta = Number(input.value);
+        if (!Number.isFinite(delta) || Math.abs(delta) > 1000000) return;
+        setBusy(form, true); input.disabled = true; output.textContent = "Saving correction…";
+        try {
+            const client = await requireOwner(); if (!current(client, turn)) return;
+            const sdk = client.storeSDK;
+            await sdk.runTransaction(client.db, async transaction => {
+                const ref = sdk.doc(client.db, "pointAdjustments", player.id);
+                const existing = await transaction.get(ref);
+                const previous = existing.exists() ? existing.data().delta : 0;
+                if (previous !== (player.pointCorrection || 0)) throw new Error("The correction changed. Refresh players before saving.");
+                if (!current(client, turn)) throw { code: "auth/requires-login" };
+                transaction.set(ref, { delta, updatedBy: client.user.uid, updatedAt: sdk.serverTimestamp() });
+            });
+            if (current(client, turn)) await loadPlayers(turn);
+        } catch (error) { if (turn === generation) output.textContent = errorText(error, "point corrections"); }
+        finally { setBusy(form, false); input.disabled = false; }
+    });
+    return form;
 }
 
 function renderPlayers(turn) {
@@ -93,7 +129,9 @@ function renderPlayers(turn) {
             } catch (error) { if (turn === generation) output.textContent = errorText(error, "this player"); }
             finally { setBusy(row, false); }
         });
-        row.append(info, button, output); playerList.append(row);
+        row.append(info, button, output);
+        if (isOwner) row.append(pointCorrectionForm(player, turn));
+        playerList.append(row);
     }
     if (!playerList.childElementCount) playerList.append(element("p", "muted", players.length ? "No matching players." : "There are no players yet."));
 }

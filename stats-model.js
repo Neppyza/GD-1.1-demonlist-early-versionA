@@ -1,6 +1,7 @@
 import { validPlayerProfile } from "./player-profile.js";
 
-export function buildStats(levels, records, profiles = []) {
+export function buildStats(levels, records, profiles = [], adjustments = []) {
+    const corrections = new Map(adjustments.map(item => [String(item.id), item.delta]));
     const removed = new Set(profiles.filter(profile => profile.removed === true).map(profile => String(profile.id)));
     const byLevel = new Map(levels.map(level => [level.id, level]));
     const players = new Map();
@@ -19,9 +20,12 @@ export function buildStats(levels, records, profiles = []) {
     }
     return [...players.values()].map(player => {
         const completed = [...player.completed.values()].sort((a,b) => (Number(a.position) || Infinity) - (Number(b.position) || Infinity));
-        return { ...player, completed, points: completed.reduce((sum,level) => {
+        const basePoints = completed.reduce((sum,level) => {
             const points = Number(level.points);
             return sum + (Number.isFinite(points) && points >= 0 ? points : 0);
-        },0) };
+        },0);
+        const value = corrections.get(player.id);
+        const pointCorrection = typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 1000000 ? value : 0;
+        return { ...player, completed, basePoints, pointCorrection, points: Math.max(0, basePoints + pointCorrection) };
     }).sort((a,b) => b.points - a.points || b.completed.length - a.completed.length || a.name.localeCompare(b.name));
 }

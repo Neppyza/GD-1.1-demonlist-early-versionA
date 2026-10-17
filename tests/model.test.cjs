@@ -126,3 +126,20 @@ test('point changes and revoked completions recalculate scores and public victor
     assert.equal(buildStats([{id:'a',points:20}],revoked,profiles)[0].completed.length,0);
     assert.deepEqual(victorNames(revoked,'a'),[]);
 });
+
+test('owner corrections preserve completions, support reset and future scores, and cannot resurrect removed players', async () => {
+    const {buildStats}=await import('../stats-model.js');
+    const levels=[{id:'a',points:50},{id:'b',points:20}];
+    const records=[{playerId:'p',player:'Player',levelId:'a',approved:true,progress:100}];
+    const score=delta=>buildStats(levels,records,[],[{id:'p',delta}])[0];
+    assert.equal(score(-10).points,40);
+    assert.equal(score(25).points,75);
+    assert.equal(score(0).points,50);
+    assert.equal(score(-80).points,0);
+    assert.equal(score(25).completed.length,1);
+    for(const bad of [NaN,Infinity,'90',1000001]) assert.equal(score(bad).points,50);
+    records.push({playerId:'p',player:'Player',levelId:'b',approved:true,progress:100});
+    assert.equal(score(-10).points,60);
+    assert.equal(buildStats(levels,records,[{id:'p',removed:true}],[{id:'p',delta:99}]).length,0);
+    assert.equal(buildStats([],[],[],[{id:'ghost',delta:99}]).length,0);
+});

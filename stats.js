@@ -10,6 +10,7 @@ const search = document.getElementById("player-search");
 const sort = document.getElementById("player-sort");
 const status = document.getElementById("stats-status");
 let levels = { status: "loading", items: [] }, records = { status: "loading", items: [] }, profiles = { status: "loading", items: [] };
+let adjustments = { status: "loading", items: [] };
 let selected = new URLSearchParams(location.search).get("player");
 const directoryStatus = document.getElementById("directory-status");
 function tagList(tags) {
@@ -30,14 +31,14 @@ function render() {
         status.textContent = "Player rankings unavailable";
         table.setAttribute("aria-busy", "false"); detail.hidden = true; return;
     }
-    if (levels.status === "error" || records.status === "error") {
-        const error = levels.error || records.error;
-        stateRow(body, 6, "Players are unavailable", dataMessage(error, "player rankings"), () => { retryData("levels"); retryData("records"); });
+    if (levels.status === "error" || records.status === "error" || adjustments.status === "error") {
+        const error = levels.error || records.error || adjustments.error;
+        stateRow(body, 6, "Players are unavailable", dataMessage(error, "player rankings"), () => { retryData("levels"); retryData("records"); retryData("pointAdjustments"); });
         status.textContent = "Player rankings unavailable"; table.setAttribute("aria-busy", "false"); detail.hidden = true; return;
     }
-    if (levels.status !== "ready" || records.status !== "ready" || profiles.status === "loading") { stateRow(body, 6, "Loading player rankings…"); table.setAttribute("aria-busy", "true"); detail.hidden = true; return; }
+    if (levels.status !== "ready" || records.status !== "ready" || profiles.status === "loading" || adjustments.status !== "ready") { stateRow(body, 6, "Loading player rankings…"); table.setAttribute("aria-busy", "true"); detail.hidden = true; return; }
     table.setAttribute("aria-busy", "false");
-    const ranked = buildStats(levels.items, records.items, profiles.items).map((player, index) => ({ ...player, rank: index + 1 }));
+    const ranked = buildStats(levels.items, records.items, profiles.items, adjustments.items).map((player, index) => ({ ...player, rank: index + 1 }));
     const term = search.value.toLowerCase().trim();
     const filtered = ranked.filter(player => [player.name, ...player.tags, getCountry(player.countryCode)?.name || "", player.countryCode || ""].join(" ").toLowerCase().includes(term));
     if (sort.value === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
@@ -83,6 +84,7 @@ function showPlayer(player) {
     detail.replaceChildren(element("h2", "", player.name), tagList(player.tags), countryIndicator(player.countryCode));
     if (player.bio) detail.append(element("p", "player-bio", player.bio));
     detail.append(element("p", "muted", `${player.points.toLocaleString()} points · ${player.completed.length} approved completions`));
+    if (player.pointCorrection) detail.append(element("p", "muted", `Completion points: ${player.basePoints} · Owner correction: ${player.pointCorrection > 0 ? "+" : ""}${player.pointCorrection} · Total cannot fall below zero.`));
     if (player.registered) detail.append(element("p", "muted", "Tags describe the player's interests; they do not grant staff access or certify completions."));
     if (player.completed.length) detail.append(list);
     else detail.append(element("p", "muted", "No approved completions yet."));
@@ -93,3 +95,5 @@ subscribeData("levels", value => { levels = value; render(); });
 subscribeData("records", value => { records = value; render(); });
 subscribeData("players", value => { profiles = value; render(); });
 window.addEventListener("popstate", () => { selected = new URLSearchParams(location.search).get("player"); render(); });
+
+subscribeData("pointAdjustments", value => { adjustments = value; render(); });
