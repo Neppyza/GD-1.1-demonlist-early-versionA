@@ -82,9 +82,9 @@ The `demo-demonlist` namespace is used only by the local emulator. Browser tests
 
 Production owner claims and rules deployment require access to the Firebase project and were not changed by these tests.
 
-## Watchlist and watchdog
+## Connection status and watchdog
 
-The list now includes a browser-local saved-level watchlist, a random challenge picker that respects filters, and connection status. See [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md) for activating the scheduled watchdog, deploying the rule updates, backup setup and incident response. These operational steps require owner action; adding this source alone does not activate Firebase protections.
+The list includes connection status and retries when the browser comes back online. See [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md) for activating the scheduled watchdog, deploying the rule updates, backup setup and incident response. These operational steps require owner action; adding this source alone does not activate Firebase protections.
 
 ## Correct an individual player's points
 

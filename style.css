@@ -387,9 +387,3 @@ button, a, input, select, textarea { transition: color 160ms ease, background-co
     *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
     button:hover, .demon-row:hover, .ranking-index a:hover { transform: none !important; }
 }
-
-.challenge-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1rem; }
-.challenge-toolbar label { display: flex; align-items: center; gap: .5rem; }
-.challenge-toolbar input { width: auto; }
-.level-summary > .secondary-button { margin-top: .8rem; }
-button[aria-pressed="true"] { border-color: var(--accent, #508cff); }
