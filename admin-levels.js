@@ -1,5 +1,5 @@
 import { subscribeAuth, requireStaff } from "./auth.js";
-import { sortLevels } from "./list-model.js";
+import { sortLevels, levelList, listTypes } from "./list-model.js";
 import { element, setBusy } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
@@ -9,7 +9,7 @@ const points = form.elements.points;
 const nameInput = form.elements.levelName;
 const positionInput = form.elements.position;
 const difficultyInput = form.elements.difficulty;
-const editableFields = ["name", "position", "difficulty", "points"];
+const editableFields = ["name", "position", "difficulty", "points", "listType"];
 
 function renderOptions(selected = select.value) {
     const placeholder = element("option", "", "Choose a level"); placeholder.value = "";
@@ -58,6 +58,7 @@ async function showLevel(turn) {
     points.value = level?.points ?? "";
     nameInput.value = level?.name ?? "";
     positionInput.value = level?.position ?? "";
+    form.elements.listType.value = levelList(level || {});
     difficultyInput.value = level?.difficulty ?? "";
     victors.replaceChildren();
     if (!level) return;
@@ -121,14 +122,15 @@ form.addEventListener("submit", async event => {
     if (form.dataset.busy === "true") return;
     const levelId = select.value, turn = generation;
     const level = levels.find(level => level.id === levelId);
-    const changes = { name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
+    const changes = { listType: form.elements.listType.value, name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
+    if (!listTypes.includes(changes.listType)) { output.textContent = "Choose a valid list."; return; }
     if (!level) { output.textContent = "Choose a level first."; return; }
     if (!changes.name || changes.name.length > 80) { output.textContent = "Enter a level name between 1 and 80 characters."; return; }
     if (!Number.isSafeInteger(changes.position) || changes.position < 1) { output.textContent = "Enter a positive whole-number position."; return; }
     if (changes.difficulty.length > 60) { output.textContent = "Keep difficulty to 60 characters or fewer, or leave it empty."; return; }
     if (!points.value.trim() || !Number.isFinite(changes.points) || changes.points < 0) { output.textContent = "Enter non-negative points."; return; }
     const before = Object.fromEntries(editableFields.map(field => [field, level[field]]));
-    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nPosition: ${changes.position} (other levels keep their positions)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}`)) return;
+    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nList: ${changes.listType}\nPosition: ${changes.position} (other levels keep their positions)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}`)) return;
     setBusy(form, true); output.textContent = "Saving level changes…";
     try {
         const client = await requireStaff(); if (!current(client, turn)) return;

@@ -93,20 +93,29 @@ const server=http.createServer((req,res)=>{
     await page.goto(origin);await page.locator('.demon-row').first().waitFor();await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});
     await page.getByRole('button',{name:'Switch to dark theme'}).click();await page.reload();await page.locator('.demon-row').first().waitFor();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.screenshot({path:path.join(output,'dark.png'),fullPage:true});await page.getByRole('button',{name:'Switch to light theme'}).click();
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(output,'mobile.png'),fullPage:true});
-    await page.getByRole('button',{name:'Save Fixture Alpha to watchlist',exact:true}).click();
-    await page.locator('#saved-only').check();
-    assert.equal(await page.locator('.demon-row').count(),1);
-    await page.locator('#random-challenge').click();
-    assert.equal(await page.locator('#detail-title').innerText(),'Fixture Alpha');
+    assert.equal(await page.locator('#saved-only, #random-challenge, #watchlist-status').count(),0);
+    assert.equal(await page.getByRole('button',{name:/Save .* to watchlist/}).count(),0);
+    await page.locator('.level-name a').first().click();
+    assert.equal(await page.getByRole('button',{name:/Save .* to watchlist/}).count(),0);
     await page.getByRole('button',{name:'Close level details'}).click();
-    await page.reload();await page.locator('.demon-row').first().waitFor();
-    assert.equal(await page.getByRole('button',{name:'Save Fixture Alpha to watchlist',exact:true}).getAttribute('aria-pressed'),'true');
-    await page.locator('#saved-only').check();
-    await page.getByRole('button',{name:'Save Fixture Alpha to watchlist',exact:true}).click();
+    await page.locator('.level-name a').first().click();
+    await page.evaluate(()=>window.__test.fail('levels','unavailable'));
+    await page.waitForFunction(()=>!document.querySelector('dialog').open);
     assert.equal(await page.locator('.demon-row').count(),0);
-    assert.equal(await page.locator('#random-challenge').isDisabled(),true);
-    await page.locator('#saved-only').uncheck();
-    console.log('PASS watchlist persistence, saved filter, random challenge and empty selection.');
+    await page.evaluate(()=>window.__test.fail('records','permission-denied'));
+    assert.equal(await page.locator('#records-note').isVisible(),true);
+    await page.getByRole('button',{name:'Try again'}).click();
+    await page.locator('.demon-row').first().waitFor();
+    await page.evaluate(()=>{window.__test.data.levels.beta.listType='platformer';window.__test.data.levels.incomplete.listType='legacy';window.__test.emit('levels')});
+    assert.equal(await page.locator('.demon-row').count(),1);
+    for (const [type,title] of [['platformer','Fixture Beta'],['legacy','Incomplete entry']]) {
+        await page.evaluate(type=>{history.pushState(null,'','?list='+type);dispatchEvent(new PopStateEvent('popstate'))},type);
+        assert.equal(await page.locator('.demon-row').count(),1);
+        assert.ok((await page.locator('.demon-row').innerText()).includes(title));
+        assert.equal(await page.locator('[data-list="'+type+'"]').getAttribute('aria-current'),'page');
+    }
+    await page.evaluate(()=>{delete window.__test.data.levels.beta.listType;delete window.__test.data.levels.incomplete.listType;history.replaceState(null,'','/');window.__test.emit('levels')});
+    assert.equal(await page.locator('.demon-row').count(),3);
     console.log('PASS list: database snapshots, sorting, all search fields, deduplicated victors, details, shareable URLs, browser Back/Forward, deep links, retry and single listeners.');
 
     await page.goto(origin+'/community.html');await ready();

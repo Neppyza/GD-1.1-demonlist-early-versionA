@@ -82,9 +82,9 @@ The `demo-demonlist` namespace is used only by the local emulator. Browser tests
 
 Production owner claims and rules deployment require access to the Firebase project and were not changed by these tests.
 
-## Watchlist and watchdog
+## Connection status and watchdog
 
-The list now includes a browser-local saved-level watchlist, a random challenge picker that respects filters, and connection status. See [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md) for activating the scheduled watchdog, deploying the rule updates, backup setup and incident response. These operational steps require owner action; adding this source alone does not activate Firebase protections.
+The list includes connection status and retries when the browser comes back online. See [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md) for activating the scheduled watchdog, deploying the rule updates, backup setup and incident response. These operational steps require owner action; adding this source alone does not activate Firebase protections.
 
 ## Correct an individual player's points
 
@@ -93,3 +93,7 @@ Deploy the updated `firestore.rules` to `gd11-demonlist` **before publishing thi
 As an owner, admin or active team moderator, open Admin → Players, find the player, and enter **Point correction (+ / −)**. Example: if completion points are 100 and the correct total is 90, enter `-10`. Save the correction. Enter `0` to reset. This replaces the previous correction, rather than adding it repeatedly. Future completions and level point changes continue to affect the total. Totals are clamped at zero.
 
 Corrections are stored separately from profiles and completion records; profile updates cannot erase them. Owners, trusted Firebase admins and active team moderators can write corrections. Ordinary players and revoked staff cannot. Team membership management remains owner-only. Amount, last editor UID and server timestamp are public, with no private notes. Concurrent edits to the correction require refreshing. For an incorrect completion itself, revoke its record instead.
+
+## Main, Platformer and Legacy lists
+
+Use the list links above search to browse each list. Staff choose the list when approving a submission or under Admin → level management. Existing levels default to Main; no records are moved automatically. Each list uses its own placements. List membership does not change a level's points; staff can set points to zero where appropriate. Direct links preserve list membership through the `list` query parameter.

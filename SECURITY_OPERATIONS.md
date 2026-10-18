@@ -2,8 +2,7 @@
 
 ## What this change provides
 
-- Saved-level watchlist on the current browser (up to 1,000 IDs); no account sync or promise of permanent browser storage.
-- Random challenge from the current search/watchlist, and connection status with reconnection when the browser comes online.
+- Connection status with reconnection when the browser comes online.
 - Stricter rules: removed players cannot submit levels; reviews require the acting moderator and server timestamp, and pending reviews cannot be rewritten after approval/rejection.
 - Credential-free, read-only watchdog probes: website, public levels, private collection get/list denial, and unapproved record query denial. Response bodies are discarded and never printed.
 

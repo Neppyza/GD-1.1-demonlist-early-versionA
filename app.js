@@ -1,35 +1,15 @@
 import { subscribeData, retryData } from "./data.js";
-import { filterLevels, sortLevels, rankLabel } from "./list-model.js";
+import { filterLevels, sortLevels, rankLabel, filterList, levelList, listTypes } from "./list-model.js";
 import { victorNames } from "./victors.js";
 import { element, thumbnail, externalLink } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
-import { readWatchlist, writeWatchlist } from "./watchlist.js";
-const saved = readWatchlist();
-const savedOnly = document.getElementById("saved-only");
-const challenge = document.getElementById("random-challenge");
-function matchingLevels(records) {
-    return filterLevels(levelState.items, records, search.value).filter(level => !savedOnly.checked || saved.has(level.id));
-}
-function saveButton(level) {
-    const button = element("button", "secondary-button", saved.has(level.id) ? "★ Saved" : "☆ Save level");
-    button.type = "button";
-    button.setAttribute("aria-label", `Save ${level.name || "level"} to watchlist`);
-    button.setAttribute("aria-pressed", String(saved.has(level.id)));
-    button.addEventListener("click", () => {
-        if (!saved.has(level.id) && saved.size >= 1000) {
-            document.getElementById("watchlist-status").textContent = "Watchlist full (1,000 levels). Remove a saved level first.";
-            return;
-        }
-        saved.has(level.id) ? saved.delete(level.id) : saved.add(level.id);
-        const persisted = writeWatchlist(saved);
-        document.getElementById("watchlist-status").textContent = persisted ? `${saved.size} saved · This browser only` : "Browser storage unavailable. Changes last for this page session only.";
-        render();
-    });
-    return button;
-}
 function connectionStatus() {
     document.getElementById("connection-status").textContent = !navigator.onLine ? "Offline · Reconnect to load current rankings." : levelState.status === "error" ? "Rankings connection failed · Use Try again below." : levelState.status === "ready" ? "Rankings loaded · Listening for updates" : "Connecting to rankings…";
+}
+function selectedList() {
+    const value = new URLSearchParams(location.search).get("list");
+    return listTypes.includes(value) ? value : "main";
 }
 const body = document.getElementById("levels");
 const table = document.getElementById("demon-table");
@@ -56,7 +36,7 @@ function listState(title, message, retry) {
 
 function levelLink(id, label, className = "") {
     const link = element("a", className, label);
-    link.href = `?level=${encodeURIComponent(id)}`;
+    link.href = `?list=${levelList(levelState.items.find(level => level.id === id) || {})}&level=${encodeURIComponent(id)}`;
     link.addEventListener("click", event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
@@ -67,8 +47,15 @@ function levelLink(id, label, className = "") {
 
 function render() {
     connectionStatus();
-    challenge.disabled = true;
+    for (const link of document.querySelectorAll("[data-list]")) {
+        if (link.dataset.list === selectedList()) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    }
     table.setAttribute("aria-busy", String(levelState.status === "loading"));
+    const recordNote = document.getElementById("records-note");
+    recordNote.hidden = recordState.status !== "error";
+    recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
+    if (levelState.status !== "ready" && dialog.open) dialog.close();
     if (levelState.status === "loading") {
         listState( "Loading the demonlist…");
         status.textContent = "Loading levels…";
@@ -80,16 +67,13 @@ function render() {
         return;
     }
     const records = recordState.status === "ready" ? recordState.items : [];
-    const matching = matchingLevels(records);
-    challenge.disabled = matching.length === 0;
+    const listed = filterList(levelState.items, selectedList());
+    const matching = filterLevels(listed, records, search.value);
     const filtered = sortLevels(matching, sort.value);
-    status.textContent = `${filtered.length} of ${levelState.items.length} levels`;
-    const recordNote = document.getElementById("records-note");
-    recordNote.hidden = recordState.status !== "error";
-    recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
+    status.textContent = `${filtered.length} of ${listed.length} levels`;
     body.replaceChildren();
     if (!filtered.length) {
-        listState( levelState.items.length ? "No matching levels" : "No levels have been published yet", levelState.items.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
+        listState( listed.length ? "No matching levels" : "No levels have been published in this list yet", listed.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
         if (search.value) {
             const clear = element("button", "secondary-button", "Clear search");
             clear.type = "button";
@@ -125,7 +109,7 @@ function render() {
             group.append(element("dt", "", label), element("dd", className, value));
             meta.append(group);
         }
-        content.append(heading, creator, verifier, meta, saveButton(level));
+        content.append(heading, creator, verifier, meta);
         row.append(previewLink, content); body.append(row);
     }
     if (dialog.open) {
@@ -150,6 +134,7 @@ function showDetails(id, updateURL = false) {
         const url = new URL(location.href);
         if (url.searchParams.get("level") !== id) {
             url.searchParams.set("level", id);
+            url.searchParams.set("list", levelList(level));
             history.pushState(null, "", url);
         }
     }
@@ -168,13 +153,12 @@ function showDetails(id, updateURL = false) {
     if (level.description) detail.append(element("p", "level-description", level.description));
     const links = element("div", "detail-actions");
     const permanent = element("a", "", "Permanent link");
-    permanent.href = `?level=${encodeURIComponent(id)}`;
+    permanent.href = `?list=${levelList(level)}&level=${encodeURIComponent(id)}`;
     links.append(permanent);
     for (const [value, label] of [[level.levelUrl, "Open level ↗"], [level.proofUrl, "Watch verification ↗"]]) {
         const link = externalLink(value, label);
         if (link) links.append(link);
     }
-    links.append(saveButton(level));
     detail.append(links, element("h3", "", "Approved victors"));
     if (recordState.status === "ready") {
         const names = victorNames(recordState.items, id);
@@ -190,11 +174,6 @@ function showDetails(id, updateURL = false) {
     if (!dialog.open) dialog.showModal();
 }
 
-savedOnly.addEventListener("change", render);
-challenge.addEventListener("click", () => {
-    const choices = matchingLevels(recordState.status === "ready" ? recordState.items : []);
-    if (choices.length) showDetails(choices[Math.floor(Math.random() * choices.length)].id, true);
-});
 window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 search.addEventListener("input", render);
@@ -211,6 +190,7 @@ window.addEventListener("popstate", () => {
     const selected = new URLSearchParams(location.search).get("level");
     if (levelState.items.some(level => level.id === selected)) showDetails(selected);
     else if (dialog.open) dialog.close();
+    render();
 });
 dialog.addEventListener("click", event => {
     if (event.target !== dialog) return;

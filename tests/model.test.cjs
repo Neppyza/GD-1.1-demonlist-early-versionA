@@ -143,3 +143,12 @@ test('owner corrections preserve completions, support reset and future scores, a
     assert.equal(buildStats(levels,records,[{id:'p',removed:true}],[{id:'p',delta:99}]).length,0);
     assert.equal(buildStats([],[],[],[{id:'ghost',delta:99}]).length,0);
 });
+
+test('list membership defaults existing levels to main and separates platformer and legacy', async () => {
+    const { filterList } = await import('../list-model.js');
+    const levels = [{id:'old'}, {id:'main',listType:'main'}, {id:'platform',listType:'platformer'}, {id:'legacy',listType:'legacy'}];
+    assert.deepEqual(filterList(levels).map(x=>x.id), ['old','main']);
+    assert.deepEqual(filterList(levels,'platformer').map(x=>x.id), ['platform']);
+    assert.deepEqual(filterList(levels,'legacy').map(x=>x.id), ['legacy']);
+    assert.equal(levels.length,4);
+});

@@ -95,6 +95,12 @@ function renderSubmission(id, data, turn) {
         else input.maxLength = 60;
         group.append(input); form.append(group);
     }
+    const listLabel = element("label", "", "List");
+    const listSelect = element("select"); listSelect.name = "listType";
+    for (const type of ["main", "platformer", "legacy"]) {
+        const option = element("option", "", type); option.value = type; listSelect.append(option);
+    }
+    listLabel.append(listSelect); form.append(listLabel);
     const approve = element("button", "", "Approve and publish");
     approve.type = "submit";
     const reject = element("button", "secondary-button", "Reject");
@@ -105,6 +111,7 @@ function renderSubmission(id, data, turn) {
     form.addEventListener("submit", async event => {
         event.preventDefault();
         if (form.dataset.busy === "true") return;
+        if (!["main", "platformer", "legacy"].includes(form.elements.listType.value)) { output.textContent = "Choose a valid list."; return; }
         const rank = Number(form.elements.position.value);
         const points = Number(form.elements.points.value);
         const difficulty = form.elements.difficulty.value.trim();
@@ -123,7 +130,7 @@ function renderSubmission(id, data, turn) {
                 const snapshot = await transaction.get(submission);
                 if (!snapshot.exists() || snapshot.data().status !== "pending") throw new Error("This submission has already been reviewed. Refresh the queue.");
                 const saved = snapshot.data();
-                const entry = { name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
+                const entry = { listType: form.elements.listType.value, name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 transaction.set(level, entry);
