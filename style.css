@@ -387,3 +387,7 @@ button, a, input, select, textarea { transition: color 160ms ease, background-co
     *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
     button:hover, .demon-row:hover, .ranking-index a:hover { transform: none !important; }
 }
+
+.list-switcher { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+.list-switcher a { padding: .65rem 1rem; border: 1px solid currentColor; border-radius: .5rem; }
+.list-switcher a[aria-current="page"] { font-weight: 700; background: var(--soft); }

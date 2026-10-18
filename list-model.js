@@ -27,3 +27,11 @@ export function filterLevels(levels, records, term) {
     }
     return levels.filter(level => [level.name, level.creator, level.verifier, level.difficulty, level.category, ...(names.get(level.id) || [])].some(value => String(value ?? "").toLowerCase().includes(query)));
 }
+
+export const listTypes = ["main", "platformer", "legacy"];
+export function levelList(level) {
+    return listTypes.includes(level.listType) ? level.listType : "main";
+}
+export function filterList(levels, type = "main") {
+    return levels.filter(level => levelList(level) === type);
+}

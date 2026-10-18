@@ -1,11 +1,15 @@
 import { subscribeData, retryData } from "./data.js";
-import { filterLevels, sortLevels, rankLabel } from "./list-model.js";
+import { filterLevels, sortLevels, rankLabel, filterList, levelList, listTypes } from "./list-model.js";
 import { victorNames } from "./victors.js";
 import { element, thumbnail, externalLink } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
 function connectionStatus() {
     document.getElementById("connection-status").textContent = !navigator.onLine ? "Offline · Reconnect to load current rankings." : levelState.status === "error" ? "Rankings connection failed · Use Try again below." : levelState.status === "ready" ? "Rankings loaded · Listening for updates" : "Connecting to rankings…";
+}
+function selectedList() {
+    const value = new URLSearchParams(location.search).get("list");
+    return listTypes.includes(value) ? value : "main";
 }
 const body = document.getElementById("levels");
 const table = document.getElementById("demon-table");
@@ -32,7 +36,7 @@ function listState(title, message, retry) {
 
 function levelLink(id, label, className = "") {
     const link = element("a", className, label);
-    link.href = `?level=${encodeURIComponent(id)}`;
+    link.href = `?list=${levelList(levelState.items.find(level => level.id === id) || {})}&level=${encodeURIComponent(id)}`;
     link.addEventListener("click", event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
@@ -43,6 +47,10 @@ function levelLink(id, label, className = "") {
 
 function render() {
     connectionStatus();
+    for (const link of document.querySelectorAll("[data-list]")) {
+        if (link.dataset.list === selectedList()) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    }
     table.setAttribute("aria-busy", String(levelState.status === "loading"));
     const recordNote = document.getElementById("records-note");
     recordNote.hidden = recordState.status !== "error";
@@ -59,12 +67,13 @@ function render() {
         return;
     }
     const records = recordState.status === "ready" ? recordState.items : [];
-    const matching = filterLevels(levelState.items, records, search.value);
+    const listed = filterList(levelState.items, selectedList());
+    const matching = filterLevels(listed, records, search.value);
     const filtered = sortLevels(matching, sort.value);
-    status.textContent = `${filtered.length} of ${levelState.items.length} levels`;
+    status.textContent = `${filtered.length} of ${listed.length} levels`;
     body.replaceChildren();
     if (!filtered.length) {
-        listState( levelState.items.length ? "No matching levels" : "No levels have been published yet", levelState.items.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
+        listState( listed.length ? "No matching levels" : "No levels have been published in this list yet", listed.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
         if (search.value) {
             const clear = element("button", "secondary-button", "Clear search");
             clear.type = "button";
@@ -125,6 +134,7 @@ function showDetails(id, updateURL = false) {
         const url = new URL(location.href);
         if (url.searchParams.get("level") !== id) {
             url.searchParams.set("level", id);
+            url.searchParams.set("list", levelList(level));
             history.pushState(null, "", url);
         }
     }
@@ -143,7 +153,7 @@ function showDetails(id, updateURL = false) {
     if (level.description) detail.append(element("p", "level-description", level.description));
     const links = element("div", "detail-actions");
     const permanent = element("a", "", "Permanent link");
-    permanent.href = `?level=${encodeURIComponent(id)}`;
+    permanent.href = `?list=${levelList(level)}&level=${encodeURIComponent(id)}`;
     links.append(permanent);
     for (const [value, label] of [[level.levelUrl, "Open level ↗"], [level.proofUrl, "Watch verification ↗"]]) {
         const link = externalLink(value, label);
@@ -180,6 +190,7 @@ window.addEventListener("popstate", () => {
     const selected = new URLSearchParams(location.search).get("level");
     if (levelState.items.some(level => level.id === selected)) showDetails(selected);
     else if (dialog.open) dialog.close();
+    render();
 });
 dialog.addEventListener("click", event => {
     if (event.target !== dialog) return;
