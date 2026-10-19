@@ -22,6 +22,12 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         const passwordAdmin=env.authenticatedContext('staff-b',{admin:true,firebase:{sign_in_provider:'password'}}).firestore();
         const owner=env.authenticatedContext('owner-a',{owner:true,firebase:{sign_in_provider:'google.com'}}).firestore();
         const moderator=env.authenticatedContext('moderator-a',{firebase:{sign_in_provider:'google.com'}}).firestore();
+        await check('guest cannot read rank coordination',getDoc(doc(guest,'rankingState','main')),false);
+        await check('member cannot change rank coordination',setDoc(doc(player,'rankingState','main'),{updatedAt:serverTimestamp()}),false);
+        await check('staff can initialize rank coordination',setDoc(doc(admin,'rankingState','main'),{updatedAt:serverTimestamp()}),true);
+        await check('staff can read rank coordination',getDoc(doc(admin,'rankingState','main')),true);
+        await check('rank coordination requires a server timestamp',setDoc(doc(admin,'rankingState','main'),{updatedAt:0}),false);
+        await check('rank coordination rejects extra fields',setDoc(doc(admin,'rankingState','main'),{updatedAt:serverTimestamp(),extra:true}),false);
         await check('public level reads',getDoc(doc(guest,'levels','level-a')),true);
         await check('approved records query',getDocs(query(collection(guest,'records'),where('approved','==',true))),true);
         await check('unapproved record stays private',getDoc(doc(guest,'records','private-record')),false);
@@ -160,6 +166,22 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('correction rejects unbounded values',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,delta:1000001}),false);
         await check('owner resets correction',setDoc(doc(owner,'pointAdjustments','player-a'),{...adjustment,delta:0}),true);
         await check('player cannot delete correction',deleteDoc(doc(player,'pointAdjustments','player-a')),false);
+        // Exercise the production helper against real transaction retries and rules.
+        await env.clearFirestore();
+        const sdk = require('firebase/firestore');
+        const { readRanking, writeRanking } = await import('../level-ranking.js');
+        const publishAtFirst = (db, id) => sdk.runTransaction(db, async transaction => {
+            const client = { db, storeSDK: sdk };
+            const ranking = await readRanking(client, transaction);
+            writeRanking(client, transaction, ranking, id, 1);
+            transaction.set(doc(db,'levels',id), {...level,name:id});
+        });
+        const secondStaff = env.authenticatedContext('second-staff',{admin:true,firebase:{sign_in_provider:'google.com'}}).firestore();
+        await Promise.all([publishAtFirst(owner,'first'),publishAtFirst(secondStaff,'second')]);
+        await Promise.all([publishAtFirst(owner,'third'),publishAtFirst(secondStaff,'fourth')]);
+        const ranked = await getDocs(collection(guest,'levels'));
+        require('node:assert/strict').deepEqual(ranked.docs.map(item=>item.data().position).sort(),[1,2,3,4]);
+        console.log('PASS concurrent first-place publications into empty and populated lists preserve unique ranks under Firestore rules');
         console.log(`${passed} Firestore permission checks passed against the proposed rules in the emulator.`);
     } finally { await env.cleanup(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

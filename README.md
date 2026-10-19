@@ -18,7 +18,7 @@ The **Admin** panel at `admin.html` supports:
 - Adding an optional public HTTPS thumbnail link when publishing a level.
 - Watching proof, accepting or rejecting pending completion submissions.
 - Approving a completion manually using the existing stable player/level record key, preserving stored proof when reapproving.
-- Editing published level names, positions, optional difficulty labels, and points (including 0) in **Manage levels**. Scores recalculate automatically. Position edits apply only to the selected level; other levels keep their positions. Existing level IDs, links, and completion history are preserved. If another moderator edits the level first, refresh before saving.
+- Editing published level names, positions, optional difficulty labels, and points (including 0) in **Manage levels**. Scores recalculate automatically. Position edits automatically shift affected levels, including when a new level is published. Existing level IDs, links, and completion history are preserved. If another moderator edits the level first, refresh before saving.
 - Removing a victor from a level by revoking all loaded approved records for that player/level, including legacy duplicates. Records and proofs are retained; manual approval can restore the completion. Refresh levels to see recent changes.
 - Searching registered and legacy players, removing them from Players, and restoring them.
 - Adding and revoking moderators from the owner’s Team section.
@@ -94,6 +94,10 @@ As an owner, admin or active team moderator, open Admin → Players, find the pl
 
 Corrections are stored separately from profiles and completion records; profile updates cannot erase them. Owners, trusted Firebase admins and active team moderators can write corrections. Ordinary players and revoked staff cannot. Team membership management remains owner-only. Amount, last editor UID and server timestamp are public, with no private notes. Concurrent edits to the correction require refreshing. For an incorrect completion itself, revoke its record instead.
 
-## Main, Platformer and Legacy lists
+## Demonlist placements
 
-Use the list links above search to browse each list. Staff choose the list when approving a submission or under Admin → level management. Existing levels default to Main; no records are moved automatically. Each list uses its own placements. List membership does not change a level's points; staff can set points to zero where appropriate. Direct links preserve list membership through the `list` query parameter.
+There is one demonlist. Previous list tags are ignored; all published levels and their records remain available, including through old links. Staff no longer choose a list.
+
+Publishing at #1 pushes the previous #1 to #2, #2 to #3, and so on. Moving an existing level closes its old position and makes room at the destination. Conflicting numbered positions are repaired when saving; unranked entries remain unranked. Points and completion history are preserved. Rank changes are committed atomically and concurrent saves retry against the latest rankings.
+
+Deploy the updated `firestore.rules` before using the updated admin page (`firebase deploy --only firestore:rules`). The staff-only `rankingState/main` document coordinates simultaneous placements and is created automatically. Saves that need to shift more than 450 levels are rejected without partial changes.

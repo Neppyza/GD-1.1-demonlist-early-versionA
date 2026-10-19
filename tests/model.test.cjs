@@ -144,11 +144,78 @@ test('owner corrections preserve completions, support reset and future scores, a
     assert.equal(buildStats([],[],[],[{id:'ghost',delta:99}]).length,0);
 });
 
-test('list membership defaults existing levels to main and separates platformer and legacy', async () => {
-    const { filterList } = await import('../list-model.js');
+test('retired list tags preserve every published level in the single demonlist', async () => {
+    const { filterList, levelList } = await import('../list-model.js');
     const levels = [{id:'old'}, {id:'main',listType:'main'}, {id:'platform',listType:'platformer'}, {id:'legacy',listType:'legacy'}];
-    assert.deepEqual(filterList(levels).map(x=>x.id), ['old','main']);
-    assert.deepEqual(filterList(levels,'platformer').map(x=>x.id), ['platform']);
-    assert.deepEqual(filterList(levels,'legacy').map(x=>x.id), ['legacy']);
-    assert.equal(levels.length,4);
+    assert.deepEqual(filterList(levels), levels);
+    assert.equal(levelList(levels[2]), 'main');
+});
+
+test('inserting at first or middle shifts all affected ranks without mutating input', async () => {
+    const { placementUpdates } = await import('../list-model.js');
+    const levels = ['a','b','c'].map((id,i)=>({id,position:i+1}));
+    assert.deepEqual(placementUpdates(levels,'new',1), [{id:'a',position:2},{id:'b',position:3},{id:'c',position:4}]);
+    assert.deepEqual(placementUpdates(levels,'new',2), [{id:'b',position:3},{id:'c',position:4}]);
+    assert.deepEqual(placementUpdates(levels,'new',4), []);
+    assert.deepEqual(levels.map(x=>x.position), [1,2,3]);
+});
+
+test('moving up, down, or staying in place preserves unique rankings', async () => {
+    const { placementUpdates } = await import('../list-model.js');
+    const levels = ['a','b','c'].map((id,i)=>({id,position:i+1}));
+    assert.deepEqual(placementUpdates(levels,'c',1), [{id:'a',position:2},{id:'b',position:3}]);
+    assert.deepEqual(placementUpdates(levels,'a',3), [{id:'b',position:1},{id:'c',position:2}]);
+    assert.deepEqual(placementUpdates(levels,'b',2), []);
+    assert.deepEqual(placementUpdates([],'new',1), []);
+});
+
+test('placement repairs duplicate ranks, handles numeric strings and leaves unranked entries alone', async () => {
+    const { placementUpdates } = await import('../list-model.js');
+    const levels = [{id:'a',name:'A',position:'1'},{id:'b',name:'B',position:1},{id:'c',position:2},{id:'unranked'}];
+    assert.deepEqual(placementUpdates(levels,'new',1), [{id:'a',position:2},{id:'b',position:3},{id:'c',position:4}]);
+    for (const rank of [0,-1,1.5,Infinity,NaN,Number.MAX_SAFE_INTEGER+1]) assert.throws(()=>placementUpdates(levels,'new',rank));
+    assert.throws(()=>placementUpdates([{id:'a',position:Number.MAX_SAFE_INTEGER}],'new',1));
+});
+
+test('rank transactions retry concurrent inserts, preserve metadata, and commit no partial changes on failure', async () => {
+    const { readRanking, writeRanking } = await import('../level-ranking.js');
+    const data = new Map(), versions = new Map();
+    const key = ref => `${ref.name}/${ref.id}`;
+    const snapshot = ref => { const value = structuredClone(data.get(key(ref))); return {id:ref.id,exists:()=>value!==undefined,data:()=>value}; };
+    const sdk = {
+        doc:(_db,name,id)=>({name,id}), collection:(_db,name)=>({name}), serverTimestamp:()=>({timestamp:true}),
+        getDocs:async ref=>({docs:[...data.keys()].filter(k=>k.startsWith(ref.name+'/')).map(k=>snapshot({name:ref.name,id:k.slice(ref.name.length+1)}))})
+    };
+    const client = {db:{},storeSDK:sdk};
+    async function run(callback, reject = false) {
+        for (let attempt=0; attempt<10; attempt++) {
+            const reads = new Map(), writes = [];
+            const transaction = {
+                get:async ref=>{assert.equal(writes.length,0,'all reads precede writes');reads.set(key(ref),versions.get(key(ref))||0);return snapshot(ref)},
+                update:(ref,value)=>writes.push([ref,value,true]), set:(ref,value)=>writes.push([ref,value,false])
+            };
+            await callback(transaction);
+            if ([...reads].some(([k,v])=>(versions.get(k)||0)!==v)) continue;
+            if (reject) throw new Error('permission-denied');
+            for(const [ref,value,merge] of writes) {
+                const k=key(ref);data.set(k,merge?{...data.get(k),...value}:value);versions.set(k,(versions.get(k)||0)+1);
+            }
+            return;
+        }
+        throw new Error('retry limit');
+    }
+    const publish = (id,reject=false) => run(async transaction=>{
+        const ranking = await readRanking(client,transaction);
+        writeRanking(client,transaction,ranking,id,1);
+        transaction.set(sdk.doc(client.db,'levels',id),{name:id,position:1,points:25,proofUrl:'https://example.org/proof'});
+    },reject);
+    await Promise.all([publish('a'),publish('b')]);
+    assert.deepEqual([...data.entries()].filter(([k])=>k.startsWith('levels/')).map(([,v])=>v.position).sort(),[1,2]);
+    await Promise.all([publish('c'),publish('d')]);
+    assert.deepEqual([...data.entries()].filter(([k])=>k.startsWith('levels/')).map(([,v])=>v.position).sort(),[1,2,3,4]);
+    assert.equal(data.get('levels/a').proofUrl,'https://example.org/proof');
+    assert.equal(data.get('levels/a').points,25);
+    const before = structuredClone([...data]);
+    await assert.rejects(publish('denied',true),/permission-denied/);
+    assert.deepEqual([...data],before);
 });

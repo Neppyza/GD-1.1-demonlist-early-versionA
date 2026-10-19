@@ -28,10 +28,28 @@ export function filterLevels(levels, records, term) {
     return levels.filter(level => [level.name, level.creator, level.verifier, level.difficulty, level.category, ...(names.get(level.id) || [])].some(value => String(value ?? "").toLowerCase().includes(query)));
 }
 
-export const listTypes = ["main", "platformer", "legacy"];
-export function levelList(level) {
-    return listTypes.includes(level.listType) ? level.listType : "main";
-}
-export function filterList(levels, type = "main") {
-    return levels.filter(level => levelList(level) === type);
+// Old list tags are ignored so published levels remain accessible.
+export const listTypes = ["main"];
+export function levelList() { return "main"; }
+export function filterList(levels) { return [...levels]; }
+
+// Remove the old placement, then insert the level and make room below it.
+export function placementUpdates(levels, levelId, target) {
+    if (!Number.isSafeInteger(target) || target < 1) throw new Error("Enter a positive whole-number position.");
+    const old = levels.find(level => level.id === levelId);
+    const oldPosition = position(old?.position);
+    const ranked = sortLevels(levels.filter(level => level.id !== levelId && position(level.position) !== Infinity));
+    const updates = [];
+    let next = 1;
+    for (const level of ranked) {
+        let rank = position(level.position);
+        if (oldPosition !== Infinity && rank > oldPosition) rank--;
+        if (rank >= target) rank++;
+        rank = Math.max(rank, next);
+        if (rank === target) rank++;
+        if (!Number.isSafeInteger(rank)) throw new Error("A position is too large. Correct the rankings before saving.");
+        next = rank + 1;
+        if (rank !== level.position) updates.push({ id: level.id, position: rank });
+    }
+    return updates;
 }

@@ -1,5 +1,6 @@
+import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff } from "./auth.js";
-import { sortLevels, levelList, listTypes } from "./list-model.js";
+import { sortLevels } from "./list-model.js";
 import { element, setBusy } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
@@ -58,7 +59,6 @@ async function showLevel(turn) {
     points.value = level?.points ?? "";
     nameInput.value = level?.name ?? "";
     positionInput.value = level?.position ?? "";
-    form.elements.listType.value = levelList(level || {});
     difficultyInput.value = level?.difficulty ?? "";
     victors.replaceChildren();
     if (!level) return;
@@ -122,28 +122,31 @@ form.addEventListener("submit", async event => {
     if (form.dataset.busy === "true") return;
     const levelId = select.value, turn = generation;
     const level = levels.find(level => level.id === levelId);
-    const changes = { listType: form.elements.listType.value, name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
-    if (!listTypes.includes(changes.listType)) { output.textContent = "Choose a valid list."; return; }
+    const changes = { listType: "main", name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
     if (!level) { output.textContent = "Choose a level first."; return; }
     if (!changes.name || changes.name.length > 80) { output.textContent = "Enter a level name between 1 and 80 characters."; return; }
     if (!Number.isSafeInteger(changes.position) || changes.position < 1) { output.textContent = "Enter a positive whole-number position."; return; }
     if (changes.difficulty.length > 60) { output.textContent = "Keep difficulty to 60 characters or fewer, or leave it empty."; return; }
     if (!points.value.trim() || !Number.isFinite(changes.points) || changes.points < 0) { output.textContent = "Enter non-negative points."; return; }
     const before = Object.fromEntries(editableFields.map(field => [field, level[field]]));
-    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nList: ${changes.listType}\nPosition: ${changes.position} (other levels keep their positions)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}`)) return;
+    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nPosition: ${changes.position} (affected levels shift automatically)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}`)) return;
     setBusy(form, true); output.textContent = "Saving level changes…";
     try {
         const client = await requireStaff(); if (!current(client, turn)) return;
         const sdk = client.storeSDK;
-        await sdk.runTransaction(client.db, async transaction => {
+        const result = await sdk.runTransaction(client.db, async transaction => {
+            const ranking = await readRanking(client, transaction);
             const ref = sdk.doc(client.db, "levels", levelId), saved = await transaction.get(ref);
             if (!saved.exists()) throw new Error("This level no longer exists. Refresh levels.");
             if (editableFields.some(field => saved.data()[field] !== before[field])) throw new Error("This level changed since you loaded it. Refresh levels and try again.");
             if (!current(client, turn)) throw { code: "auth/requires-login" };
+            const updates = writeRanking(client, transaction, ranking, levelId, changes.position);
             transaction.update(ref, changes);
+            const positions = new Map(updates.map(item => [item.id, item.position]));
+            return ranking.levels.map(item => item.id === levelId ? { ...item, ...changes } : { ...item, position: positions.get(item.id) ?? item.position });
         });
         if (current(client, turn)) {
-            Object.assign(level, changes);
+            levels = result;
             renderOptions();
             output.textContent = `${changes.name} saved at position ${changes.position}. Level details and leaderboard scores update automatically.`;
         }
