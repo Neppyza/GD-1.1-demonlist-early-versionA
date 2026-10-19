@@ -46,7 +46,7 @@ const save=(ref,data,merge=false)=>{if(test.writeError)throw{code:test.writeErro
 export const setDoc=async(ref,data,options)=>save(ref,data,options?.merge===true);
 export const writeBatch=()=>{const pending=[];return{set:(ref,data)=>pending.push([ref,data]),commit:async()=>{if(test.writeError)throw{code:test.writeError};for(const [ref,data]of pending)save(ref,data);if(test.persistData)sessionStorage.setItem('demonlist-onboarding-data',JSON.stringify(test.data))}}};
 export const addDoc=async(ref,data)=>{const item=doc(ref);save(item,data);return item};
-export const runTransaction=async(db,callback)=>{const pending=[];await callback({get:getDoc,set:(ref,data,options)=>pending.push([ref,data,options?.merge===true]),update:(ref,data)=>pending.push([ref,data,true])});if(test.writeError)throw{code:test.writeError};for(const [ref,data,merge]of pending)save(ref,data,merge)};
+export const runTransaction=async(db,callback)=>{const pending=[];const result=await callback({get:getDoc,set:(ref,data,options)=>pending.push([ref,data,options?.merge===true]),update:(ref,data)=>pending.push([ref,data,true])});if(test.writeError)throw{code:test.writeError};for(const [ref,data,merge]of pending)save(ref,data,merge);return result};
 `;
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.woff2':'font/woff2'};
 const server=http.createServer((req,res)=>{
@@ -107,12 +107,12 @@ const server=http.createServer((req,res)=>{
     await page.getByRole('button',{name:'Try again'}).click();
     await page.locator('.demon-row').first().waitFor();
     await page.evaluate(()=>{window.__test.data.levels.beta.listType='platformer';window.__test.data.levels.incomplete.listType='legacy';window.__test.emit('levels')});
-    assert.equal(await page.locator('.demon-row').count(),1);
+    assert.equal(await page.locator('.demon-row').count(),3);
+    assert.equal(await page.locator('[data-list]').count(),0);
     for (const [type,title] of [['platformer','Fixture Beta'],['legacy','Incomplete entry']]) {
         await page.evaluate(type=>{history.pushState(null,'','?list='+type);dispatchEvent(new PopStateEvent('popstate'))},type);
-        assert.equal(await page.locator('.demon-row').count(),1);
-        assert.ok((await page.locator('.demon-row').innerText()).includes(title));
-        assert.equal(await page.locator('[data-list="'+type+'"]').getAttribute('aria-current'),'page');
+        assert.equal(await page.locator('.demon-row').count(),3);
+        assert.ok((await page.locator('#levels').innerText()).includes(title));
     }
     await page.evaluate(()=>{delete window.__test.data.levels.beta.listType;delete window.__test.data.levels.incomplete.listType;history.replaceState(null,'','/');window.__test.emit('levels')});
     assert.equal(await page.locator('.demon-row').count(),3);
@@ -165,10 +165,18 @@ const server=http.createServer((req,res)=>{
     await page.locator('#managed-points').fill('0');
     await page.getByRole('button',{name:'Save level changes',exact:true}).click();
     await page.waitForFunction(()=>window.__test.data.levels.alpha.points===0);
-    assert.deepEqual(await page.evaluate(()=>{const l=window.__test.data.levels.alpha;return [l.name,l.position,l.difficulty,l.levelUrl,l.creator,window.__test.data.levels.beta.position]}),['Renamed Alpha',4,'Insane Demon','https://example.org/alpha','Creator A',2]);
+    assert.deepEqual(await page.evaluate(()=>{const l=window.__test.data.levels.alpha;return [l.name,l.position,l.difficulty,l.levelUrl,l.creator,window.__test.data.levels.beta.position]}),['Renamed Alpha',4,'Insane Demon','https://example.org/alpha','Creator A',1]);
     assert.equal(await page.locator('#managed-level option:checked').innerText(),'Renamed Alpha');
     assert.equal(await page.locator('#managed-level').inputValue(),'alpha');
     // Concurrent staff edits are not silently overwritten.
+    await page.locator('#managed-position').fill('1');
+    await page.getByRole('button',{name:'Save level changes',exact:true}).click();
+    await page.waitForFunction(()=>window.__test.data.levels.alpha.position===1);
+    assert.equal(await page.evaluate(()=>window.__test.data.levels.beta.position),2);
+    await page.locator('#managed-position').fill('4');
+    await page.getByRole('button',{name:'Save level changes',exact:true}).click();
+    await page.waitForFunction(()=>window.__test.data.levels.alpha.position===4);
+    assert.equal(await page.evaluate(()=>window.__test.data.levels.beta.position),1);
     await page.evaluate(()=>window.__test.data.levels.alpha.name='Another staff edit');
     await page.getByRole('button',{name:'Save level changes',exact:true}).click();
     await page.waitForFunction(()=>document.getElementById('level-management-status').textContent.includes('changed since'));

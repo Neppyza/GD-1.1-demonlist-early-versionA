@@ -1,3 +1,4 @@
+import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
 import { completionKey } from "./completion-model.js";
 import { dataMessage } from "./messages.js";
@@ -95,12 +96,6 @@ function renderSubmission(id, data, turn) {
         else input.maxLength = 60;
         group.append(input); form.append(group);
     }
-    const listLabel = element("label", "", "List");
-    const listSelect = element("select"); listSelect.name = "listType";
-    for (const type of ["main", "platformer", "legacy"]) {
-        const option = element("option", "", type); option.value = type; listSelect.append(option);
-    }
-    listLabel.append(listSelect); form.append(listLabel);
     const approve = element("button", "", "Approve and publish");
     approve.type = "submit";
     const reject = element("button", "secondary-button", "Reject");
@@ -111,12 +106,12 @@ function renderSubmission(id, data, turn) {
     form.addEventListener("submit", async event => {
         event.preventDefault();
         if (form.dataset.busy === "true") return;
-        if (!["main", "platformer", "legacy"].includes(form.elements.listType.value)) { output.textContent = "Choose a valid list."; return; }
         const rank = Number(form.elements.position.value);
         const points = Number(form.elements.points.value);
         const difficulty = form.elements.difficulty.value.trim();
         const thumbnailURL = form.elements.thumbnail.value.trim();
-        if (!Number.isInteger(rank) || rank < 1 || !Number.isFinite(points) || points < 0) { output.textContent = "Enter a positive whole-number placement and non-negative points."; return; }
+        if (!Number.isSafeInteger(rank) || rank < 1 || !Number.isFinite(points) || points < 0) { output.textContent = "Enter a positive whole-number placement and non-negative points."; return; }
+        if (difficulty.length > 60) { output.textContent = "Keep difficulty to 60 characters or fewer."; return; }
         if (thumbnailURL && (thumbnailURL.length > 2000 || !thumbnailURL.startsWith("https://") || !safeURL(thumbnailURL))) { output.textContent = "Use a public HTTPS image link for the thumbnail, or leave it empty."; return; }
         setBusy(form, true);
         output.textContent = "Checking access and publishing…";
@@ -127,12 +122,15 @@ function renderSubmission(id, data, turn) {
             const submission = sdk.doc(client.db, "submissions", id);
             const level = sdk.doc(sdk.collection(client.db, "levels"));
             await sdk.runTransaction(client.db, async transaction => {
+                const ranking = await readRanking(client, transaction);
                 const snapshot = await transaction.get(submission);
                 if (!snapshot.exists() || snapshot.data().status !== "pending") throw new Error("This submission has already been reviewed. Refresh the queue.");
                 const saved = snapshot.data();
-                const entry = { listType: form.elements.listType.value, name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
+                const entry = { listType: "main", name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
+                if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw { code: "auth/requires-login" };
+                writeRanking(client, transaction, ranking, level.id, rank);
                 transaction.set(level, entry);
                 transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });

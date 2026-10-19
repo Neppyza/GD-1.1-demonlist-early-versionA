@@ -193,6 +193,14 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    // Staff-only coordination for atomic rank shifts and simultaneous inserts.
+    match /rankingState/{id} {
+      allow read: if staff() && id == 'main';
+      allow create, update: if staff() && id == 'main'
+        && request.resource.data.keys().hasOnly(['updatedAt'])
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /levels/{id} {
       allow read: if true;
       allow create, update: if staff() && validLevel(request.resource.data);
