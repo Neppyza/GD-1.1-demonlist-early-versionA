@@ -1,15 +1,8 @@
 {
-  "name": "gd11-demonlist-site",
+  "name": "demonlist-functions",
   "private": true,
   "type": "module",
-  "scripts": {
-    "test": "node --test tests/model.test.cjs tests/grant-owner.test.cjs tests/watchdog.test.js",
-    "test:browser": "node tests/browser.test.cjs",
-    "test:rules": "node tests/firestore.rules.test.cjs"
-  },
-  "devDependencies": {
-    "@firebase/rules-unit-testing": "5.0.0",
-    "firebase": "12.2.1",
-    "playwright": "1.62.1"
-  }
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "dependencies": { "firebase-admin": "^13.0.0", "firebase-functions": "^6.0.0" }
 }

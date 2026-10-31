@@ -1,7 +1,7 @@
 import { subscribeAuth, requireStaff, requireOwner } from "./auth.js";
 import { buildStats } from "./stats-model.js";
 import { validPlayerProfile } from "./player-profile.js";
-import { completionKey } from "./completion-model.js";
+import { completionKey, validProgress, minimumProgress, shouldReplaceRecord } from "./completion-model.js";
 import { element, externalLink, setBusy } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
@@ -169,12 +169,12 @@ async function loadCompletions(turn) {
 function renderCompletion(id, data, levelName, turn) {
     const card = element("article", "review-item completion-review-item");
     card.append(element("h3", "", `${data.player || "Unknown player"} · ${levelName || "Level unavailable"}`), element("p", "player-id muted", `Player ID: ${data.ownerUid}`));
-    const proof = externalLink(data.proofUrl, "Watch 100% proof ↗"); if (proof) card.append(proof);
+    const proof = externalLink(data.proofUrl, `Watch ${data.progress ?? 100}% proof ↗`); if (proof) card.append(proof);
     if (data.notes) card.append(element("p", "", data.notes));
     const form = element("form", "stack-form");
     const label = element("label", "check-row");
     const checkbox = element("input"); checkbox.type = "checkbox"; checkbox.name = "checkedProof"; checkbox.required = true;
-    label.append(checkbox, element("span", "", "I watched and verified the 100% completion proof."));
+    label.append(checkbox, element("span", "", `I watched and verified the ${data.progress ?? 100}% proof.`));
     const actions = element("div", "auth-actions");
     const accept = element("button", "", "Accept completion"); accept.type = "submit"; accept.disabled = !levelName || !proof;
     const reject = element("button", "secondary-button", "Reject completion"); reject.type = "button";
@@ -199,7 +199,8 @@ function renderCompletion(id, data, levelName, turn) {
                     const [existing, level] = await Promise.all([transaction.get(record), transaction.get(sdk.doc(client.db, "levels", saved.levelId))]);
                     if (!level.exists()) throw new Error("This level no longer exists.");
                     if (!current(client, turn)) throw { code: "auth/requires-login" };
-                    if (!existing.exists() || existing.data().approved !== true) transaction.set(record, { player: saved.player, playerId: saved.ownerUid, levelId: saved.levelId, proofUrl: saved.proofUrl, progress: 100, approved: true });
+                    if (!validProgress(saved.progress ?? 100, minimumProgress(level.data()))) throw new Error("Progress is below the current level requirement or invalid.");
+                    if (shouldReplaceRecord(existing.exists() ? existing.data() : null, saved.progress ?? 100)) transaction.set(record, { player: saved.player, playerId: saved.ownerUid, levelId: saved.levelId, proofUrl: saved.proofUrl, progress: saved.progress ?? 100, approved: true });
                     update.recordId = key;
                 }
                 if (!current(client, turn)) throw { code: "auth/requires-login" };

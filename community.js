@@ -3,7 +3,7 @@ import { dataMessage } from "./messages.js";
 import { element, setBusy, countryIndicator } from "./ui.js";
 import { validPlayerProfile, completePlayerProfile } from "./player-profile.js";
 import { countries, isCountryCode } from "./countries.js";
-import { validCompletion } from "./completion-model.js";
+import { validCompletion, minimumProgress } from "./completion-model.js";
 import { subscribeData, retryData } from "./data.js";
 import { sortLevels } from "./list-model.js";
 
@@ -171,7 +171,7 @@ async function loadCompletions(client, turn) {
         box.replaceChildren();
         for (const doc of snapshot.docs) {
             const data = doc.data(); const row = element("article", "submission-item");
-            row.append(element("h3", "", `Completion · ${data.levelId}`), element("span", "submission-status", data.status), element("p", "muted", data.status === "approved" ? "Accepted by the list team. Your points come from this level's approved record." : data.status === "rejected" ? "The list team rejected this completion proof." : "Waiting for the list team to review your 100% proof."));
+            row.append(element("h3", "", `Record · ${data.levelId} · ${data.progress ?? 100}%`), element("span", "submission-status", data.status), element("p", "muted", data.status === "approved" ? "Accepted by the list team. Only approved 100% completions award points." : data.status === "rejected" ? "The list team rejected this completion proof." : "Waiting for the list team to review your proof."));
             box.append(row);
         }
         if (snapshot.empty) box.append(element("p", "muted", "You have no completion submissions yet."));
@@ -241,8 +241,20 @@ profileForm?.addEventListener("submit", async event => {
 
 if (completionForm) {
     const select = completionForm.elements.levelId;
+    let availableLevels = [];
+    const updateMinimum = () => {
+        const level = availableLevels.find(item => item.id === select.value);
+        const minimum = minimumProgress(level);
+        completionForm.elements.progress.min = minimum;
+        document.getElementById("completion-minimum").textContent = level
+            ? `Minimum required: ${minimum}%. Only approved 100% completions award points.`
+            : "Choose a level to see its minimum required percentage.";
+    };
+    select.addEventListener("change", updateMinimum);
+    completionForm.addEventListener("reset", () => queueMicrotask(updateMinimum));
     const output = document.getElementById("completion-level-status");
     subscribeData("levels", value => {
+        availableLevels = value.status === "ready" ? value.items : []; updateMinimum();
         completionLevelsReady = value.status === "ready" && value.items.length > 0;
         const selected = select.value;
         select.replaceChildren(); const placeholder = element("option", "", "Choose a level"); placeholder.value = ""; select.append(placeholder);
@@ -258,14 +270,14 @@ if (completionForm) {
     completionForm.addEventListener("submit", async event => {
         event.preventDefault(); if (completionForm.dataset.busy === "true") return;
         const output = document.getElementById("completion-status");
-        const values = { levelId: completionForm.elements.levelId.value, proofUrl: completionForm.elements.proofUrl.value.trim(), notes: completionForm.elements.notes.value.trim() };
+        const values = { progress: completionForm.elements.progress.value.trim() ? Number(completionForm.elements.progress.value) : NaN, levelId: completionForm.elements.levelId.value, proofUrl: completionForm.elements.proofUrl.value.trim(), notes: completionForm.elements.notes.value.trim() };
         if (!savedName || !acceptedRules || playerRemoved) { output.textContent = "Sign in and save an active player profile first."; return; }
-        if (!validCompletion(values) || !completionLevelsReady || !completionForm.elements.confirmed.checked) { output.textContent = "Choose a level, add an HTTPS link to your 100% proof, and confirm the rules."; return; }
+        if (!validCompletion(values, minimumProgress(availableLevels.find(level => level.id === values.levelId))) || !completionLevelsReady || !completionForm.elements.confirmed.checked) { output.textContent = "Choose a level, enter progress at or above its minimum, add an HTTPS proof link, and confirm the rules."; return; }
         const turn = generation; setBusy(completionForm, true); output.textContent = "Sending your completion for review…";
         try {
             const client = await requireUser(); if (!current(client.user, turn)) throw { code: "auth/requires-login" };
             await client.storeSDK.addDoc(client.storeSDK.collection(client.db, "completionSubmissions"), { ownerUid: client.user.uid, player: savedName, ...values, status: "pending", submittedAt: client.storeSDK.serverTimestamp() });
-            if (current(client.user, turn)) { completionForm.reset(); output.textContent = "Completion submitted. The list team will review your 100% proof before awarding points."; }
+            if (current(client.user, turn)) { completionForm.reset(); output.textContent = "Completion submitted. The list team will review your proof. Only approved 100% completions award points."; }
         } catch (error) { if (turn === generation) output.textContent = dataMessage(error, "your completion submission"); }
         finally { setBusy(completionForm, false); }
     });

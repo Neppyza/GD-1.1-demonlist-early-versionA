@@ -94,7 +94,9 @@ function renderSubmission(id, data, turn) {
         if (type === "number") { input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
         else if (type === "url") { input.maxLength = 2000; input.placeholder = "https://example.com/thumbnail.jpg"; }
         else input.maxLength = 60;
-        group.append(input); form.append(group);
+        group.append(input);
+        if (name === "position") group.append(element("small", "muted", "Levels at this position and below move down automatically. For example: adding #3 moves the old #3 to #4, #4 to #5, and so on."));
+        form.append(group);
     }
     const approve = element("button", "", "Approve and publish");
     approve.type = "submit";
@@ -126,7 +128,7 @@ function renderSubmission(id, data, turn) {
                 const snapshot = await transaction.get(submission);
                 if (!snapshot.exists() || snapshot.data().status !== "pending") throw new Error("This submission has already been reviewed. Refresh the queue.");
                 const saved = snapshot.data();
-                const entry = { listType: "main", name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
+                const entry = { rankingApplied: true, listType: "main", name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw { code: "auth/requires-login" };

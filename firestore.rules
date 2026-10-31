@@ -49,9 +49,18 @@ service cloud.firestore {
     function httpsLink(value) {
       return value is string && value.size() <= 2000 && value.matches('^https://.+');
     }
+    // Optional levels.minProgress defaults to 100; submitted progress is immutable.
+    function validMinimum(value) {
+      return value is int && value >= 1 && value <= 100;
+    }
+    function meetsMinimum(levelId, progress) {
+      let minimum = get(/databases/$(database)/documents/levels/$(levelId)).data.get('minProgress', 100);
+      return validMinimum(minimum) && validMinimum(progress) && progress >= minimum;
+    }
     function validLevel(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 80
         && data.position is int && data.position > 0
+        && validMinimum(data.get('minProgress', 100))
         && data.points is number && data.points >= 0
         && data.creator is string && data.creator.size() > 0 && data.creator.size() <= 60
         && data.verifier is string && data.verifier.size() > 0 && data.verifier.size() <= 60
@@ -129,7 +138,7 @@ service cloud.firestore {
     }
     match /completionSubmissions/{id} {
       allow create: if acceptedRules() && activePlayer(request.auth.uid)
-        && request.resource.data.keys().hasOnly(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt', 'progress'])
         && request.resource.data.keys().hasAll(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.player == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.displayName
@@ -137,6 +146,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/levels/$(request.resource.data.levelId))
         && httpsLink(request.resource.data.proofUrl)
         && request.resource.data.notes is string && request.resource.data.notes.size() <= 500
+        && meetsMinimum(request.resource.data.levelId, request.resource.data.get('progress', 100))
         && request.resource.data.status == 'pending' && request.resource.data.submittedAt == request.time;
       allow get, list: if staff() || (signedIn() && resource.data.ownerUid == request.auth.uid);
       allow update: if staff() && resource.data.status == 'pending'
@@ -211,7 +221,8 @@ service cloud.firestore {
       allow create, update: if staff() && request.resource.data.playerId is string
         && request.resource.data.playerId.size() > 0 && request.resource.data.player is string
         && request.resource.data.player.size() > 0 && request.resource.data.levelId is string
-        && request.resource.data.progress == 100 && request.resource.data.approved is bool
+        && validMinimum(request.resource.data.progress) && request.resource.data.approved is bool
+        && (!request.resource.data.approved || meetsMinimum(request.resource.data.levelId, request.resource.data.progress))
         && exists(/databases/$(database)/documents/levels/$(request.resource.data.levelId));
       allow delete: if staff();
     }

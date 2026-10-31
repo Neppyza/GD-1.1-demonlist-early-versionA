@@ -122,7 +122,7 @@ form.addEventListener("submit", async event => {
     if (form.dataset.busy === "true") return;
     const levelId = select.value, turn = generation;
     const level = levels.find(level => level.id === levelId);
-    const changes = { listType: "main", name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
+    const changes = { rankingApplied: true, listType: "main", name: nameInput.value.trim(), position: Number(positionInput.value), difficulty: difficultyInput.value.trim(), points: Number(points.value) };
     if (!level) { output.textContent = "Choose a level first."; return; }
     if (!changes.name || changes.name.length > 80) { output.textContent = "Enter a level name between 1 and 80 characters."; return; }
     if (!Number.isSafeInteger(changes.position) || changes.position < 1) { output.textContent = "Enter a positive whole-number position."; return; }

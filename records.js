@@ -39,7 +39,7 @@ function render() {
         else name.textContent = "Level no longer available";
         const proof = element("td");
         proof.append(externalLink(record.proofUrl, "Watch proof ↗") || element("span", "muted", "—"));
-        row.append(element("td", "rank", level && position(level.position) !== Infinity ? position(level.position) : "—"), name, element("td", "", record.player || "—"), element("td", "numeric", record.progress === undefined ? "—" : `${record.progress}%`), element("td", "numeric", level?.points ?? "—"), proof);
+        row.append(element("td", "rank", level && position(level.position) !== Infinity ? position(level.position) : "—"), name, element("td", "", record.player || "—"), element("td", "numeric", record.progress === undefined ? "—" : `${record.progress}%`), element("td", "numeric", Number(record.progress) === 100 ? level?.points ?? "—" : 0), proof);
         body.append(row);
     }
     if (!filtered.length) stateRow(body, 6, approved.length ? "No matching records" : "No approved records yet", approved.length ? "Try another player, level, or filter." : "Approved completions will appear here after staff review.");

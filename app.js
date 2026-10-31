@@ -1,3 +1,4 @@
+import { minimumProgress } from "./completion-model.js";
 import { subscribeData, retryData } from "./data.js";
 import { filterLevels, sortLevels, rankLabel } from "./list-model.js";
 import { victorNames } from "./victors.js";
@@ -96,7 +97,7 @@ function render() {
         const verifier = element("p", "level-verifier");
         verifier.append(document.createTextNode("Verified by "), element("strong", "", level.verifier || "—"));
         const meta = element("dl", "row-meta");
-        for (const [label, value, className] of [["Points", level.points ?? "—", ""], ["Difficulty / category", level.category || level.difficulty || "—", ""], ["Victors", recordState.status === "ready" ? victorNames(records, level.id).length : "—", "victor-count"]]) {
+        for (const [label, value, className] of [["Record requirement", `${minimumProgress(level)}%`, "level-percentage"], ["Points", level.points ?? "—", ""], ["Difficulty / category", level.category || level.difficulty || "—", ""], ["Victors", recordState.status === "ready" ? victorNames(records, level.id).length : "—", "victor-count"]]) {
             const group = element("div");
             group.append(element("dt", "", label), element("dd", className, value));
             meta.append(group);
@@ -136,7 +137,7 @@ function showDetails(id, updateURL = false) {
     const title = element("h2", "", String(level.name || "Unnamed level").trim());
     title.id = "detail-title";
     const meta = element("dl", "detail-meta");
-    for (const [label, value] of [["Creator", level.creator], ["Verifier", level.verifier], ["Difficulty / category", level.category || level.difficulty], ["Points", level.points]]) {
+    for (const [label, value] of [["Record requirement", `${minimumProgress(level)}%`], ["Creator", level.creator], ["Verifier", level.verifier], ["Difficulty / category", level.category || level.difficulty], ["Points", level.points]]) {
         const group = element("div");
         group.append(element("dt", "", label), element("dd", "", value ?? "—"));
         meta.append(group);
@@ -145,7 +146,7 @@ function showDetails(id, updateURL = false) {
     if (level.description) detail.append(element("p", "level-description", level.description));
     const links = element("div", "detail-actions");
     const permanent = element("a", "", "Permanent link");
-    permanent.href = `?list=${levelList(level)}&level=${encodeURIComponent(id)}`;
+    permanent.href = `?level=${encodeURIComponent(id)}`;
     links.append(permanent);
     for (const [value, label] of [[level.levelUrl, "Open level ↗"], [level.proofUrl, "Watch verification ↗"]]) {
         const link = externalLink(value, label);
