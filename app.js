@@ -159,10 +159,12 @@ function showDetails(id, updateURL = false) {
             const list = element("ul", "victor-list");
             for (const name of names) list.append(element("li", "", name));
             detail.append(list);
-            const recordsLink = element("a", "", "View completion records →");
+        } else detail.append(element("p", "muted", "No approved victors have been recorded."));
+        if (recordState.items.some(record => record.approved === true && record.levelId === id)) {
+            const recordsLink = element("a", "", "View approved records →");
             recordsLink.href = `records.html?level=${encodeURIComponent(id)}`;
             detail.append(recordsLink);
-        } else detail.append(element("p", "muted", "No approved completions have been recorded."));
+        }
     } else detail.append(element("p", "muted", recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "Loading approved records…"));
     if (!dialog.open) dialog.showModal();
 }
