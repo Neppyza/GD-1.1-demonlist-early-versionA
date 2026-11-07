@@ -16,7 +16,6 @@ const status = document.getElementById("result-count");
 const dialog = document.getElementById("level-dialog");
 let levelState = { status: "loading", items: [] };
 let recordState = { status: "loading", items: [] };
-let initialSelection = true;
 const ranking = document.getElementById("ranking-index");
 
 function listState(title, message, retry) {
@@ -48,7 +47,7 @@ function render() {
     const recordNote = document.getElementById("records-note");
     recordNote.hidden = recordState.status !== "error";
     recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
-    if (levelState.status !== "ready" && dialog.open) dialog.close();
+    if (levelState.status !== "ready") syncDetails();
     if (levelState.status === "loading") {
         listState( "Loading the demonlist…");
         status.textContent = "Loading levels…";
@@ -105,19 +104,22 @@ function render() {
         content.append(heading, creator, verifier, meta);
         row.append(previewLink, content); body.append(row);
     }
-    if (dialog.open) {
-        if (levelState.items.some(level => level.id === dialog.dataset.levelId)) showDetails(dialog.dataset.levelId);
-        else dialog.close();
-    }
-    if (initialSelection) {
-        initialSelection = false;
-        const selected = new URLSearchParams(location.search).get("level");
-        if (selected && levelState.items.some(level => level.id === selected)) showDetails(selected);
-        else if (selected) {
-            document.getElementById("selection-status").hidden = false;
-            document.getElementById("selection-status").textContent = "That level is no longer available. Browse the current list below.";
+    syncDetails();
+}
+
+function syncDetails() {
+    const selected = new URLSearchParams(location.search).get("level");
+    const selectionStatus = document.getElementById("selection-status");
+    selectionStatus.hidden = true;
+    if (levelState.status === "ready" && selected) {
+        if (levelState.items.some(level => level.id === selected)) {
+            showDetails(selected);
+            return;
         }
+        selectionStatus.textContent = "That level is no longer available. Browse the current list below.";
+        selectionStatus.hidden = false;
     }
+    if (dialog.open) dialog.close();
 }
 
 function showDetails(id, updateURL = false) {
@@ -132,7 +134,6 @@ function showDetails(id, updateURL = false) {
         }
     }
     document.getElementById("selection-status").hidden = true;
-    dialog.dataset.levelId = id;
     const detail = document.getElementById("level-detail");
     const title = element("h2", "", String(level.name || "Unnamed level").trim());
     title.id = "detail-title";
@@ -171,24 +172,22 @@ window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
-document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
-dialog.addEventListener("close", () => {
+function closeDetails() {
     const url = new URL(location.href);
-    if (url.searchParams.get("level") === dialog.dataset.levelId) {
-        url.searchParams.delete("level");
-        history.replaceState(history.state, "", url);
-    }
+    url.searchParams.delete("level");
+    history.replaceState(history.state, "", url);
+    dialog.close();
+}
+document.getElementById("close-dialog").addEventListener("click", closeDetails);
+dialog.addEventListener("cancel", event => {
+    event.preventDefault();
+    closeDetails();
 });
-window.addEventListener("popstate", () => {
-    const selected = new URLSearchParams(location.search).get("level");
-    if (levelState.items.some(level => level.id === selected)) showDetails(selected);
-    else if (dialog.open) dialog.close();
-    render();
-});
+window.addEventListener("popstate", syncDetails);
 dialog.addEventListener("click", event => {
     if (event.target !== dialog) return;
     const bounds = dialog.getBoundingClientRect();
-    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeDetails();
 });
 subscribeData("levels", value => { levelState = value; render(); });
 subscribeData("records", value => { recordState = value; render(); });

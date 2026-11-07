@@ -21,7 +21,7 @@ async function checkProfile(uid, turn) {
         if (turn !== profileGeneration || client.auth.currentUser?.uid !== uid) return;
         if (snapshot.exists() && snapshot.data().removed === true) return;
         const complete = snapshot.exists() && completePlayerProfile(snapshot.data());
-        if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search)}`);
+        if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search + location.hash)}`);
     } catch (error) {
         if (turn !== profileGeneration) return;
         profileError = dataMessage(error, "your player profile") + " Open Account to retry setup.";
@@ -56,7 +56,7 @@ subscribeAuth(state => {
     }
     for (const link of document.querySelectorAll("[data-account-link]")) {
         link.textContent = state.user ? "Account" : "Sign in";
-        link.href = state.user || page === "community.html" ? "community.html" : `community.html?next=${encodeURIComponent(page)}`;
+        link.href = state.user || page === "community.html" ? "community.html" : `community.html?next=${encodeURIComponent(page + location.search + location.hash)}`;
         link.setAttribute("aria-label", state.user ? "Your Demonlist account" : "Sign in to the Demonlist");
     }
     for (const link of document.querySelectorAll("[data-staff-link]")) link.hidden = !state.staff;
