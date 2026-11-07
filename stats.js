@@ -21,6 +21,7 @@ function tagList(tags) {
 function render() {
     const detail = document.getElementById("player-details");
     directoryStatus.replaceChildren();
+    document.getElementById("stats-summary")?.remove();
     if (profiles.status === "error") {
         directoryStatus.append(element("p", "form-status", dataMessage(profiles.error, "registered player profiles")));
         const retry = element("button", "secondary-button", "Retry player profiles");
@@ -49,6 +50,14 @@ function render() {
     }
     table.setAttribute("aria-busy", "false");
     const ranked = buildStats(levels.items, records.items, profiles.items, adjustments.status === "ready" ? adjustments.items : []).map((player, index) => ({ ...player, rank: index + 1 }));
+    const summary = element("dl", "stats-summary");
+    summary.id = "stats-summary";
+    for (const [label, value] of [["Players", ranked.length], ["Levels", levels.items.length], ["Completions", ranked.reduce((sum, player) => sum + player.completed.length, 0)]]) {
+        const group = element("div");
+        group.append(element("dt", "", label), element("dd", "", value));
+        summary.append(group);
+    }
+    document.querySelector(".list-toolbar").before(summary);
     const term = search.value.toLowerCase().trim();
     const filtered = ranked.filter(player => [player.name, ...player.tags, getCountry(player.countryCode)?.name || "", player.countryCode || ""].join(" ").toLowerCase().includes(term));
     if (sort.value === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
