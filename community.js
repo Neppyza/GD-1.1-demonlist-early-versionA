@@ -254,7 +254,7 @@ if (completionForm) {
     completionForm.addEventListener("reset", () => queueMicrotask(updateMinimum));
     const output = document.getElementById("completion-level-status");
     subscribeData("levels", value => {
-        availableLevels = value.status === "ready" ? value.items : []; updateMinimum();
+        availableLevels = value.status === "ready" ? value.items : [];
         completionLevelsReady = value.status === "ready" && value.items.length > 0;
         const selected = select.value;
         select.replaceChildren(); const placeholder = element("option", "", "Choose a level"); placeholder.value = ""; select.append(placeholder);
@@ -262,6 +262,7 @@ if (completionForm) {
             for (const level of sortLevels(value.items)) { const option = element("option", "", level.name || "Unnamed level"); option.value = level.id; select.append(option); }
             if (value.items.some(level => level.id === selected)) select.value = selected;
         }
+        updateMinimum();
         output.textContent = value.status === "error" ? dataMessage(value.error, "levels") : value.status === "loading" ? "Loading levels…" : value.items.length ? "" : "There are no levels to submit a completion for yet.";
         document.getElementById("retry-completion-levels").hidden = value.status !== "error";
         completionForm.querySelector("fieldset").disabled = !savedName || playerRemoved || !completionLevelsReady;

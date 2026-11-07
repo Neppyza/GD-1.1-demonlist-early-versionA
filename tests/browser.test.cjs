@@ -8,7 +8,7 @@ const root = path.resolve(__dirname,'..');
 const output = process.env.DEMONLIST_TEST_OUTPUT || path.join(root,'test-output');
 fs.mkdirSync(output,{recursive:true});
 const levels = [
-    {id:'alpha',name:'Fixture Alpha',position:'1',points:'50',creator:'Creator A',verifier:'Verifier A',difficulty:'Extreme Demon',thumbnail:'/thumbnail-2.jpg',levelUrl:'https://example.org/alpha',proofUrl:'https://example.org/proof'},
+    {id:'alpha',name:'Fixture Alpha',minProgress:3,position:'1',points:'50',creator:'Creator A',verifier:'Verifier A',difficulty:'Extreme Demon',thumbnail:'/thumbnail-2.jpg',levelUrl:'https://example.org/alpha',proofUrl:'https://example.org/proof'},
     {id:'beta',name:'Fixture Beta',position:2,points:25,creator:'Creator B',verifier:'Verifier B',difficulty:'Demon',thumbnail:'/image.jpg'},
     {id:'incomplete',name:'Incomplete entry'}
 ];
@@ -73,17 +73,23 @@ const server=http.createServer((req,res)=>{
     await page.goto(origin);await page.locator('.demon-row').first().waitFor();await ready();
     assert.equal(await page.locator('.demon-row').count(),3);
     assert.match(await page.locator('.demon-row').first().innerText(),/Fixture Alpha/);
+    assert.equal(await page.locator('.level-percentage').first().innerText(),'3%');
+    assert.equal(await page.locator('.level-percentage').last().innerText(),'100%');
     assert.equal(await page.evaluate(()=>window.__test.initializations),1);
     assert.equal(await page.evaluate(()=>window.__test.watcherCount('levels')),1);
     assert.equal(await page.evaluate(()=>window.__test.watcherCount('records')),1);
     for(const [term,expected]of [['creator a','Fixture Alpha'],['verifier b','Fixture Beta'],['extreme','Fixture Alpha']]){await page.locator('#search').fill(term);assert.match(await page.locator('#levels').innerText(),new RegExp(expected))}
     await page.locator('#search').fill('missing-value');assert.equal(await page.locator('.demon-row').count(),0);await page.getByRole('button',{name:'Clear search'}).click();
     await page.locator('#sort').selectOption('name');assert.match(await page.locator('.demon-row').first().innerText(),/Fixture Alpha/);
+    assert.equal(await page.locator('.level-percentage').first().innerText(),'3%');
+    assert.equal(await page.locator('.level-percentage').last().innerText(),'100%');
     await page.locator('#sort').selectOption('points');assert.match(await page.locator('.demon-row').last().innerText(),/Incomplete entry/);
     await page.locator('#sort').selectOption('position');
     assert.equal(await page.locator('[data-section]').count(),0);assert.equal(await page.locator('#ranking-index li').count(),3);
     await page.locator('.level-name a').first().click();assert.equal(await page.locator('dialog').evaluate(el=>el.open),true);assert.equal(await page.locator('#detail-title').innerText(),'Fixture Alpha');
     assert.equal(new URL(page.url()).searchParams.get('level'),'alpha');
+    assert.equal(await page.getByRole('link',{name:'Permanent link',exact:true}).getAttribute('href'),'?level=alpha');
+    assert.match(await page.locator('#level-detail .detail-meta').innerText(),/3%/);
     await page.goBack();await page.waitForFunction(()=>!document.querySelector('dialog').open);assert.equal(new URL(page.url()).searchParams.has('level'),false);
     await page.goForward();await page.locator('dialog[open]').waitFor();assert.equal(await page.locator('#detail-title').innerText(),'Fixture Alpha');assert.equal(await page.getByRole('link',{name:'Open level ↗'}).getAttribute('href'),'https://example.org/alpha');await page.keyboard.press('Escape');await page.waitForFunction(()=>!new URL(location.href).searchParams.has('level'));assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
     await page.goto(origin+'/?level=beta');await page.locator('dialog[open]').waitFor();assert.equal(await page.locator('#detail-title').innerText(),'Fixture Beta');await page.getByRole('button',{name:'Close level details'}).click();await page.waitForFunction(()=>!new URL(location.href).searchParams.has('level'));
@@ -140,8 +146,11 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>{const form=document.getElementById('submission-form');form.requestSubmit();form.requestSubmit()});await page.waitForFunction(()=>document.getElementById('submission-status').textContent.includes('Submission received'));assert.equal(await page.evaluate(()=>window.__test.writes.length),1);assert.deepEqual(await page.evaluate(()=>Object.keys(window.__test.writes[0].data).sort()),['creator','levelName','levelUrl','notes','ownerUid','proofUrl','status','submittedAt','submittedBy','verifier'].sort());
     await page.goto(origin+'/admin.html');await ready();await page.waitForFunction(()=>document.getElementById('staff-status').textContent.includes('does not have'));assert.equal(await page.locator('#staff-tools').isHidden(),true);assert.equal(await page.locator('[data-staff-link]').isHidden(),true);
     await page.evaluate(()=>{const form=document.getElementById('victor-form');form.elements.player.value='Forged';form.elements.playerId.value='forged';form.elements.checkedProof.checked=true;const option=document.createElement('option');option.value='alpha';form.elements.levelId.append(option);form.elements.levelId.value='alpha';form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))});await page.waitForFunction(()=>document.getElementById('victor-status').textContent.includes('administrator access'));assert.equal(await page.evaluate(()=>window.__test.writes.length),0);
-    await page.evaluate(()=>{window.__test.data.submissions.pending={ownerUid:'fixture-user',submittedBy:'Player',levelName:'Staff fixture',levelUrl:'https://example.org/level',creator:'Creator',verifier:'Verifier',proofUrl:'https://example.org/proof',notes:'',status:'pending'};window.__test.setUser({uid:'staff-user',displayName:'Staff User',claims:{admin:true}})});await page.locator('#staff-tools').waitFor({state:'visible'});assert.equal(await page.locator('.review-item').count(),1);await page.locator('.review-form input[name=position]').fill('3');await page.locator('.review-form input[name=points]').fill('10');await page.locator('.review-form input[name=thumbnail]').fill('javascript:alert(1)');await page.locator('.review-form').evaluate(form=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));await page.waitForFunction(()=>document.querySelector('.review-form [role=status]').textContent.includes('public HTTPS image'));assert.equal(await page.evaluate(()=>window.__test.writes.filter(write=>write.ref.name==='levels').length),0);await page.locator('.review-form input[name=thumbnail]').fill('https://example.org/level-preview.jpg');await page.getByRole('button',{name:'Approve and publish'}).click();await page.waitForFunction(()=>window.__test.data.submissions.pending.status==='approved');assert.equal(await page.evaluate(()=>window.__test.writes.filter(write=>write.ref.name==='levels').length),1);assert.equal(await page.evaluate(()=>window.__test.writes.find(write=>write.ref.name==='levels').data.thumbnail),'https://example.org/level-preview.jpg');
+    await page.evaluate(()=>{window.__test.data.submissions.pending={ownerUid:'fixture-user',submittedBy:'Player',levelName:'Staff fixture',levelUrl:'https://example.org/level',creator:'Creator',verifier:'Verifier',proofUrl:'https://example.org/proof',notes:'',status:'pending'};window.__test.setUser({uid:'staff-user',displayName:'Staff User',claims:{admin:true}})});await page.locator('#staff-tools').waitFor({state:'visible'});assert.equal(await page.locator('.review-item').count(),1);await page.locator('.review-form input[name=position]').fill('3');await page.locator('.review-form input[name=points]').fill('10');await page.locator('.review-form input[name=thumbnail]').fill('javascript:alert(1)');await page.locator('.review-form').evaluate(form=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));await page.waitForFunction(()=>document.querySelector('.review-form [role=status]').textContent.includes('public HTTPS image'));assert.equal(await page.evaluate(()=>window.__test.writes.filter(write=>write.ref.name==='levels').length),0);await page.locator('.review-form input[name=thumbnail]').fill('https://example.org/level-preview.jpg');await page.getByRole('button',{name:'Approve and publish'}).click();await page.waitForFunction(()=>window.__test.data.submissions.pending.status==='approved');assert.equal(await page.evaluate(()=>window.__test.writes.filter(write=>write.ref.name==='levels' && write.data.name==='Staff fixture').length),1);assert.equal(await page.evaluate(()=>Object.values(window.__test.data.levels).find(level=>level.name==='Staff fixture').thumbnail),'https://example.org/level-preview.jpg');assert.equal(await page.evaluate(()=>window.__test.data.levels.alpha.position),1);assert.equal(await page.evaluate(()=>window.__test.data.levels.beta.position),2);
     await page.locator('#victor-level').selectOption('alpha');await page.locator('#victor-player').fill('Approved Player');await page.locator('#victor-id').fill('stable-player');await page.locator('input[name=checkedProof]').check();await page.getByRole('button',{name:'Approve completion'}).click();await page.waitForFunction(()=>document.getElementById('victor-status').textContent.includes('Completion approved'));assert.equal(await page.evaluate(()=>Object.keys(window.__test.data.records).length),1);assert.ok(await page.evaluate(()=>window.__test.roleChecks)>=3);
+    // Refresh the editor after publishing, which may normalize or shift existing ranks.
+    await page.getByRole('button',{name:'Refresh levels',exact:true}).click();
+    await page.waitForFunction(()=>document.getElementById('level-management-status').textContent !== 'Loading levels…');
     // Manage points and revoke all legacy duplicates without deleting proof.
     await page.waitForFunction(()=>document.querySelector('#managed-level option[value="alpha"]'));
     await page.locator('#managed-level').selectOption('alpha');
@@ -259,7 +268,7 @@ const server=http.createServer((req,res)=>{
     await page.setViewportSize({width:1440,height:950});await page.screenshot({path:path.join(output,'country-leaderboard.png'),fullPage:true});
     await page.goto(origin+'/community.html');await page.locator('#member-content').waitFor({state:'visible'});await page.locator('input[name=tags][value=Creator]').uncheck();await page.getByRole('button',{name:'Save profile'}).click();await page.waitForFunction(()=>document.getElementById('profile-status').textContent.includes('at least one'));
     await page.locator('.auth-panel [data-auth-logout]').click();await page.locator('#member-content').waitFor({state:'hidden'});assert.equal(await page.locator('input[name=tags]:checked').count(),0);assert.equal(await page.locator('#player-uid').innerText(),'');assert.equal(await page.locator('#view-profile').isHidden(),true);
-    await page.evaluate(()=>window.__test.setUser({uid:'no-profile',displayName:'No Profile',claims:{}}));await page.goto(origin+'/index.html');await page.waitForURL('**/community.html?next=index.html');
+    await page.evaluate(()=>window.__test.setUser({uid:'no-profile',displayName:'No Profile',claims:{}}));await page.goto(origin+'/index.html');await page.waitForURL('**/community.html?next=index.html');await page.waitForFunction(()=>window.__test?.authListeners===1);
     await page.evaluate(()=>window.__test.setUser(null));await page.goto(origin+'/index.html');await page.locator('.demon-row').first().waitFor();
     assert.equal(await page.locator('[data-section]').count(),0);
     await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('.demon-row').first().hover();await page.waitForFunction(()=>getComputedStyle(document.querySelector('.demon-row')).transform!=='none');
@@ -273,6 +282,19 @@ const server=http.createServer((req,res)=>{
     await management.locator('#completion-form fieldset').waitFor({state:'visible'});
     await management.waitForFunction(()=>!document.querySelector('#completion-form fieldset').disabled);
     await management.locator('#completion-level').selectOption('alpha');await management.locator('#completion-proof').fill('https://example.org/completion');await management.locator('#completion-confirmed').check();
+    assert.match(await management.locator('#completion-minimum').innerText(),/3%/);
+    await management.evaluate(()=>{delete window.__test.data.levels.alpha; window.__test.emit('levels');});
+    assert.equal(await management.locator('#completion-level').inputValue(),'');
+    assert.equal(await management.locator('#completion-progress').getAttribute('min'),'100');
+    await management.evaluate(item=>{window.__test.data.levels.alpha=item; window.__test.emit('levels');},levels[0]);
+    await management.locator('#completion-level').selectOption('alpha');
+    await management.locator('#completion-progress').fill('2');
+    await management.locator('#completion-form').evaluate(form=>form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true})));
+    assert.match(await management.locator('#completion-status').innerText(),/at or above/);
+    assert.equal(await management.locator('#completion-progress').evaluate(input=>input.checkValidity()),false);
+    await management.locator('#completion-progress').fill('3');
+    assert.equal(await management.locator('#completion-progress').evaluate(input=>input.checkValidity()),true);
+    await management.locator('#completion-progress').fill('100');
     await management.evaluate(()=>{const form=document.getElementById('completion-form');form.requestSubmit();form.requestSubmit()});
     await management.waitForFunction(()=>document.getElementById('completion-status').textContent.includes('Completion submitted'));
     assert.equal(await management.evaluate(()=>Object.keys(window.__test.data.completionSubmissions).length),1);

@@ -1,6 +1,6 @@
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
-import { completionKey } from "./completion-model.js";
+import { completionKey, shouldReplaceRecord } from "./completion-model.js";
 import { dataMessage } from "./messages.js";
 import { sortLevels } from "./list-model.js";
 import { element, externalLink, safeURL, setBusy } from "./ui.js";
@@ -185,8 +185,12 @@ document.getElementById("victor-form").addEventListener("submit", async event =>
         await sdk.runTransaction(client.db, async transaction => {
             const reference = sdk.doc(client.db, "records", key);
             const existing = await transaction.get(reference);
-            if (existing.exists() && existing.data().approved === true) throw new Error("This completion is already approved.");
-            transaction.set(reference, { player, playerId, levelId, progress: 100, approved: true }, { merge: true });
+            const saved = existing.exists() ? existing.data() : null;
+            if (!shouldReplaceRecord(saved, 100)) throw new Error("This completion is already approved.");
+            const updated = { ...saved, player, playerId, levelId, progress: 100, approved: true };
+            // A proof for a partial run cannot verify the new 100% record.
+            if (saved && Number(saved.progress) !== 100) delete updated.proofUrl;
+            transaction.set(reference, updated);
         });
         if (turn === generation) { form.reset(); output.textContent = "Completion approved. It now appears in Records and Players."; }
     } catch (error) {
