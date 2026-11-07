@@ -43,6 +43,7 @@ subscribeAuth(state => {
 async function loadPlayers(turn) {
     const load = ++playerLoad;
     playerStatus.textContent = "Loading players…";
+    playerList.inert = true;
     try {
         const client = await requireStaff();
         if (!current(client, turn)) return;
@@ -65,6 +66,8 @@ async function loadPlayers(turn) {
         playerStatus.textContent = `${players.length} players · ${players.filter(player => player.removed).length} removed${correctionsAvailable ? "" : " · Point corrections unavailable: completion-only scores shown. Refresh after Firebase permissions are deployed."}`;
     } catch (error) {
         if (turn === generation && load === playerLoad) { players = []; playerList.replaceChildren(); playerStatus.textContent = errorText(error, "players"); }
+    } finally {
+        if (turn === generation && load === playerLoad) playerList.inert = false;
     }
 }
 

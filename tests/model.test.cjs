@@ -219,3 +219,20 @@ test('rank transactions retry concurrent inserts, preserve metadata, and commit 
     await assert.rejects(publish('denied',true),/permission-denied/);
     assert.deepEqual([...data],before);
 });
+
+test('record minimums default safely and validate every supported percentage', async () => {
+    const {minimumProgress,validCompletion,shouldReplaceRecord}=await import('../completion-model.js');
+    const proof={levelId:'a',proofUrl:'https://example.org/proof'};
+    for(let n=1;n<=100;n++) {
+        assert.equal(minimumProgress({minProgress:n}),n);
+        assert.equal(validCompletion({...proof,progress:n},n),true);
+        assert.equal(validCompletion({...proof,progress:n-1},n),false);
+    }
+    for(const value of [undefined,null,'3',0,-1,101,2.5]) assert.equal(minimumProgress({minProgress:value}),100);
+    assert.equal(validCompletion(proof),true);
+    assert.equal(validCompletion({...proof,progress:101},1),false);
+    assert.equal(shouldReplaceRecord({approved:true,progress:65},100),true);
+    assert.equal(shouldReplaceRecord({approved:true,progress:100},65),false);
+    assert.equal(shouldReplaceRecord({approved:true,progress:65},65),false);
+    assert.equal(shouldReplaceRecord({approved:false,progress:100},65),true);
+});

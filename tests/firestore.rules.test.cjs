@@ -122,6 +122,14 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('moderator can remove a legacy record-only player',setDoc(doc(moderator,'players','legacy-player'),moderation),true);
         await check('owner can restore a player',updateDoc(doc(owner,'players','player-a'),{removed:false,moderatedBy:'owner-a',moderatedAt:serverTimestamp()}),true);
         const completion={ownerUid:'player-a',player:'Updated Player',levelId:'level-a',proofUrl:'https://example.org/proof',notes:'',status:'pending',submittedAt:serverTimestamp()};
+        await check('staff sets minimum record percentage',updateDoc(doc(admin,'levels','level-a'),{minProgress:3}),true);
+        await check('member cannot lower minimum',updateDoc(doc(player,'levels','level-a'),{minProgress:1}),false);
+        for (const bad of [0,101,2.5,'3']) await check('invalid minimum '+bad,updateDoc(doc(admin,'levels','level-a'),{minProgress:bad}),false);
+        await check('record at minimum accepted',setDoc(doc(player,'completionSubmissions','minimum-proof'),{...completion,progress:3}),true);
+        for (const bad of [2,0,101,2.5,'3']) await check('invalid submitted progress '+bad,setDoc(doc(player,'completionSubmissions','bad-progress'),{...completion,progress:bad}),false);
+        await check('staff can approve partial record',setDoc(doc(admin,'records','minimum-record'),{...record,progress:3}),true);
+        await check('staff cannot approve below minimum',setDoc(doc(admin,'records','below-minimum'),{...record,progress:2}),false);
+        await check('restore default minimum',updateDoc(doc(admin,'levels','level-a'),{minProgress:100}),true);
         await check('member submits their own 100% proof for review',setDoc(doc(player,'completionSubmissions','proof-a'),completion),true);
         await check('cannot submit a proof as another player',setDoc(doc(other,'completionSubmissions','forged-proof'),completion),false);
         await check('cannot forge the public player name',setDoc(doc(player,'completionSubmissions','forged-name'),{...completion,player:'Forged name'}),false);
