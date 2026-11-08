@@ -403,3 +403,50 @@ td { font-size: 13px; }
     .demon-row { transition: transform 120ms ease; }
     .demon-row:hover { transform: translateY(-1px); }
 }
+
+/* Section headings, reference pages and account workflows. */
+.page-heading .eyebrow {
+    margin-bottom: 8px;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.page-heading h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    letter-spacing: -.025em;
+}
+.auth-panel {
+    max-width: 680px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--soft);
+}
+.help-column h2 { margin-bottom: 8px; }
+.contents-nav a { border-bottom: 1px solid var(--line); }
+.rules-copy h2 { font-size: 22px; }
+.rules-copy p, .rules-copy li { font-size: 14px; }
+.admin-sections { gap: 4px 18px; }
+.admin-sections a { padding-block: 8px; }
+.stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 12px 24px;
+    margin: 0 0 22px;
+    padding: 14px 16px;
+    border-block: 1px solid var(--line);
+    background: var(--soft);
+}
+.stat-strip dd {
+    color: var(--ink);
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+#player-details .stat-strip { margin-top: 16px; }
+@media (max-width: 540px) {
+    .auth-panel { padding: 14px; }
+    .contents-nav a { padding-block: 4px; }
+    .admin-sections a { padding-block: 10px; }
+}
