@@ -36,33 +36,26 @@
   <noscript><p class="auth-notice">Enable JavaScript to load rankings, records and account features.</p></noscript>
   <main id="main" class="page list-page">
     <section class="list-heading" aria-labelledby="list-title">
-      <div>
-        <p class="eyebrow">Geometry Dash 1.1 on Roblox</p>
-        <h1 id="list-title">Level rankings</h1>
+      <div class="hero-copy">
+        <p class="eyebrow">ROBLOX GEOMETRY DASH 1.1 · COMMUNITY RANKINGS</p>
+        <h1 id="list-title">GD1.1 <span>Demonlist</span></h1>
+        <p class="hero-intro">The hardest levels. The players who conquer them.<br>Explore the rankings and the community’s approved completions.</p>
+        <div class="hero-actions"><a class="button-link" href="submit.html">Submit a level <span aria-hidden="true">↗</span></a><a href="records.html">Explore records <span aria-hidden="true">→</span></a></div>
       </div>
-      <a class="list-submit" href="submit.html">Submit a level <span aria-hidden="true">→</span></a>
+      <div class="hero-guide"><span class="community-label"><span aria-hidden="true"></span>Community maintained</span><p>Placements, verifications and completion records, reviewed by the list team.</p><a href="rules.html">Submission guidelines →</a></div>
     </section>
-    <div class="demon-layout"><section class="list-content" aria-label="Ranked levels">
-      <div class="list-toolbar">
-        <div class="search-control">
-          <label class="sr-only" for="search">Search levels, creators, verifiers or victors</label>
-          <input id="search" type="search" placeholder="Search levels or players" autocomplete="off" aria-controls="demon-table">
-        </div>
-        <div>
-          <label class="sr-only" for="sort">Sort by</label>
-          <select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select>
-        </div>
-      </div>
+    <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
+      <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div></div>
       <p id="connection-status" class="muted" role="status">Connecting to rankings…</p>
       <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
       <p id="records-note" class="inline-error" role="status" hidden></p><p id="selection-status" role="status" hidden></p>
       <div id="demon-table" class="demon-list" aria-busy="true"><div id="levels"><div class="list-state">Loading the demonlist…</div></div></div>
+      <p class="list-footnote">Placements and level information come from the official database. Entries without a placement appear as unranked.</p>
     </section><aside class="list-sidebar" aria-label="List information">
-      <section class="sidebar-section">
-        <h2>Level index</h2>
-        <ol id="ranking-index" class="ranking-index"><li class="muted">Loading rankings…</li></ol>
-      </section>
-      <a class="list-rules" href="rules.html">Submission rules <span aria-hidden="true">→</span></a>
+      <section class="sidebar-section"><h2>Rankings</h2><p>Jump to a level’s details.</p><ol id="ranking-index" class="ranking-index"><li class="muted">Loading rankings…</li></ol></section>
+      <section class="sidebar-section"><h2>Guidelines</h2><p>Read the community and submission rules before sending a level or completion proof.</p><a class="sidebar-action" href="rules.html">Read the rules →</a></section>
+      <section class="sidebar-section"><h2>Contribute</h2><p>Submit a level with its creator, verifier and completion video. The list team reviews each submission before publication.</p><a class="sidebar-action" href="submit.html">Submit a level →</a><a class="sidebar-action" href="records.html">Approved records →</a><a class="sidebar-action" href="stats.html">Player rankings →</a></section>
+      <section class="sidebar-section community-card"><h2>Join the community</h2><p>Meet other players, share your progress and talk about the demonlist.</p><a class="sidebar-action" href="https://discord.gg/BKFhzNkBW" target="_blank" rel="noopener noreferrer">Join our Discord ↗</a></section>
     </aside></div>
     <dialog id="level-dialog" aria-labelledby="detail-title"><button id="close-dialog" type="button" class="close-button" aria-label="Close level details">×</button><div id="level-detail"></div></dialog>
   </main>
