@@ -127,3 +127,9 @@ npx firebase-tools@14.17.0 deploy --only firestore:rules --project gd11-demonlis
 ```
 
 An administrator can also paste the complete `firestore.rules` file into Firebase Console → Firestore Database → Rules and publish it. Existing accounts do not need to be recreated: legacy profiles remain visible with “Not set” until the player next signs in and chooses a country. Points and approved records stay joined to the same Firebase UID.
+
+## Temporarily pause the Demonlist and manage co-owners
+
+Deploy the updated Firestore rules before publishing the site files. In **Admin**, sign in as an owner and use **Site availability** to pause or reopen the public site. Pausing blocks public ranking and record reads and new player submissions. Admin stays available to staff so an owner can reopen the list.
+
+A primary owner can grant or revoke access in **Co-owner access** using the Firebase UID of an active registered player. Co-owners can operate the availability switch and manage moderators. Granting or revoking co-owner access stays with primary owners. A newly added co-owner can sign in to Admin or use **Retry access check** if already signed in.

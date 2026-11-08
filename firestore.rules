@@ -14,8 +14,32 @@ service cloud.firestore {
         && request.resource.data.version == '2026-10-05'
         && request.resource.data.acceptedAt == request.time;
     }
-    function owner() {
+    function primaryOwner() {
       return signedIn() && request.auth.token.get('owner', false) == true;
+    }
+    function owner() {
+      return primaryOwner() || (signedIn()
+        && exists(/databases/$(database)/documents/coOwners/$(request.auth.uid))
+        && get(/databases/$(database)/documents/coOwners/$(request.auth.uid)).data.active == true);
+    }
+    function publicOpen() {
+      return !exists(/databases/$(database)/documents/siteSettings/availability)
+        || get(/databases/$(database)/documents/siteSettings/availability).data.paused == false;
+    }
+    match /siteSettings/availability {
+      allow get: if true;
+      allow create, update: if owner()
+        && request.resource.data.keys().hasOnly(['paused'])
+        && request.resource.data.paused is bool;
+    }
+    match /coOwners/{uid} {
+      allow get: if primaryOwner() || (signedIn() && request.auth.uid == uid);
+      allow list: if primaryOwner();
+      allow create, update: if primaryOwner() && request.auth.uid != uid
+        && request.resource.data.keys().hasOnly(['active'])
+        && request.resource.data.active is bool
+        && (request.resource.data.active == false
+          || (exists(/databases/$(database)/documents/players/$(uid)) && activePlayer(uid)));
     }
     function staff() {
       return owner() || (signedIn() &&
@@ -89,7 +113,7 @@ service cloud.firestore {
     }
     match /profiles/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update: if acceptedRules() && request.auth.uid == uid
+      allow create, update: if publicOpen() && acceptedRules() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['displayName', 'bio', 'countryCode', 'updatedAt'])
         && request.resource.data.keys().hasAll(['displayName', 'bio', 'countryCode', 'updatedAt'])
         && request.resource.data.displayName is string
@@ -104,8 +128,8 @@ service cloud.firestore {
     // Public directory. Country codes match the private profile; existing reads remain compatible.
     // Identity is the document UID. Scores and staff roles cannot be self-assigned.
     match /players/{uid} {
-      allow read: if true;
-      allow create, update: if acceptedRules() && request.auth.uid == uid
+      allow read: if publicOpen() || staff();
+      allow create, update: if publicOpen() && acceptedRules() && request.auth.uid == uid
         && activePlayer(uid)
         && request.resource.data.keys().hasOnly(['displayName', 'bio', 'tags', 'countryCode', 'updatedAt'])
         && request.resource.data.keys().hasAll(['displayName', 'bio', 'tags', 'countryCode', 'updatedAt'])
@@ -137,7 +161,7 @@ service cloud.firestore {
       }
     }
     match /completionSubmissions/{id} {
-      allow create: if acceptedRules() && activePlayer(request.auth.uid)
+      allow create: if publicOpen() && acceptedRules() && activePlayer(request.auth.uid)
         && request.resource.data.keys().hasOnly(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt', 'progress'])
         && request.resource.data.keys().hasAll(['ownerUid', 'player', 'levelId', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.ownerUid == request.auth.uid
@@ -158,7 +182,7 @@ service cloud.firestore {
       allow delete: if staff();
     }
     match /submissions/{submissionId} {
-      allow create: if acceptedRules() && activePlayer(request.auth.uid)
+      allow create: if publicOpen() && acceptedRules() && activePlayer(request.auth.uid)
         && request.resource.data.keys().hasOnly(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.keys().hasAll(['ownerUid', 'submittedBy', 'levelName', 'levelUrl', 'creator', 'verifier', 'proofUrl', 'notes', 'status', 'submittedAt'])
         && request.resource.data.ownerUid == request.auth.uid
@@ -193,7 +217,7 @@ service cloud.firestore {
     }
     // Separate from editable profiles so players cannot erase or forge corrections.
     match /pointAdjustments/{uid} {
-      allow read: if true;
+      allow read: if publicOpen() || staff();
       allow create, update: if staff()
         && request.resource.data.keys().hasOnly(['delta', 'updatedBy', 'updatedAt'])
         && request.resource.data.keys().hasAll(['delta', 'updatedBy', 'updatedAt'])
@@ -212,12 +236,12 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /levels/{id} {
-      allow read: if true;
+      allow read: if publicOpen() || staff();
       allow create, update: if staff() && validLevel(request.resource.data);
       allow delete: if staff();
     }
     match /records/{id} {
-      allow read: if staff() || resource.data.approved == true;
+      allow read: if staff() || (publicOpen() && resource.data.approved == true);
       allow create, update: if staff() && request.resource.data.playerId is string
         && request.resource.data.playerId.size() > 0 && request.resource.data.player is string
         && request.resource.data.player.size() > 0 && request.resource.data.levelId is string

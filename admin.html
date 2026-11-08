@@ -47,6 +47,36 @@
     <p id="staff-uid" class="account-uid"></p>
     <button id="staff-retry" class="secondary-button" type="button">Retry access check</button>
     <p class="admin-access-help muted">If you own this site, follow the <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#staff-access" target="_blank" rel="noopener noreferrer">owner setup instructions ↗</a> once, then retry access.</p>
+    <section id="owner-controls" class="section-block narrow-form" hidden>
+      <h2>Site availability</h2>
+      <p>Pause public rankings, records, and submissions. Staff can still use Admin.</p>
+      <form id="availability-form" class="stack-form">
+        <label for="site-availability">Public Demonlist</label>
+        <select id="site-availability" name="availability" required>
+          <option value="open">Open</option>
+          <option value="paused">Paused for maintenance</option>
+        </select>
+        <button type="submit" disabled>Save availability</button>
+        <p id="availability-status" class="form-status" role="status"></p>
+      </form>
+      <section id="co-owner-controls" class="section-block" hidden>
+        <h2>Co-owner access</h2>
+        <p>Co-owners can manage the site and moderators. Only primary owners can grant or revoke co-owner access.</p>
+        <form id="co-owner-form" class="stack-form">
+          <label for="co-owner-uid">Registered player's Firebase UID</label>
+          <input id="co-owner-uid" name="uid" required maxlength="128" autocomplete="off">
+          <label for="co-owner-action">Access</label>
+          <select id="co-owner-action" name="action">
+            <option value="grant">Grant co-owner access</option>
+            <option value="revoke">Revoke co-owner access</option>
+          </select>
+          <button type="submit">Save co-owner access</button>
+          <p id="co-owner-status" class="form-status" role="status"></p>
+        </form>
+        <h3>Active co-owners</h3>
+        <ul id="co-owner-list"></ul>
+      </section>
+    </section>
     <div id="staff-tools" hidden>
       <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Players</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
       <section id="completion-review" class="section-block">
@@ -103,6 +133,7 @@
   <footer class="site-footer"><div><strong>GD1.1 Demonlist</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://discord.gg/BKFhzNkBW" target="_blank" rel="noopener noreferrer">Join Discord ↗</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
   <script type="module" src="site.js"></script>
   <script type="module" src="admin.js"></script>
+  <script type="module" src="owner-controls.js"></script>
   <script type="module" src="admin-management.js"></script>
   <script type="module" src="admin-levels.js"></script>
 </body>

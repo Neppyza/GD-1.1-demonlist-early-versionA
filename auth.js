@@ -1,7 +1,7 @@
 import { getFirebase } from "./firebase.js";
 import { authMessage } from "./messages.js";
 
-let state = { ready: false, user: null, staff: false, owner: false, busy: false, error: "" };
+let state = { ready: false, user: null, staff: false, owner: false, primaryOwner: false, busy: false, error: "" };
 const subscribers = new Set();
 let startup;
 let generation = 0;
@@ -12,21 +12,21 @@ function publish(values) {
 }
 
 async function rolesFor(client, user, force = false) {
-    if (!user) return { owner: false, staff: false };
+    if (!user) return { owner: false, primaryOwner: false, staff: false };
     const token = await client.authSDK.getIdTokenResult(user, force);
     const owner = token.claims.owner === true;
-    if (owner) return { owner: true, staff: true };
-    let membership;
-    try {
-        membership = await client.storeSDK.getDoc(client.storeSDK.doc(client.db, "team", user.uid));
-    } catch (error) {
-        // Existing deployments may not have the new team rules yet.
-        if (error.code !== "permission-denied") throw error;
-    }
+    if (owner) return { owner: true, primaryOwner: true, staff: true };
+    const [membership, coOwner] = await Promise.all(["team", "coOwners"].map(collection =>
+        client.storeSDK.getDoc(client.storeSDK.doc(client.db, collection, user.uid))
+            .catch(error => {
+                if (error.code !== "permission-denied") throw error;
+            })
+    ));
+    if (coOwner?.exists() && coOwner.data().active === true) return { owner: true, primaryOwner: false, staff: true };
     const staff = membership?.exists()
         ? membership.data().role === "moderator" && membership.data().active === true
         : token.claims.admin === true;
-    return { owner: false, staff };
+    return { owner: false, primaryOwner: false, staff };
 }
 
 export function subscribeAuth(callback) {
@@ -50,14 +50,14 @@ export function startAuth() {
                         publish({ ready: true, user, ...roles, error: "" });
                     } catch (error) {
                         if (turn !== generation) return;
-                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, error: authMessage(error) });
+                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, primaryOwner: false, error: authMessage(error) });
                     }
                     resolve();
                 }, reject);
             });
             return client;
         } catch (error) {
-            publish({ ready: true, user: null, staff: false, owner: false, error: authMessage(error) });
+            publish({ ready: true, user: null, staff: false, owner: false, primaryOwner: false, error: authMessage(error) });
             startup = null;
             return null;
         }
