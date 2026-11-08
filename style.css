@@ -450,3 +450,51 @@ td { font-size: 13px; }
     .contents-nav a { padding-block: 4px; }
     .admin-sections a { padding-block: 10px; }
 }
+
+.record-level-name { font-weight: 600; }
+.stats-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(235px, 290px);
+    gap: 24px;
+    align-items: start;
+}
+.stats-board { min-width: 0; }
+.stats-board .list-toolbar { grid-template-columns: minmax(0, 1fr) minmax(140px, 190px); }
+.stats-board #players-table { min-width: 0; table-layout: auto; }
+.stats-board th, .stats-board td { padding-inline: 8px; }
+.stats-board th { white-space: normal; }
+.stats-board .country-cell { min-width: 0; }
+.stats-board .text-button { display: inline-block; min-height: auto; font-weight: 700; }
+.stats-board tr:has([aria-current="true"]) { background: var(--soft); }
+.stats-board [aria-current="true"] { text-decoration: underline; }
+.stats-board .player-tags { display: flex; margin: 4px 0 0; }
+.stats-inspector {
+    min-width: 0;
+    padding: 16px;
+    border-top: 3px solid var(--accent);
+    background: var(--soft);
+}
+.stats-inspector h2 { overflow-wrap: anywhere; }
+.stats-inspector p { font-size: 13px; }
+.stats-inspector p:last-child { margin-bottom: 0; }
+.stats-inspector:has(#player-details:not([hidden])) .stats-prompt { display: none; }
+.stats-inspector .stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding-inline: 0;
+}
+.stats-inspector .stat-strip dd { font-size: 15px; }
+.stats-inspector .completion-list { margin-top: 4px; }
+.stats-inspector .completion-list li { gap: 12px; overflow-wrap: anywhere; }
+@media (max-width: 960px) {
+    .stats-workspace { grid-template-columns: minmax(0, 1fr); }
+    .stats-inspector:has(#player-details[hidden]) { display: none; }
+}
+@media (max-width: 540px) {
+    .stats-board .list-toolbar { grid-template-columns: minmax(0, 1fr); }
+    .stats-board th:last-child, .stats-board td:last-child:not([colspan]) { display: none; }
+    .stats-board .rank { width: auto; }
+    .stats-board th, .stats-board td { padding-inline: 5px; }
+    .stats-board th, .stats-board .player-country { font-size: 11px; }
+    .stats-board .player-country { flex-wrap: wrap; gap: 4px; }
+}

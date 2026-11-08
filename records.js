@@ -34,7 +34,7 @@ function render() {
     for (const record of filtered) {
         const level = map.get(record.levelId);
         const row = element("tr");
-        const name = element("td", "level-name");
+        const name = element("td", "record-level-name");
         if (level) { const link = element("a", "", String(level.name || "Unnamed level").trim()); link.href = `index.html?level=${encodeURIComponent(level.id)}`; name.append(link); }
         else name.textContent = "Level no longer available";
         const proof = element("td");

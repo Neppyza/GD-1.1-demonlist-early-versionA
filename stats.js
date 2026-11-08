@@ -69,6 +69,7 @@ function render() {
         const row = element("tr");
         const name = element("td");
         const link = element("a", "text-button", player.name);
+        if (player.id === selected) link.setAttribute("aria-current", "true");
         link.href = `stats.html?player=${encodeURIComponent(player.id)}`;
         link.setAttribute("aria-label", `Player profile for ${player.name}`);
         link.addEventListener("click", event => {
@@ -76,8 +77,10 @@ function render() {
             event.preventDefault();
             selected = player.id;
             history.pushState(null, "", link.href);
+            body.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
+            link.setAttribute("aria-current", "true");
             showPlayer(player);
-            detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            detail.focus();
         });
         name.append(link, tagList(player.tags));
         const country = element("td", "country-cell");
@@ -113,7 +116,7 @@ function showPlayer(player) {
     detail.append(summary);
     if (player.pointCorrection) detail.append(element("p", "muted", `Completion points: ${player.basePoints} · Staff correction: ${player.pointCorrection > 0 ? "+" : ""}${player.pointCorrection} · Total cannot fall below zero.`));
     if (player.registered) detail.append(element("p", "muted", "Tags describe the player's interests; they do not grant staff access or certify completions."));
-    if (player.completed.length) detail.append(list);
+    if (player.completed.length) detail.append(element("h3", "", "Completed levels"), list);
     else detail.append(element("p", "muted", "No approved completions yet."));
 }
 search.addEventListener("input", render);
