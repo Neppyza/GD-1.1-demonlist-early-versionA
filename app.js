@@ -108,6 +108,7 @@ function render() {
 }
 
 function syncDetails() {
+    if (document.getElementById("main").hidden) return;
     const selected = new URLSearchParams(location.search).get("level");
     const selectionStatus = document.getElementById("selection-status");
     selectionStatus.hidden = true;

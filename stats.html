@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Community player profiles and rankings from approved full completions.">
-  <meta property="og:title" content="Players · GD1.1 Demonlist">
+  <meta property="og:title" content="Stats Viewer · GD1.1 Demonlist">
   <meta property="og:description" content="Community player profiles and rankings from approved full completions.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="GD1.1 Demonlist">
@@ -13,7 +13,7 @@
   <meta property="og:image:alt" content="A Geometry Dash demon level">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://neppyza.github.io/GD-1.1-demonlist-early-versionA/stats.html">
-  <title>Players · GD1.1 Demonlist</title>
+  <title>Stats Viewer · GD1.1 Demonlist</title>
   <link rel="icon" href="assets/gd-cube.png" type="image/png">
   <script src="theme.js"></script>
   <link rel="preload" href="fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -25,7 +25,7 @@
     <div class="header-inner">
       <a class="brand" href="index.html" aria-label="GD1.1 Demonlist home"><img class="brand-symbol" src="assets/gd-cube.png" alt="" width="38" height="38"><span class="brand-wordmark"><span class="brand-game">GD1.1</span><span class="brand-name">DEMONLIST</span></span></a>
       <nav aria-label="Main navigation"><a href="index.html">Demonlist</a>
-<a href="stats.html" class="active" aria-current="page">Players</a>
+<a href="stats.html" class="active" aria-current="page">Stats Viewer</a>
 <a href="records.html">Records</a>
 <a href="submit.html">Submit</a>
 <a href="rules.html">Rules</a><a href="admin.html" data-staff-link hidden>Admin</a></nav>
@@ -34,9 +34,18 @@
     <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
   </header>
   <noscript><p class="auth-notice">Enable JavaScript to load rankings, records and account features.</p></noscript>
-  <main id="main" class="page"><div class="page-heading"><div><h1>Players</h1><p>Every registered player with a completed profile appears here. Approved 100% completions award points once per level.</p></div></div>
+  <main id="main" class="page stats-page"><div class="page-heading"><div><p class="eyebrow">Leaderboard</p><h1>Stats Viewer</h1><p>Every registered player with a completed profile appears here. Approved 100% completions award points once per level.</p></div></div>
+    <dl class="stat-strip" id="leaderboard-summary" hidden></dl>
+    <div class="stats-workspace">
+    <section class="stats-board" aria-labelledby="leaderboard-title">
+    <h2 id="leaderboard-title">Player rankings</h2>
     <div class="list-toolbar"><div class="search-control"><label for="player-search">Search players</label><input id="player-search" type="search" placeholder="Player, tag or country" autocomplete="off"></div><div><label for="player-sort">Sort by</label><select id="player-sort"><option value="points">Points, high to low</option><option value="name">Player name A–Z</option><option value="completions">Completions, high to low</option></select></div></div>
-    <div id="directory-status" role="status"></div><p id="stats-status" class="result-count" role="status" aria-live="polite">Loading player rankings…</p><div class="table-scroll" role="region" aria-label="Player rankings" tabindex="0"><table id="players-table" aria-busy="true"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Country</th><th scope="col" class="numeric">Points</th><th scope="col" class="numeric">Completions</th><th scope="col">Hardest level</th></tr></thead><tbody id="players"><tr><td colspan="6" class="table-state">Loading player rankings…</td></tr></tbody></table></div><section id="player-details" class="section-block" aria-live="polite" hidden></section>
+    <div id="directory-status" role="status"></div><p id="stats-status" class="result-count" role="status" aria-live="polite">Loading player rankings…</p><div class="table-scroll" role="region" aria-label="Player rankings" tabindex="0"><table id="players-table" aria-busy="true"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Country</th><th scope="col" class="numeric">Points</th><th scope="col" class="numeric">Completions</th><th scope="col">Hardest level</th></tr></thead><tbody id="players"><tr><td colspan="6" class="table-state">Loading player rankings…</td></tr></tbody></table></div></section>
+    <aside class="stats-inspector" aria-label="Player statistics">
+      <div class="stats-prompt"><h2>Player overview</h2><p>Select a player in the rankings to see their stats and completed levels.</p></div>
+      <section id="player-details" tabindex="-1" aria-live="polite" hidden></section>
+    </aside>
+    </div>
 </main>
   <footer class="site-footer"><div><strong>GD1.1 Demonlist</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://discord.gg/BKFhzNkBW" target="_blank" rel="noopener noreferrer">Join Discord ↗</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
   <script type="module" src="site.js"></script>

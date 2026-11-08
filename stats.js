@@ -18,7 +18,14 @@ function tagList(tags) {
     for (const tag of tags) list.append(element("span", "player-tag", tag));
     return list;
 }
+const leaderboardSummary = document.getElementById("leaderboard-summary");
+function stat(label, value) {
+    const group = element("div");
+    group.append(element("dt", "", label), element("dd", "", String(value)));
+    return group;
+}
 function render() {
+    leaderboardSummary.hidden = true;
     const detail = document.getElementById("player-details");
     directoryStatus.replaceChildren();
     if (profiles.status === "error") {
@@ -49,16 +56,20 @@ function render() {
     }
     table.setAttribute("aria-busy", "false");
     const ranked = buildStats(levels.items, records.items, profiles.items, adjustments.status === "ready" ? adjustments.items : []).map((player, index) => ({ ...player, rank: index + 1 }));
+    const completions = ranked.reduce((sum, player) => sum + player.completed.length, 0);
+    leaderboardSummary.replaceChildren(stat("Ranked players", ranked.length), stat("Approved completions", completions));
+    leaderboardSummary.hidden = false;
     const term = search.value.toLowerCase().trim();
     const filtered = ranked.filter(player => [player.name, ...player.tags, getCountry(player.countryCode)?.name || "", player.countryCode || ""].join(" ").toLowerCase().includes(term));
     if (sort.value === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
     if (sort.value === "completions") filtered.sort((a,b) => b.completed.length - a.completed.length || a.rank - b.rank);
     body.replaceChildren();
-    status.textContent = `${filtered.length} of ${ranked.length} players · ${ranked.reduce((sum,p) => sum + p.completed.length,0)} approved completions`;
+    status.textContent = `${filtered.length} of ${ranked.length} players · ${completions} approved completions`;
     for (const player of filtered) {
         const row = element("tr");
         const name = element("td");
         const link = element("a", "text-button", player.name);
+        if (player.id === selected) link.setAttribute("aria-current", "true");
         link.href = `stats.html?player=${encodeURIComponent(player.id)}`;
         link.setAttribute("aria-label", `Player profile for ${player.name}`);
         link.addEventListener("click", event => {
@@ -66,8 +77,10 @@ function render() {
             event.preventDefault();
             selected = player.id;
             history.pushState(null, "", link.href);
+            body.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
+            link.setAttribute("aria-current", "true");
             showPlayer(player);
-            detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            detail.focus();
         });
         name.append(link, tagList(player.tags));
         const country = element("td", "country-cell");
@@ -93,10 +106,17 @@ function showPlayer(player) {
     }
     detail.replaceChildren(element("h2", "", player.name), tagList(player.tags), countryIndicator(player.countryCode));
     if (player.bio) detail.append(element("p", "player-bio", player.bio));
-    detail.append(element("p", "muted", `${player.points.toLocaleString()} points · ${player.completed.length} approved completions`));
+    const summary = element("dl", "stat-strip");
+    summary.append(
+        stat("Rank", `#${player.rank}`),
+        stat("Points", player.points.toLocaleString()),
+        stat("Approved completions", player.completed.length),
+        stat("Hardest level", player.completed[0]?.name || "—")
+    );
+    detail.append(summary);
     if (player.pointCorrection) detail.append(element("p", "muted", `Completion points: ${player.basePoints} · Staff correction: ${player.pointCorrection > 0 ? "+" : ""}${player.pointCorrection} · Total cannot fall below zero.`));
     if (player.registered) detail.append(element("p", "muted", "Tags describe the player's interests; they do not grant staff access or certify completions."));
-    if (player.completed.length) detail.append(list);
+    if (player.completed.length) detail.append(element("h3", "", "Completed levels"), list);
     else detail.append(element("p", "muted", "No approved completions yet."));
 }
 search.addEventListener("input", render);

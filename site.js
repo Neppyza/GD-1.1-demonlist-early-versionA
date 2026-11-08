@@ -1,3 +1,4 @@
+import { getFirebase } from "./firebase.js";
 import { subscribeAuth, signInGoogle, signOutUser, returnDestination, requireUser } from "./auth.js";
 import { completePlayerProfile } from "./player-profile.js";
 import { dataMessage } from "./messages.js";
@@ -8,12 +9,47 @@ let lastUser;
 let profileGeneration = 0;
 let profileError = "";
 let redirecting = false;
+let maintenance = false;
+if (page !== "admin.html") {
+    const main = document.getElementById("main");
+    const notice = document.createElement("main");
+    notice.id = "maintenance-notice";
+    notice.className = "page maintenance-page";
+    notice.tabIndex = -1;
+    notice.hidden = true;
+    notice.innerHTML = `
+        <div class="maintenance-copy">
+            <p class="eyebrow">Maintenance</p>
+            <h1>Demonlist is temporarily paused</h1>
+            <p>The rankings, records, and submissions will be available when the list reopens.</p>
+            <a href="admin.html">Staff sign-in</a>
+        </div>`;
+    main.before(notice);
+    getFirebase().then(({ db, storeSDK }) => {
+        const reference = storeSDK.doc(db, "siteSettings", "availability");
+        storeSDK.onSnapshot(reference, snapshot => {
+            const paused = snapshot.data()?.paused === true;
+            if (paused === maintenance) return;
+            maintenance = paused;
+            if (!paused) {
+                // Public listeners denied during maintenance need a fresh subscription.
+                location.reload();
+                return;
+            }
+            main.querySelector("dialog[open]")?.close();
+            main.hidden = true;
+            document.querySelector(".skip-link")?.setAttribute("href", "#maintenance-notice");
+            document.body.classList.add("maintenance-active");
+            notice.hidden = false;
+        }, () => {});
+    }).catch(() => {});
+}
 function navigate(destination) {
     if (!redirecting) { redirecting = true; location.assign(destination); }
 }
 async function checkProfile(uid, turn) {
     // Account owns onboarding, and Rules/Staff remain available during setup.
-    if (!uid || ["community.html", "rules.html", "admin.html"].includes(page)) return;
+    if (maintenance || !uid || ["community.html", "rules.html", "admin.html"].includes(page)) return;
     try {
         const client = await requireUser();
         if (turn !== profileGeneration || client.user.uid !== uid) return;
@@ -21,9 +57,9 @@ async function checkProfile(uid, turn) {
         if (turn !== profileGeneration || client.auth.currentUser?.uid !== uid) return;
         if (snapshot.exists() && snapshot.data().removed === true) return;
         const complete = snapshot.exists() && completePlayerProfile(snapshot.data());
-        if (!complete) navigate(`community.html?next=${encodeURIComponent(page + location.search + location.hash)}`);
+        if (!maintenance && !complete) navigate(`community.html?next=${encodeURIComponent(page + location.search + location.hash)}`);
     } catch (error) {
-        if (turn !== profileGeneration) return;
+        if (maintenance || turn !== profileGeneration) return;
         profileError = dataMessage(error, "your player profile") + " Open Account to retry setup.";
         const banner = document.getElementById("site-auth-status");
         if (banner) { banner.hidden = false; banner.textContent = profileError; }
@@ -31,7 +67,7 @@ async function checkProfile(uid, turn) {
 }
 // Account emits this only after a real database read or a committed profile batch.
 window.addEventListener("player-profile-ready", event => {
-    if (page === "community.html" && next && event.detail?.uid === lastUser) navigate(next);
+    if (!maintenance && page === "community.html" && next && event.detail?.uid === lastUser) navigate(next);
 });
 
 for (const button of document.querySelectorAll("[data-auth-login]")) {
@@ -55,6 +91,7 @@ subscribeAuth(state => {
         button.hidden = !state.user;
     }
     for (const link of document.querySelectorAll("[data-account-link]")) {
+        link.toggleAttribute("data-signed-in", Boolean(state.user));
         link.textContent = state.user ? "Account" : "Sign in";
         link.href = state.user || page === "community.html" ? "community.html" : `community.html?next=${encodeURIComponent(page + location.search + location.hash)}`;
         link.setAttribute("aria-label", state.user ? "Your Demonlist account" : "Sign in to the Demonlist");
