@@ -90,7 +90,7 @@ function render() {
         previewLink.append(thumbnail(level));
         const content = element("div", "level-summary");
         const heading = element("h2", "level-name");
-        heading.append(levelLink(level.id, String(level.name || "Unnamed level").trim()));
+        heading.append(element("span", "level-placement", `${rankLabel(level)} – `), levelLink(level.id, String(level.name || "Unnamed level").trim()));
         const creator = element("p", "level-creator");
         creator.append(document.createTextNode("Created by "), element("strong", "", level.creator || "—"));
         const verifier = element("p", "level-verifier");
@@ -102,7 +102,7 @@ function render() {
             meta.append(group);
         }
         content.append(heading, creator, verifier, meta);
-        row.append(element("span", "level-placement", rankLabel(level)), previewLink, content); body.append(row);
+        row.append(previewLink, content); body.append(row);
     }
     syncDetails();
 }
