@@ -397,3 +397,9 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 th, .list-toolbar label { font-size: 12px; }
 td { font-size: 13px; }
 .list-content #connection-status:empty { display: none; }
+
+/* A small hover cue for pointer users who allow motion. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .demon-row { transition: transform 120ms ease; }
+    .demon-row:hover { transform: translateY(-1px); }
+}
