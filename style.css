@@ -498,3 +498,5 @@ td { font-size: 13px; }
     .stats-board th, .stats-board .player-country { font-size: 11px; }
     .stats-board .player-country { flex-wrap: wrap; gap: 4px; }
 }
+
+.staff-roster { margin: 0; padding: 0; list-style: none; }

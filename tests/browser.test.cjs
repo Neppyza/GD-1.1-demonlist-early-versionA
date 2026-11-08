@@ -382,6 +382,7 @@ const server=http.createServer((req,res)=>{
     await ownerPage.locator('#co-owner-uid').fill('staff-user');
     await ownerPage.getByRole('button',{name:'Save co-owner access'}).click();
     await ownerPage.waitForFunction(()=>window.__test.data.coOwners?.['staff-user']?.active===true);
+    await ownerPage.locator('#co-owner-list').getByRole('heading',{name:'Staff Player'}).waitFor();
     await ownerPage.evaluate(()=>window.__test.setUser({uid:'staff-user',displayName:'Co-owner',claims:{}}));
     await ownerPage.locator('#co-owner-controls').waitFor({state:'hidden'});
     await ownerPage.locator('#site-availability').selectOption('paused');

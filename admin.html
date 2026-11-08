@@ -74,11 +74,11 @@
           <p id="co-owner-status" class="form-status" role="status"></p>
         </form>
         <h3>Active co-owners</h3>
-        <ul id="co-owner-list"></ul>
+        <ul id="co-owner-list" class="staff-roster"></ul>
       </section>
     </section>
     <div id="staff-tools" hidden>
-      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Players</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
+      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Players</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a id="team-nav" href="#team-management" hidden>Staff roster</a></nav>
       <section id="completion-review" class="section-block">
         <div class="section-heading"><h2>Pending completions</h2><button id="refresh-completions" type="button" class="secondary-button">Refresh completions</button></div>
         <p class="muted">Watch the submitted proof and verify its claimed percentage before accepting a record.</p>
@@ -93,13 +93,14 @@
         <div id="admin-players"></div>
       </section>
       <section id="team-management" class="section-block" hidden>
-        <div class="section-heading"><h2>Your moderator team</h2><button id="refresh-team" type="button" class="secondary-button">Refresh team</button></div>
+        <div class="section-heading"><h2>Staff roster</h2><button id="refresh-team" type="button" class="secondary-button">Refresh team</button></div>
         <p class="muted">Only the owner can manage moderators. Moderators can review levels and completions and manage players.</p>
         <form id="moderator-form" class="stack-form narrow-form">
           <label for="moderator-player">Registered player</label><select id="moderator-player" name="playerId" required><option value="">Choose a player</option></select>
           <p class="muted">Your teammate must sign in and save a player profile first. Check their player ID before granting access.</p>
           <button type="submit">Add moderator</button><p id="moderator-status" class="form-status" role="status"></p>
         </form>
+        <h3>Active moderators</h3>
         <div id="moderator-list"></div>
       </section>
       <section id="level-management" class="section-block">

@@ -18,8 +18,20 @@ async function listCoOwners(client, turn) {
     const members = await sdk.getDocs(sdk.collection(client.db, "coOwners"));
     if (turn !== generation) return;
     const active = members.docs.filter(member => member.data().active === true);
-    coOwnerList.replaceChildren(...active.map(member => element("li", "player-id", member.id)));
-    if (!active.length) coOwnerList.append(element("li", "muted", "No co-owners yet."));
+    const roster = await Promise.all(active.map(async member => {
+        const profile = await sdk.getDoc(sdk.doc(client.db, "players", member.id));
+        return { uid: member.id, name: profile.data()?.displayName?.trim() || "Name unavailable" };
+    }));
+    if (turn !== generation) return;
+    roster.sort((a, b) => a.name.localeCompare(b.name) || a.uid.localeCompare(b.uid));
+    coOwnerList.replaceChildren(...roster.map(({ name, uid }) => {
+        const row = element("li", "management-row");
+        const info = element("div", "management-info");
+        info.append(element("h3", "", name), element("p", "player-id muted", `Player ID: ${uid}`), element("p", "muted", "Co-owner"));
+        row.append(info);
+        return row;
+    }));
+    if (!roster.length) coOwnerList.append(element("li", "muted", "No co-owners yet."));
 }
 
 subscribeAuth(async state => {
