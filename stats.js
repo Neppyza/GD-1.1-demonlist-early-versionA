@@ -75,8 +75,10 @@ function render() {
         link.addEventListener("click", event => {
             if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
-            selected = player.id;
-            history.pushState(null, "", link.href);
+            if (selected !== player.id) {
+                selected = player.id;
+                history.pushState(null, "", link.href);
+            }
             body.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
             link.setAttribute("aria-current", "true");
             showPlayer(player);

@@ -498,3 +498,60 @@ td { font-size: 13px; }
     .stats-board th, .stats-board .player-country { font-size: 11px; }
     .stats-board .player-country { flex-wrap: wrap; gap: 4px; }
 }
+
+/* Masthead and placement rail shared by the list and its supporting pages. */
+:root {
+    --masthead: #111c30;
+    --masthead-copy: #d3e0f3;
+    --masthead-accent: #a7c8ff;
+}
+.site-header { background: var(--masthead); border-bottom-color: #31425c; }
+.site-header .brand-name, .site-header .account-nav a { color: #fff; }
+.site-header .brand-game, .site-header .text-button { color: var(--masthead-accent); }
+.site-header .header-inner nav a, .site-header .theme-toggle { color: var(--masthead-copy); }
+.site-header .header-inner nav a:hover, .site-header .header-inner nav a.active {
+    border-color: var(--masthead-accent);
+    background: #243650;
+    color: #fff;
+}
+.site-header .theme-toggle { border-color: #5e7494; }
+.site-header .auth-notice { color: #ffd1cb; }
+.site-header :focus-visible { outline-color: var(--masthead-accent); }
+.list-heading {
+    padding: 24px 24px 24px 20px;
+    border: 0;
+    border-left: 4px solid var(--masthead-accent);
+    background: var(--masthead);
+    color: #fff;
+}
+.list-heading h1 span, .list-heading a { color: var(--masthead-accent); }
+.list-heading .eyebrow, .hero-intro, .hero-guide p, .community-label { color: var(--masthead-copy); }
+.list-heading .button-link {
+    background: var(--masthead-accent);
+    border-color: var(--masthead-accent);
+    color: var(--masthead);
+}
+.hero-guide { border-color: #526583; }
+.community-label > span { background: var(--masthead-accent); }
+.list-heading :focus-visible { outline-color: var(--masthead-accent); }
+.demon-row {
+    grid-template-columns: minmax(62px, max-content) minmax(96px, 168px) minmax(0, 1fr);
+    gap: 16px;
+}
+.demon-row .level-placement {
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+}
+.demon-row .level-creator, .demon-row .level-verifier { overflow-wrap: anywhere; }
+#connection-status { margin: 8px 0 0; font-size: 12px; }
+.page-heading { border-bottom: 2px solid var(--line); }
+.page-heading .eyebrow { display: inline-block; padding-left: 8px; border-left: 3px solid var(--accent); }
+.table-scroll { border-top: 2px solid var(--accent); }
+@media (max-width: 540px) {
+    .list-heading { padding: 16px 14px; }
+    .demon-row { grid-template-columns: 86px minmax(0, 1fr); gap: 6px 12px; }
+    .demon-row .level-placement { text-align: left; font-size: 13px; }
+    .demon-row .level-preview { grid-column: 1; }
+    .demon-row .level-summary { grid-column: 2; grid-row: 1 / span 2; }
+}
