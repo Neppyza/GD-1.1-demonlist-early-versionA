@@ -500,3 +500,23 @@ td { font-size: 13px; }
 }
 
 .staff-roster { margin: 0; padding: 0; list-style: none; }
+
+.maintenance-active {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+}
+.maintenance-page {
+    display: grid;
+    flex: 1;
+    place-items: center;
+    width: 100%;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 48px 24px;
+    text-align: center;
+}
+.maintenance-copy { max-width: 36rem; }
+.maintenance-copy h1 { font-size: clamp(26px, 5vw, 40px); }
+.maintenance-copy p:not(.eyebrow) { color: var(--muted); }
+.maintenance-copy a { display: inline-block; padding: 10px 12px; }

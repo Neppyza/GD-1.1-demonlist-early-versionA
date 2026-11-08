@@ -13,9 +13,17 @@ let maintenance = false;
 if (page !== "admin.html") {
     const main = document.getElementById("main");
     const notice = document.createElement("main");
-    notice.className = "page";
+    notice.id = "maintenance-notice";
+    notice.className = "page maintenance-page";
+    notice.tabIndex = -1;
     notice.hidden = true;
-    notice.innerHTML = '<h1>Demonlist is temporarily paused</h1><p>Please check back later.</p><a href="admin.html">Staff sign-in</a>';
+    notice.innerHTML = `
+        <div class="maintenance-copy">
+            <p class="eyebrow">Maintenance</p>
+            <h1>Demonlist is temporarily paused</h1>
+            <p>The rankings, records, and submissions will be available when the list reopens.</p>
+            <a href="admin.html">Staff sign-in</a>
+        </div>`;
     main.before(notice);
     getFirebase().then(({ db, storeSDK }) => {
         const reference = storeSDK.doc(db, "siteSettings", "availability");
@@ -31,7 +39,7 @@ if (page !== "admin.html") {
             main.querySelector("dialog[open]")?.close();
             main.hidden = true;
             document.querySelector(".skip-link")?.setAttribute("href", "#maintenance-notice");
-            notice.id = "maintenance-notice";
+            document.body.classList.add("maintenance-active");
             notice.hidden = false;
         }, () => {});
     }).catch(() => {});
