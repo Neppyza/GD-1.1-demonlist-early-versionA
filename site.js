@@ -55,6 +55,7 @@ subscribeAuth(state => {
         button.hidden = !state.user;
     }
     for (const link of document.querySelectorAll("[data-account-link]")) {
+        link.toggleAttribute("data-signed-in", Boolean(state.user));
         link.textContent = state.user ? "Account" : "Sign in";
         link.href = state.user || page === "community.html" ? "community.html" : `community.html?next=${encodeURIComponent(page + location.search + location.hash)}`;
         link.setAttribute("aria-label", state.user ? "Your Demonlist account" : "Sign in to the Demonlist");
