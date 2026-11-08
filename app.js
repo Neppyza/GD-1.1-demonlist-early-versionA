@@ -6,7 +6,13 @@ import { element, thumbnail, externalLink } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
 function connectionStatus() {
-    document.getElementById("connection-status").textContent = !navigator.onLine ? "Offline · Reconnect to load current rankings." : levelState.status === "error" ? "Rankings connection failed · Use Try again below." : levelState.status === "ready" ? "Rankings loaded · Listening for updates" : "Connecting to rankings…";
+    const connectionStatus = document.getElementById("connection-status");
+    connectionStatus.hidden = navigator.onLine && levelState.status === "ready";
+    connectionStatus.textContent = !navigator.onLine
+        ? "Offline. Reconnect to load current rankings."
+        : levelState.status === "error"
+            ? "Could not load rankings. Try again below."
+            : levelState.status === "ready" ? "" : "Connecting to rankings…";
 }
 const body = document.getElementById("levels");
 const table = document.getElementById("demon-table");
