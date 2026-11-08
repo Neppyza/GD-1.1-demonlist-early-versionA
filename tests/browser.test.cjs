@@ -281,9 +281,14 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>window.__test.setUser({uid:'no-profile',displayName:'No Profile',claims:{}}));await page.goto(origin+'/index.html');await page.waitForURL('**/community.html?next=index.html');await page.waitForFunction(()=>window.__test?.authListeners===1);
     await page.evaluate(()=>window.__test.setUser(null));await page.goto(origin+'/index.html');await page.locator('.demon-row').first().waitFor();
     assert.equal(await page.locator('[data-section]').count(),0);
-    await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('.demon-row').first().hover();await page.waitForFunction(()=>getComputedStyle(document.querySelector('.demon-row')).transform!=='none');
-    await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.demon-row').first().evaluate(el=>getComputedStyle(el).transform),'none');
-    console.log('PASS required profile onboarding, failed-save recovery, zero-point registration, required country choice, local flags, country search, safe public bio/tags, deep links, UID score joins, no duplicate players, profile retry, logout cleanup, removed ranking tabs, hover motion and reduced-motion support.');
+    const firstLevel = page.locator('.demon-row').first();
+    const restingColor = await firstLevel.evaluate(row => getComputedStyle(row).backgroundColor);
+    await firstLevel.hover();
+    await page.waitForFunction(color => getComputedStyle(document.querySelector('.demon-row')).backgroundColor !== color, restingColor);
+    assert.equal(await firstLevel.evaluate(row => getComputedStyle(row).transform), 'none');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await firstLevel.evaluate(row => getComputedStyle(row).transitionDuration), '0s');
+    console.log('PASS required profile onboarding, failed-save recovery, zero-point registration, required country choice, local flags, country search, safe public bio/tags, deep links, UID score joins, no duplicate players, profile retry, logout cleanup, removed ranking tabs, stationary hover feedback and reduced-motion support.');
 
     const management=await context.newPage();
     await management.goto(origin+'/submit.html');

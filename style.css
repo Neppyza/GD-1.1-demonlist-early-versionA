@@ -276,6 +276,9 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
     transition: background-color 120ms ease;
 }
 .demon-row:hover, .demon-row:focus-within { background: var(--soft); }
+@media (prefers-reduced-motion: reduce) {
+    .demon-row { transition: none; }
+}
 .level-preview { display: block; min-width: 0; }
 .demon-row .thumbnail { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 3px; }
 .level-summary { min-width: 0; }
