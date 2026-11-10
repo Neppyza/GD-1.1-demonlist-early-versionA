@@ -1,4 +1,5 @@
 import { minimumProgress } from "./completion-model.js";
+import { loadSavedLevels, storeSavedLevels } from "./saved-levels.js";
 import { subscribeData, retryData } from "./data.js";
 import { filterLevels, sortLevels, rankLabel } from "./list-model.js";
 import { victorNames } from "./victors.js";
@@ -12,6 +13,8 @@ const body = document.getElementById("levels");
 const table = document.getElementById("demon-table");
 const search = document.getElementById("search");
 const sort = document.getElementById("sort");
+const savedOnly = document.getElementById("saved-only");
+let savedLevels = loadSavedLevels();
 const status = document.getElementById("result-count");
 const dialog = document.getElementById("level-dialog");
 let levelState = { status: "loading", items: [] };
@@ -41,6 +44,21 @@ function levelLink(id, label, className = "") {
     return link;
 }
 
+function toggleSaved(id) {
+    if (savedLevels.has(id)) savedLevels.delete(id);
+    else savedLevels.add(id);
+    storeSavedLevels(savedLevels);
+    render();
+}
+function saveButton(level) {
+    const saved = savedLevels.has(level.id);
+    const button = element("button", "save-level", saved ? "★ Saved" : "☆ Save");
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(saved));
+    button.setAttribute("aria-label", `${saved ? "Remove" : "Save"} ${String(level.name || "Unnamed level").trim()} ${saved ? "from" : "to"} saved levels`);
+    button.addEventListener("click", () => toggleSaved(level.id));
+    return button;
+}
 function render() {
     connectionStatus();
     table.setAttribute("aria-busy", String(levelState.status === "loading"));
@@ -60,12 +78,13 @@ function render() {
     }
     const records = recordState.status === "ready" ? recordState.items : [];
     const listed = levelState.items;
-    const matching = filterLevels(listed, records, search.value);
+    const matching = filterLevels(listed, records, search.value).filter(level => !savedOnly.checked || savedLevels.has(level.id));
     const filtered = sortLevels(matching, sort.value);
+    document.getElementById("saved-count").textContent = `(${listed.filter(level => savedLevels.has(level.id)).length})`;
     status.textContent = `${filtered.length} of ${listed.length} levels`;
     body.replaceChildren();
     if (!filtered.length) {
-        listState( listed.length ? "No matching levels" : "No levels have been published in this list yet", listed.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
+        listState( listed.length ? (savedOnly.checked ? "No saved levels match" : "No matching levels") : "No levels have been published in this list yet", listed.length ? (savedOnly.checked ? "Save a level using the star beside its name, or turn off Saved levels." : "Try another name, creator, verifier, or victor.") : "Approved levels will appear here.");
         if (search.value) {
             const clear = element("button", "secondary-button", "Clear search");
             clear.type = "button";
@@ -101,7 +120,9 @@ function render() {
             group.append(element("dt", "", label), element("dd", className, value));
             meta.append(group);
         }
-        content.append(heading, creator, verifier, meta);
+        const titleRow = element("div", "level-title-row");
+        titleRow.append(heading, saveButton(level));
+        content.append(titleRow, creator, verifier, meta);
         row.append(previewLink, content); body.append(row);
     }
     syncDetails();
@@ -143,7 +164,9 @@ function showDetails(id, updateURL = false) {
         group.append(element("dt", "", label), element("dd", "", value ?? "—"));
         meta.append(group);
     }
-    detail.replaceChildren(element("p", "eyebrow", rankLabel(level)), title, thumbnail(level), meta);
+    const detailHeading = element("div", "detail-title-row");
+    detailHeading.append(title, saveButton(level));
+    detail.replaceChildren(element("p", "eyebrow", rankLabel(level)), detailHeading, thumbnail(level), meta);
     if (level.description) detail.append(element("p", "level-description", level.description));
     const links = element("div", "detail-actions");
     const permanent = element("a", "", "Permanent link");
@@ -172,6 +195,7 @@ window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
+savedOnly.addEventListener("change", render);
 function closeDetails() {
     const url = new URL(location.href);
     url.searchParams.delete("level");
