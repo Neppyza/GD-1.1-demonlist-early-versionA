@@ -391,3 +391,19 @@ button, a, input, select, textarea { transition: color 160ms ease, background-co
 .list-switcher { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
 .list-switcher a { padding: .65rem 1rem; border: 1px solid currentColor; border-radius: .5rem; }
 .list-switcher a[aria-current="page"] { font-weight: 700; background: var(--soft); }
+
+/* Saved levels: quiet controls that inherit the existing list palette. */
+.list-content .list-toolbar { grid-template-columns: minmax(0, 1fr) 190px auto; }
+.saved-filter { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; white-space: nowrap; cursor: pointer; }
+.saved-filter input { width: 16px; height: 16px; min-height: 0; margin: 0; accent-color: var(--accent); }
+.saved-filter span { font-size: 11px; }
+.level-title-row, .detail-title-row { display: flex; align-items: flex-start; gap: 12px; }
+.level-title-row .level-name, .detail-title-row h2 { flex: 1; min-width: 0; }
+.save-level { flex: 0 0 auto; min-height: 32px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.save-level[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.save-level:hover { color: var(--accent); background: var(--soft); filter: none; }
+@media (max-width: 760px) {
+    .list-content .list-toolbar { grid-template-columns: minmax(0, 1fr); }
+    .saved-filter { min-height: 28px; }
+    .level-title-row { flex-wrap: wrap; gap: 6px 12px; }
+}

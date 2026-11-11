@@ -45,11 +45,12 @@
       <div class="hero-guide"><span class="community-label"><span aria-hidden="true"></span>Community maintained</span><p>Placements, verifications and completion records, reviewed by the list team.</p><a href="rules.html">Submission guidelines →</a></div>
     </section>
     <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
-      <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div></div>
+      <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div><label class="saved-filter"><input id="saved-only" type="checkbox"><span>Saved levels <span id="saved-count">(0)</span></span></label></div>
       <p id="connection-status" class="muted" role="status">Connecting to rankings…</p>
       <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
       <p id="records-note" class="inline-error" role="status" hidden></p><p id="selection-status" role="status" hidden></p>
       <div id="demon-table" class="demon-list" aria-busy="true"><div id="levels"><div class="list-state">Loading the demonlist…</div></div></div>
+      <p class="list-footnote">Saved levels are stored only in this browser, not your account.</p>
       <p class="list-footnote">Placements and level information come from the official database. Entries without a placement appear as unranked.</p>
     </section><aside class="list-sidebar" aria-label="List information">
       <section class="sidebar-section"><h2>Rankings</h2><p>Jump to a level’s details.</p><ol id="ranking-index" class="ranking-index"><li class="muted">Loading rankings…</li></ol></section>
