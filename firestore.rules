@@ -211,9 +211,31 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+
+    match /announcements/{id} {
+      allow read: if true;
+      allow create, update: if staff()
+        && request.resource.data.keys().hasOnly(['title', 'body', 'updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() <= 100
+        && request.resource.data.body is string && request.resource.data.body.size() <= 2000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if staff();
+    }
+    match /feedback/{uid} {
+      allow read: if staff() || (signedIn() && request.auth.uid == uid);
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['message', 'updatedAt'])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 2000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if staff();
+    }
     match /levels/{id} {
       allow read: if true;
-      allow create, update: if staff() && validLevel(request.resource.data);
+      allow create: if staff() && validLevel(request.resource.data);
+      allow update: if staff() && (validLevel(request.resource.data)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['position'])
+          && request.resource.data.position is int && request.resource.data.position > 0));
       allow delete: if staff();
     }
     match /records/{id} {

@@ -127,3 +127,19 @@ npx firebase-tools@14.17.0 deploy --only firestore:rules --project gd11-demonlis
 ```
 
 An administrator can also paste the complete `firestore.rules` file into Firebase Console → Firestore Database → Rules and publish it. Existing accounts do not need to be recreated: legacy profiles remain visible with “Not set” until the player next signs in and chooses a country. Points and approved records stay joined to the same Firebase UID.
+
+## Announcements, feedback and approval repair
+
+Deploy the rules in this revision before enabling these controls:
+
+```sh
+firebase deploy --only firestore:rules --project gd11-demonlist
+```
+
+GitHub Pages publishes the frontend only. Firebase deployment requires an authenticated Firebase project administrator.
+
+Admin → Announcement publishes or replaces the current notice. Remove announcement hides it. Notices are public. Admin → Feedback inbox reads private feedback. Account → Feedback saves the signed-in player's latest message, replacing their previous message. Staff can also manage announcements and feedback directly in the Firebase console.
+
+The Stats viewer shows totals, rankings and individual player details. Switch account opens Google's account chooser and changes the active Firebase session. Sign out ends that session.
+
+Approval can fail when moving an older level whose document lacks modern metadata. The updated rules allow staff to update only its positive integer position while preserving its other fields. All other edits and new levels retain full validation. Publishing also requires the staff-only rankingState/main rule. If access is still denied after deploying, verify the signed-in account's admin claim or active team membership and the submitted level's metadata.

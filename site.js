@@ -74,3 +74,5 @@ subscribeAuth(state => {
         checkProfile(uid, ++profileGeneration);
     }
 });
+
+import "./community-tools.js";

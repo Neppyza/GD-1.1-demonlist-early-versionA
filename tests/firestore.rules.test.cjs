@@ -190,6 +190,21 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         const ranked = await getDocs(collection(guest,'levels'));
         require('node:assert/strict').deepEqual(ranked.docs.map(item=>item.data().position).sort(),[1,2,3,4]);
         console.log('PASS concurrent first-place publications into empty and populated lists preserve unique ranks under Firestore rules');
+
+        await env.withSecurityRulesDisabled(async context => {
+            await setDoc(doc(context.firestore(),'levels','legacy'),{name:'Legacy',position:1});
+        });
+        await check('staff may shift incomplete legacy level',updateDoc(doc(admin,'levels','legacy'),{position:2}),true);
+        await check('legacy exception cannot change points',updateDoc(doc(admin,'levels','legacy'),{points:99}),false);
+        await check('players cannot shift legacy ranks',updateDoc(doc(player,'levels','legacy'),{position:3}),false);
+        const announcement={title:'News',body:'Tournament open',updatedAt:serverTimestamp()};
+        await check('staff publishes announcement',setDoc(doc(admin,'announcements','current'),announcement),true);
+        await check('public reads announcement',getDoc(doc(guest,'announcements','current')),true);
+        await check('player cannot publish announcement',setDoc(doc(player,'announcements','current'),announcement),false);
+        await check('player saves own feedback',setDoc(doc(player,'feedback','player-a'),{message:'Hello',updatedAt:serverTimestamp()}),true);
+        await check('staff reads feedback',getDocs(collection(admin,'feedback')),true);
+        await check('guest cannot read feedback',getDocs(collection(guest,'feedback')),false);
+        await check('other cannot read feedback',getDoc(doc(other,'feedback','player-a')),false);
         console.log(`${passed} Firestore permission checks passed against the proposed rules in the emulator.`);
     } finally { await env.cleanup(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

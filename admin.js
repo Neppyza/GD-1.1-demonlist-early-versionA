@@ -138,7 +138,9 @@ function renderSubmission(id, data, turn) {
             });
             if (turn === generation) { status.textContent = "Level published."; await loadStaff(turn); }
         } catch (error) {
-            if (turn === generation) output.textContent = error.code ? dataMessage(error, "this level") : error.message || "Could not publish this level.";
+            if (turn === generation) output.textContent = error.code === "permission-denied"
+                ? "Publishing was denied. Ask the Firebase project administrator to deploy the current firestore.rules, including rankingState access and legacy rank updates. Your submission is still pending."
+                : error.code ? dataMessage(error, "this level") : error.message || "Could not publish this level.";
         } finally { setBusy(form, false); }
     });
     reject.addEventListener("click", async () => {
