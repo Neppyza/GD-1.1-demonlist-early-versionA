@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Send a level submission for staff review using your authenticated Google account.">
+  <meta name="description" content="Submit a level or completion for review by the GD1.1 Demonlist team.">
   <meta property="og:title" content="Submit · GD1.1 Demonlist">
-  <meta property="og:description" content="Send a level submission for staff review using your authenticated Google account.">
+  <meta property="og:description" content="Submit a level or completion for review by the GD1.1 Demonlist team.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="GD1.1 Demonlist">
   <meta property="og:url" content="https://neppyza.github.io/GD-1.1-demonlist-early-versionA/submit.html">
@@ -34,22 +34,113 @@
     <p id="site-auth-status" class="auth-notice" role="status" hidden></p>
   </header>
   <noscript><p class="auth-notice">Enable JavaScript to load rankings, records and account features.</p></noscript>
-  <main id="main" class="page"><div class="page-heading"><div><h1>Submit to the list</h1><p>Submit a new level or send your record proof for review.</p></div></div><div class="content-layout"><div><section class="auth-panel" aria-labelledby="signin-title"><h2 id="signin-title">Your Google account</h2><p>Sign in securely with Google. Your first sign-in creates an account; no separate password is needed.</p><div class="auth-actions"><button type="button" data-auth-login disabled>Continue with Google</button><button type="button" class="secondary-button" data-auth-logout hidden>Sign out</button></div><p data-auth-status class="form-status" role="status">Restoring your session…</p></section><section id="community-rules" class="section-block" hidden aria-labelledby="consent-title"><h2 id="consent-title">Before you continue</h2><p>Read the <a href="rules.html">community rules</a> before creating a profile or submitting a level.</p><form id="community-rules-form"><label class="check-row"><input id="community-agreement" name="agreement" type="checkbox" required><span>I have read and agree to the community rules.</span></label><button type="submit">Accept and continue</button><p id="agreement-status" class="form-status" role="status" data-private-status></p></form></section><p id="member-status" class="form-status" role="status"></p><button id="account-retry" class="secondary-button" type="button" hidden>Retry account loading</button><div id="member-content" hidden><p class="submitter">Submitting as <strong id="submitter-name"></strong></p><p id="profile-required" class="inline-error" hidden>Save a player name in <a href="community.html">Account</a> before submitting.</p>
-    <h2>Submit a new level</h2>
-    <form id="submission-form" class="stack-form"><fieldset disabled><legend class="sr-only">Level submission</legend><label for="level-name">Level name</label><input id="level-name" name="levelName" maxlength="80" required><div class="form-grid"><div><label for="creator-name">Creator</label><input id="creator-name" name="creator" maxlength="60" required></div><div><label for="verifier-name">Verifier</label><input id="verifier-name" name="verifier" maxlength="60" required></div></div><label for="level-url">Level link</label><input id="level-url" name="levelUrl" type="url" maxlength="2000" placeholder="https://" required><label for="proof-url">Completion video</label><input id="proof-url" name="proofUrl" type="url" maxlength="2000" placeholder="https://" required><label for="submission-notes">Notes for reviewers <span class="muted">(optional)</span></label><textarea id="submission-notes" name="notes" maxlength="500" rows="4"></textarea><label class="check-row"><input name="confirmed" id="rules-accepted" type="checkbox" required><span>I have read the submission rules and confirm these details are accurate.</span></label><button type="submit">Send for review</button></fieldset><p id="submission-status" class="form-status" role="status" data-private-status></p></form>
-    <section class="section-block" aria-labelledby="completion-title">
-      <h2 id="completion-title">Submit a completion</h2><p class="muted">Reached the minimum required percentage? Submit video proof of your progress. Approved records appear in Records; only 100% completions award points.</p>
-      <p id="completion-level-status" class="form-status" role="status"></p><button id="retry-completion-levels" type="button" class="secondary-button" hidden>Retry levels</button>
-      <form id="completion-form" class="stack-form"><fieldset disabled>
-        <legend class="sr-only">Completion submission</legend>
-        <label for="completion-level">Level</label><select id="completion-level" name="levelId" required><option value="">Choose a level</option></select>
-        <label for="completion-progress">Progress (%)</label><input id="completion-progress" name="progress" type="number" min="1" max="100" step="1" value="100" required aria-describedby="completion-minimum"><p id="completion-minimum" class="muted">Choose a level to see its minimum required percentage.</p><label for="completion-proof">Record video</label><input id="completion-proof" name="proofUrl" type="url" maxlength="2000" placeholder="https://" required>
-        <label for="completion-notes">Notes for reviewers <span class="muted">(optional)</span></label><textarea id="completion-notes" name="notes" maxlength="500" rows="3"></textarea>
-        <label class="check-row"><input id="completion-confirmed" name="confirmed" type="checkbox" required><span>This video shows my claimed percentage and follows the submission rules.</span></label>
-        <button type="submit">Submit completion</button>
-      </fieldset><p id="completion-status" class="form-status" role="status" data-private-status></p></form>
-    </section>
-    </div></div><aside class="help-column"><h2>Before submitting</h2><ul><li>Use accurate, respectful level and player names.</li><li>Include the level link and a video showing the completion.</li><li>The verifier is the first player to complete and verify the level.</li><li>Submit only a level you have permission to share.</li></ul><a href="rules.html">Read all rules →</a><a href="community.html">Track your submissions →</a></aside></div></main>
+  <main id="main" class="page">
+    <div class="submission-page">
+      <div class="page-heading">
+        <h1>Submit</h1>
+        <a href="community.html">My submissions</a>
+      </div>
+
+      <section class="auth-panel" aria-labelledby="signin-title">
+        <h2 id="signin-title">Sign in to submit</h2>
+        <div class="auth-actions">
+          <button type="button" data-auth-login disabled>Continue with Google</button>
+          <button type="button" class="secondary-button" data-auth-logout hidden>Sign out</button>
+        </div>
+        <p data-auth-status class="form-status" role="status">Restoring your session…</p>
+      </section>
+
+      <section id="community-rules" class="section-block" hidden aria-labelledby="consent-title">
+        <h2 id="consent-title">Community rules</h2>
+        <form id="community-rules-form">
+          <label class="check-row"><input id="community-agreement" name="agreement" type="checkbox" required><span>I have read and agree to the <a href="rules.html">community rules</a>.</span></label>
+          <button type="submit">Accept and continue</button>
+          <p id="agreement-status" class="form-status" role="status" data-private-status></p>
+        </form>
+      </section>
+      <p id="member-status" class="form-status" role="status"></p>
+      <button id="account-retry" class="secondary-button" type="button" hidden>Retry account loading</button>
+
+      <div id="member-content" hidden>
+        <div class="submission-nav">
+          <p class="submitter">Submitting as <strong id="submitter-name"></strong></p>
+          <a href="#completion-title">Submit a completion ↓</a>
+        </div>
+        <p id="profile-required" class="inline-error" hidden>Save a player name in <a href="community.html">Account</a> before submitting.</p>
+
+        <h2>Submit a new level</h2>
+        <p class="submission-help">Enter the level link and a video of the verifier completing it.</p>
+        <form id="submission-form" class="stack-form">
+          <fieldset disabled>
+            <legend class="sr-only">Level submission</legend>
+            <div class="submission-field">
+              <label for="level-name">Level name</label>
+              <input id="level-name" name="levelName" maxlength="80" required>
+            </div>
+            <div class="form-grid">
+              <div class="submission-field">
+                <label for="creator-name">Creator</label>
+                <input id="creator-name" name="creator" maxlength="60" required>
+              </div>
+              <div class="submission-field">
+                <label for="verifier-name">Verifier</label>
+                <input id="verifier-name" name="verifier" maxlength="60" required>
+              </div>
+            </div>
+            <div class="submission-field">
+              <label for="level-url">Level link</label>
+              <input id="level-url" name="levelUrl" type="url" maxlength="2000" placeholder="https://" required>
+            </div>
+            <div class="submission-field">
+              <label for="proof-url">Verification video link</label>
+              <input id="proof-url" name="proofUrl" type="url" maxlength="2000" placeholder="https://" required>
+            </div>
+            <div class="submission-field">
+              <label for="submission-notes">Notes <span class="muted">(optional)</span></label>
+              <textarea id="submission-notes" name="notes" maxlength="500" rows="3"></textarea>
+            </div>
+            <label class="check-row"><input name="confirmed" id="rules-accepted" type="checkbox" required><span>I have read the <a href="rules.html">submission rules</a> and confirm these details are accurate.</span></label>
+            <button type="submit">Send for review</button>
+          </fieldset>
+          <p id="submission-status" class="form-status" role="status" data-private-status></p>
+        </form>
+
+        <section class="section-block" aria-labelledby="completion-title">
+          <h2 id="completion-title">Submit a completion</h2>
+          <p class="submission-help">Send video proof for a ranked level. Only approved 100% completions award points.</p>
+          <p id="completion-level-status" class="form-status" role="status"></p>
+          <button id="retry-completion-levels" type="button" class="secondary-button" hidden>Retry levels</button>
+          <form id="completion-form" class="stack-form">
+            <fieldset disabled>
+              <legend class="sr-only">Completion submission</legend>
+              <div class="form-grid completion-fields">
+                <div class="submission-field">
+                  <label for="completion-level">Level</label>
+                  <select id="completion-level" name="levelId" required><option value="">Choose a level</option></select>
+                </div>
+                <div class="submission-field">
+                  <label for="completion-progress">Progress (%)</label>
+                  <input id="completion-progress" name="progress" type="number" min="1" max="100" step="1" value="100" required aria-describedby="completion-minimum">
+                </div>
+              </div>
+              <p id="completion-minimum" class="submission-help">Choose a level to see its minimum required percentage.</p>
+              <div class="submission-field">
+                <label for="completion-proof">Record video link</label>
+                <input id="completion-proof" name="proofUrl" type="url" maxlength="2000" placeholder="https://" required>
+              </div>
+              <div class="submission-field">
+                <label for="completion-notes">Notes <span class="muted">(optional)</span></label>
+                <textarea id="completion-notes" name="notes" maxlength="500" rows="3"></textarea>
+              </div>
+              <label class="check-row"><input id="completion-confirmed" name="confirmed" type="checkbox" required><span>This video shows my claimed percentage and follows the <a href="rules.html">submission rules</a>.</span></label>
+              <button type="submit">Submit completion</button>
+            </fieldset>
+            <p id="completion-status" class="form-status" role="status" data-private-status></p>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
   <footer class="site-footer"><div><strong>GD1.1 Demonlist</strong><span>Roblox Geometry Dash 1.1 · Community maintained</span></div><div><a href="rules.html">Rules</a><a href="https://discord.gg/BKFhzNkBW" target="_blank" rel="noopener noreferrer">Join Discord ↗</a><a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
   <script type="module" src="site.js"></script>
   <script type="module" src="community.js"></script>
