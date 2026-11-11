@@ -156,6 +156,7 @@ test('inserting at first or middle shifts all affected ranks without mutating in
     const levels = ['a','b','c'].map((id,i)=>({id,position:i+1}));
     assert.deepEqual(placementUpdates(levels,'new',1), [{id:'a',position:2},{id:'b',position:3},{id:'c',position:4}]);
     assert.deepEqual(placementUpdates(levels,'new',2), [{id:'b',position:3},{id:'c',position:4}]);
+    assert.deepEqual(placementUpdates(levels,'new',3), [{id:'c',position:4}]);
     assert.deepEqual(placementUpdates(levels,'new',4), []);
     assert.deepEqual(levels.map(x=>x.position), [1,2,3]);
 });
