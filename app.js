@@ -176,7 +176,7 @@ function closeDetails() {
     const url = new URL(location.href);
     url.searchParams.delete("level");
     history.replaceState(history.state, "", url);
-    dialog.close();
+    if (dialog.open) dialog.close();
 }
 document.getElementById("close-dialog").addEventListener("click", closeDetails);
 dialog.addEventListener("cancel", event => {
