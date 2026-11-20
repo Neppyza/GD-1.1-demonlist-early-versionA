@@ -262,7 +262,8 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 .list-content .list-toolbar { grid-template-columns: minmax(0, 1fr) 170px; gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
 .list-content .result-count { margin-bottom: 18px; }
 .demon-row { display: grid; grid-template-columns: 218px minmax(0, 1fr); align-items: center; gap: 22px; margin-bottom: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
-.demon-row:hover { border-color: var(--accent); background: var(--paper); }
+/* Hover feedback belongs to interactive links, not the entire large row. */
+.demon-row:hover { border-color: var(--line); background: var(--paper); }
 .level-preview { display: block; min-width: 0; }
 .demon-row .thumbnail { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 6px; }
 .level-summary { min-width: 0; }
@@ -375,13 +376,15 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 
 /* Keep motion restrained and only enable movement for a fine pointer. */
 button, a, input, select, textarea { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
-.demon-row { transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
-.demon-row:focus-within { border-color: var(--accent); background: var(--paper); }
+.demon-row { transition: none; }
+.demon-row:focus-within { border-color: var(--line); background: var(--paper); }
 .demon-row a:focus-visible, .ranking-index a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
     button:not(:disabled):not(.text-button):hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgb(0 0 0 / .1); }
     /* Keep the row's hit area fixed to avoid mouse hover flicker. */
-    .demon-row:hover { box-shadow: 0 3px 8px rgb(0 0 0 / .07); }
+    .demon-row:hover { box-shadow: none; }
+    .level-preview:hover .thumbnail { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .level-name > a:hover { text-decoration: underline; text-underline-offset: 3px; }
     /* Moving an index link can cause mouseenter/mouseleave loops. */
     .ranking-index a:hover { background: var(--soft); }
     .header-inner nav a:hover { color: var(--accent); background: var(--soft); }
