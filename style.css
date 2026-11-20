@@ -377,10 +377,13 @@ dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 button, a, input, select, textarea { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
 .demon-row { transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 .demon-row:focus-within { border-color: var(--accent); background: var(--paper); }
+.demon-row a:focus-visible, .ranking-index a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
     button:not(:disabled):not(.text-button):hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgb(0 0 0 / .1); }
-    .demon-row:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgb(0 0 0 / .07); }
-    .ranking-index a:hover { transform: translateX(3px); }
+    /* Keep the row's hit area fixed to avoid mouse hover flicker. */
+    .demon-row:hover { box-shadow: 0 3px 8px rgb(0 0 0 / .07); }
+    /* Moving an index link can cause mouseenter/mouseleave loops. */
+    .ranking-index a:hover { background: var(--soft); }
     .header-inner nav a:hover { color: var(--accent); background: var(--soft); }
 }
 @media (prefers-reduced-motion: reduce) {
