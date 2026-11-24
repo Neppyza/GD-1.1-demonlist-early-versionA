@@ -78,6 +78,7 @@ const server=http.createServer((req,res)=>{
     assert.equal(await page.locator('.level-percentage').last().innerText(),'100%');
     assert.equal(await page.evaluate(()=>window.__test.initializations),1);
     assert.equal(await page.evaluate(()=>window.__test.watcherCount('levels')),1);
+    await page.locator('#rank-filter').selectOption('unranked');assert.equal(await page.locator('.demon-row').count(),1);await page.locator('#reset-filters').click();await page.locator('.save-level').first().click();await page.locator('#saved-filter').check();assert.equal(await page.locator('.demon-row').count(),1);await page.locator('.save-level').first().click();assert.equal(await page.locator('.demon-row').count(),0);await page.locator('#reset-filters').click();
     assert.equal(await page.evaluate(()=>window.__test.watcherCount('records')),1);
     for(const [term,expected]of [['creator a','Fixture Alpha'],['verifier b','Fixture Beta'],['extreme','Fixture Alpha']]){await page.locator('#search').fill(term);assert.match(await page.locator('#levels').innerText(),new RegExp(expected))}
     await page.locator('#search').fill('missing-value');assert.equal(await page.locator('.demon-row').count(),0);await page.getByRole('button',{name:'Clear search'}).click();
@@ -282,7 +283,7 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>window.__test.setUser({uid:'no-profile',displayName:'No Profile',claims:{}}));await page.goto(origin+'/index.html');await page.waitForURL('**/community.html?next=index.html');await page.waitForFunction(()=>window.__test?.authListeners===1);
     await page.evaluate(()=>window.__test.setUser(null));await page.goto(origin+'/index.html');await page.locator('.demon-row').first().waitFor();
     assert.equal(await page.locator('[data-section]').count(),0);
-    await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('.demon-row').first().hover();await page.waitForFunction(()=>getComputedStyle(document.querySelector('.demon-row')).transform!=='none');
+    await page.emulateMedia({reducedMotion:'no-preference'});await page.mouse.move(0,0);await page.evaluate(()=>{window.__hoverBase=getComputedStyle(document.querySelector('.demon-row')).backgroundColor});await page.locator('.demon-row').first().hover();await page.waitForFunction(()=>getComputedStyle(document.querySelector('.demon-row')).borderBottomColor===getComputedStyle(document.querySelector('.demon-row')).getPropertyValue('--accent').trim() || getComputedStyle(document.querySelector('.demon-row')).backgroundColor!==window.__hoverBase);
     await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.demon-row').first().evaluate(el=>getComputedStyle(el).transform),'none');
     console.log('PASS required profile onboarding, failed-save recovery, zero-point registration, required country choice, local flags, country search, safe public bio/tags, deep links, UID score joins, no duplicate players, profile retry, logout cleanup, removed ranking tabs, hover motion and reduced-motion support.');
 
@@ -310,11 +311,11 @@ const server=http.createServer((req,res)=>{
     await management.evaluate(()=>{window.__test.persistData=true;window.__test.setUser({uid:'staff-user',displayName:'Owner',claims:{owner:true}})});
     await management.locator('#team-management').waitFor({state:'visible'});
     await management.waitForFunction(()=>document.querySelector('#moderator-player option[value="fixture-user"]'));
-    await management.locator('#moderator-player').selectOption('fixture-user');await management.getByRole('button',{name:'Add moderator',exact:true}).click();
+    await management.locator('#moderator-player').selectOption('fixture-user');await management.getByRole('button',{name:'Save staff role',exact:true}).click();
     await management.waitForFunction(()=>window.__test.data.team['fixture-user']?.active===true);
     assert.equal(await management.evaluate(()=>window.__test.data.team['fixture-user'].role),'moderator');
     assert.equal(await management.evaluate(()=>window.__test.data.team['fixture-user'].updatedBy),'staff-user');
-    management.once('dialog',dialog=>dialog.accept());await management.getByRole('button',{name:'Remove moderator Saved Player',exact:true}).click();
+    management.once('dialog',dialog=>dialog.accept());await management.getByRole('button',{name:'Revoke access for Saved Player',exact:true}).click();
     await management.waitForFunction(()=>window.__test.data.team['fixture-user'].active===false);
     await management.evaluate(()=>window.__test.setUser({uid:'fixture-user',displayName:'Player',claims:{admin:true}}));
     await management.locator('#staff-tools').waitFor({state:'hidden'});assert.equal(await management.locator('#team-management').isHidden(),true);

@@ -27,6 +27,9 @@ test('console insertion shifts #3 and below, preserves metadata, and is idempote
     assert.equal(f.data.third.position,4);
     assert.equal(f.data.fourth.position,5);
     assert.equal(f.data.third.proofUrl,'proof');
+    assert.equal(f.data.third.positionHistory[0].from,3);
+    assert.equal(f.data.third.positionHistory[0].to,4);
+    assert.equal(f.data.new.positionHistory[0].from,null);
     assert.equal(f.data.new.rankingApplied,true);
     assert.deepEqual(f.data.unranked,{});
     const count=f.writes();

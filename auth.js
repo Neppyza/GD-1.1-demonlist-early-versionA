@@ -12,10 +12,10 @@ function publish(values) {
 }
 
 async function rolesFor(client, user, force = false) {
-    if (!user) return { owner: false, staff: false };
+    if (!user) return { owner: false, staff: false, role: null };
     const token = await client.authSDK.getIdTokenResult(user, force);
     const owner = token.claims.owner === true;
-    if (owner) return { owner: true, staff: true };
+    if (owner) return { owner: true, staff: true, role: "owner" };
     let membership;
     try {
         membership = await client.storeSDK.getDoc(client.storeSDK.doc(client.db, "team", user.uid));
@@ -23,10 +23,10 @@ async function rolesFor(client, user, force = false) {
         // Existing deployments may not have the new team rules yet.
         if (error.code !== "permission-denied") throw error;
     }
-    const staff = membership?.exists()
-        ? membership.data().role === "moderator" && membership.data().active === true
-        : token.claims.admin === true;
-    return { owner: false, staff };
+    const role = membership?.exists()
+        ? (membership.data().active === true && ["moderator", "admin", "co-owner"].includes(membership.data().role) ? membership.data().role : null)
+        : token.claims.admin === true ? "admin" : null;
+    return { owner: false, staff: role !== null, role };
 }
 
 export function subscribeAuth(callback) {
@@ -50,14 +50,14 @@ export function startAuth() {
                         publish({ ready: true, user, ...roles, error: "" });
                     } catch (error) {
                         if (turn !== generation) return;
-                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, error: authMessage(error) });
+                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, role: null, error: authMessage(error) });
                     }
                     resolve();
                 }, reject);
             });
             return client;
         } catch (error) {
-            publish({ ready: true, user: null, staff: false, owner: false, error: authMessage(error) });
+            publish({ ready: true, user: null, staff: false, owner: false, role: null, error: authMessage(error) });
             startup = null;
             return null;
         }

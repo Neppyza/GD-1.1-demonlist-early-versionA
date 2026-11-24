@@ -1,3 +1,4 @@
+import { renderInsights } from "./community-insights.js";
 import { subscribeData, retryData } from "./data.js";
 import { buildStats } from "./stats-model.js";
 import { element, stateRow, countryIndicator } from "./ui.js";
@@ -20,6 +21,7 @@ function tagList(tags) {
 }
 function render() {
     const detail = document.getElementById("player-details");
+    document.getElementById("community-insights").hidden = true;
     directoryStatus.replaceChildren();
     document.getElementById("stats-summary")?.remove();
     if (profiles.status === "error") {
@@ -50,6 +52,7 @@ function render() {
     }
     table.setAttribute("aria-busy", "false");
     const ranked = buildStats(levels.items, records.items, profiles.items, adjustments.status === "ready" ? adjustments.items : []).map((player, index) => ({ ...player, rank: index + 1 }));
+    renderInsights(document.getElementById("community-insights"), levels.items, ranked);
     const summary = element("dl", "stats-summary");
     summary.id = "stats-summary";
     for (const [label, value] of [["Players", ranked.length], ["Levels", levels.items.length], ["Completions", ranked.reduce((sum, player) => sum + player.completed.length, 0)]]) {
@@ -105,7 +108,12 @@ function showPlayer(player) {
     detail.append(element("p", "muted", `${player.points.toLocaleString()} points · ${player.completed.length} approved completions`));
     if (player.pointCorrection) detail.append(element("p", "muted", `Completion points: ${player.basePoints} · Staff correction: ${player.pointCorrection > 0 ? "+" : ""}${player.pointCorrection} · Total cannot fall below zero.`));
     if (player.registered) detail.append(element("p", "muted", "Tags describe the player's interests; they do not grant staff access or certify completions."));
-    if (player.completed.length) detail.append(list);
+    if (player.completed.length) {
+        const rankedLevels = levels.items.filter(l => Number.isFinite(Number(l.position)) && Number(l.position) > 0);
+        const top10 = rankedLevels.filter(l => Number(l.position) <= 10);
+        const completed = new Set(player.completed.map(l => l.id));
+        detail.append(element("p", "muted", `Ranked list completion: ${rankedLevels.filter(l => completed.has(l.id)).length}/${rankedLevels.length} · Top 10: ${top10.filter(l => completed.has(l.id)).length}/${top10.length}`), list);
+    }
     else detail.append(element("p", "muted", "No approved completions yet."));
 }
 search.addEventListener("input", render);

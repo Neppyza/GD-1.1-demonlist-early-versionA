@@ -106,6 +106,12 @@ const { doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, delet
         await check('owner cannot assign an owner role in team documents',setDoc(doc(owner,'team','moderator-a'),{...membership,role:'owner'}),false);
         await check('owner cannot invite a nonexistent player',setDoc(doc(owner,'team','missing-player'),membership),false);
         await check('owner grants moderator membership',setDoc(doc(owner,'team','moderator-a'),membership),true);
+        for (const role of ['admin','co-owner']) {
+            await check('owner grants '+role,setDoc(doc(owner,'team','moderator-a'),{...membership,role}),true);
+            await check(role+' can read ranking coordination',getDoc(doc(moderator,'rankingState','main')),true);
+            await check(role+' cannot assign staff',setDoc(doc(moderator,'team','moderator-a'),{...membership,updatedBy:'moderator-a'}),false);
+        }
+        await check('owner restores moderator label',setDoc(doc(owner,'team','moderator-a'),membership),true);
         await check('moderator can read own membership',getDoc(doc(moderator,'team','moderator-a')),true);
         await check('team roster stays private to the owner',getDocs(collection(moderator,'team')),false);
         await check('owner can list the team',getDocs(collection(owner,'team')),true);

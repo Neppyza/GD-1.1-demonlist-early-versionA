@@ -1,3 +1,4 @@
+import { positionHistory } from "./rank-history.js";
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff } from "./auth.js";
 import { sortLevels } from "./list-model.js";
@@ -141,7 +142,7 @@ form.addEventListener("submit", async event => {
             if (editableFields.some(field => saved.data()[field] !== before[field])) throw new Error("This level changed since you loaded it. Refresh levels and try again.");
             if (!current(client, turn)) throw { code: "auth/requires-login" };
             const updates = writeRanking(client, transaction, ranking, levelId, changes.position);
-            transaction.update(ref, changes);
+            transaction.update(ref, { ...changes, positionHistory: positionHistory(saved.data(), changes.position) });
             const positions = new Map(updates.map(item => [item.id, item.position]));
             return ranking.levels.map(item => item.id === levelId ? { ...item, ...changes } : { ...item, position: positions.get(item.id) ?? item.position });
         });

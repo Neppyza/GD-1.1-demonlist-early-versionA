@@ -226,44 +226,43 @@ async function loadTeam(turn) {
         const sdk = client.storeSDK;
         const [team, directory] = await Promise.all([sdk.getDocs(sdk.collection(client.db, "team")), sdk.getDocs(sdk.collection(client.db, "players"))]);
         if (!current(client, turn) || load !== teamLoad) return;
-        const activeIds = new Set(team.docs.filter(doc => doc.data().active === true).map(doc => doc.id));
         const select = moderatorForm.elements.playerId; const selected = select.value;
         select.replaceChildren(); const placeholder = element("option", "", "Choose a player"); placeholder.value = ""; select.append(placeholder);
-        const profiles = directory.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(profile => validPlayerProfile(profile) && profile.id !== client.user.uid && !activeIds.has(profile.id)).sort((a, b) => a.displayName.localeCompare(b.displayName));
+        const profiles = directory.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(profile => validPlayerProfile(profile) && profile.id !== client.user.uid).sort((a, b) => a.displayName.localeCompare(b.displayName));
         for (const profile of profiles) { const option = element("option", "", `${profile.displayName} · ${profile.id}`); option.value = profile.id; select.append(option); }
         if (profiles.some(profile => profile.id === selected)) select.value = selected;
         moderatorList.replaceChildren();
         for (const doc of team.docs.filter(doc => doc.data().active === true)) {
             const data = doc.data(); const row = element("article", "management-row moderator-row"); const info = element("div", "management-info");
-            info.append(element("h3", "", data.displayName), element("p", "player-id muted", `Player ID: ${doc.id}`), element("p", "muted", "Moderator"));
-            const button = element("button", "danger-button", "Remove moderator"); button.type = "button"; button.setAttribute("aria-label", `Remove moderator ${data.displayName}`);
+            info.append(element("h3", "", data.displayName), element("p", "player-id muted", `Player ID: ${doc.id}`), element("p", "muted", ({moderator:"Moderator",admin:"Admin","co-owner":"Co-owner"})[data.role] || "Unknown role"));
+            const button = element("button", "danger-button", "Revoke access"); button.type = "button"; button.setAttribute("aria-label", `Revoke access for ${data.displayName}`);
             button.addEventListener("click", async () => {
-                if (row.dataset.busy === "true" || !confirm(`Remove moderator access for ${data.displayName} (${doc.id})?`)) return;
+                if (row.dataset.busy === "true" || !confirm(`Revoke staff access for ${data.displayName} (${doc.id})?`)) return;
                 setBusy(row, true);
                 try {
                     const fresh = await requireOwner(); if (!current(fresh, turn)) return;
-                    await fresh.storeSDK.setDoc(fresh.storeSDK.doc(fresh.db, "team", doc.id), { role: "moderator", active: false, displayName: data.displayName, updatedBy: fresh.user.uid, updatedAt: fresh.storeSDK.serverTimestamp() });
-                    if (current(fresh, turn)) { moderatorStatus.textContent = `${data.displayName} no longer has moderator access.`; await loadTeam(turn); }
+                    await fresh.storeSDK.setDoc(fresh.storeSDK.doc(fresh.db, "team", doc.id), { role: data.role, active: false, displayName: data.displayName, updatedBy: fresh.user.uid, updatedAt: fresh.storeSDK.serverTimestamp() });
+                    if (current(fresh, turn)) { moderatorStatus.textContent = `${data.displayName} no longer has staff access.`; await loadTeam(turn); }
                 } catch (error) { if (turn === generation) moderatorStatus.textContent = errorText(error, "moderator access"); }
                 finally { setBusy(row, false); }
             });
             row.append(info, button); moderatorList.append(row);
         }
-        if (!moderatorList.childElementCount) moderatorList.append(element("p", "muted", "You have no moderators yet."));
+        if (!moderatorList.childElementCount) moderatorList.append(element("p", "muted", "No active staff members yet."));
     } catch (error) { if (turn === generation && load === teamLoad) moderatorStatus.textContent = errorText(error, "the moderator team"); }
 }
 moderatorForm.addEventListener("submit", async event => {
     event.preventDefault(); if (moderatorForm.dataset.busy === "true") return;
-    const playerId = moderatorForm.elements.playerId.value; if (!playerId) return;
-    const turn = generation; setBusy(moderatorForm, true); moderatorStatus.textContent = "Adding moderator…";
+    const playerId = moderatorForm.elements.playerId.value; const role = moderatorForm.elements.role.value; if (!playerId || !["moderator", "admin", "co-owner"].includes(role)) return;
+    const turn = generation; setBusy(moderatorForm, true); moderatorStatus.textContent = "Saving staff role…";
     try {
         const client = await requireOwner(); if (!current(client, turn)) return;
         const sdk = client.storeSDK;
         const profile = await sdk.getDoc(sdk.doc(client.db, "players", playerId));
         if (!profile.exists() || !validPlayerProfile(profile.data()) || playerId === client.user.uid) throw new Error("Choose an active registered teammate.");
         if (!current(client, turn)) throw { code: "auth/requires-login" };
-        await sdk.setDoc(sdk.doc(client.db, "team", playerId), { role: "moderator", active: true, displayName: profile.data().displayName, updatedBy: client.user.uid, updatedAt: sdk.serverTimestamp() });
-        if (current(client, turn)) { moderatorStatus.textContent = "Moderator added. They can open Admin and retry the access check."; moderatorForm.reset(); await loadTeam(turn); }
+        await sdk.setDoc(sdk.doc(client.db, "team", playerId), { role, active: true, displayName: profile.data().displayName, updatedBy: client.user.uid, updatedAt: sdk.serverTimestamp() });
+        if (current(client, turn)) { moderatorStatus.textContent = "Staff role saved. They can open Admin and retry the access check."; moderatorForm.reset(); await loadTeam(turn); }
     } catch (error) { if (turn === generation) moderatorStatus.textContent = errorText(error, "moderator access"); }
     finally { setBusy(moderatorForm, false); }
 });

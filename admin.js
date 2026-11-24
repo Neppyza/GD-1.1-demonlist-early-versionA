@@ -1,3 +1,4 @@
+import { positionHistory } from "./rank-history.js";
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
 import { completionKey } from "./completion-model.js";
@@ -12,10 +13,11 @@ const select = document.getElementById("victor-level");
 let identity;
 let generation = 0;
 let staffId = null;
+let suggestedRank = 1;
 
 subscribeAuth(state => {
     if (!state.ready) return;
-    const key = `${state.user?.uid || ""}:${state.staff}:${state.owner}`;
+    const key = `${state.user?.uid || ""}:${state.staff}:${state.owner}:${state.role || ""}`;
     if (identity === key) return;
     identity = key;
     ++generation;
@@ -52,10 +54,11 @@ async function loadStaff(turn) {
             option.value = level.id;
             select.append(option);
         }
+        suggestedRank = results[0].docs.reduce((max, doc) => { const rank = Number(doc.data().position); return Number.isSafeInteger(rank) && rank > max ? rank : max; }, 0) + 1;
         queue.replaceChildren();
         for (const doc of results[1].docs) queue.append(renderSubmission(doc.id, doc.data(), turn));
         if (results[1].empty) queue.append(element("p", "muted", "There are no pending submissions."));
-        status.textContent = "Administrator access verified.";
+        status.textContent = `${client.role || "Staff"} access verified.`;
     } catch (error) {
         if (turn === generation) {
             tools.hidden = true;
@@ -91,7 +94,7 @@ function renderSubmission(id, data, turn) {
         const group = element("label", "", label);
         const input = element("input");
         input.name = name; input.type = type;
-        if (type === "number") { input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
+        if (type === "number") { input.value = name === "position" ? String(suggestedRank) : "0"; input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
         else if (type === "url") { input.maxLength = 2000; input.placeholder = "https://example.com/thumbnail.jpg"; }
         else input.maxLength = 60;
         group.append(input);
@@ -128,15 +131,19 @@ function renderSubmission(id, data, turn) {
                 const snapshot = await transaction.get(submission);
                 if (!snapshot.exists() || snapshot.data().status !== "pending") throw new Error("This submission has already been reviewed. Refresh the queue.");
                 const saved = snapshot.data();
+                for (const [field, label, limit] of [["levelName","Level name",80],["creator","Creator",60],["verifier","Verifier",60]]) {
+                    if (typeof saved[field] !== "string" || !saved[field].trim() || saved[field].length > limit) throw new Error(`${label} is missing or invalid in this submission. Ask the submitter to correct it.`);
+                }
+                for (const field of ["levelUrl","proofUrl"]) if (typeof saved[field] !== "string" || !saved[field].startsWith("https://") || saved[field].length > 2000 || !safeURL(saved[field])) throw new Error(`Invalid ${field} in submission; a public HTTPS link is required.`);
                 const entry = { rankingApplied: true, listType: "main", name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw { code: "auth/requires-login" };
                 writeRanking(client, transaction, ranking, level.id, rank);
-                transaction.set(level, entry);
+                transaction.set(level, { ...entry, positionHistory: positionHistory(null, rank) });
                 transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });
-            if (turn === generation) { status.textContent = "Level published."; await loadStaff(turn); }
+            if (turn === generation) { await loadStaff(turn); if (turn === generation && !tools.hidden) status.textContent = "Level published successfully."; }
         } catch (error) {
             if (turn === generation) output.textContent = error.code === "permission-denied"
                 ? "Publishing was denied. Ask the Firebase project administrator to deploy the current firestore.rules, including rankingState access and legacy rank updates. Your submission is still pending."
