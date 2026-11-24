@@ -1,3 +1,5 @@
+import { position } from "./list-model.js";
+import { readSaved, toggleSaved, movement, renderHistory } from "./list-extras.js";
 import { minimumProgress } from "./completion-model.js";
 import { subscribeData, retryData } from "./data.js";
 import { filterLevels, sortLevels, rankLabel } from "./list-model.js";
@@ -60,7 +62,18 @@ function render() {
     }
     const records = recordState.status === "ready" ? recordState.items : [];
     const listed = levelState.items;
-    const matching = filterLevels(listed, records, search.value);
+    const saved = readSaved();
+    const mode = document.getElementById("rank-filter").value;
+    const savedOnly = document.getElementById("saved-filter").checked;
+    const matching = filterLevels(listed, records, search.value).filter(level => {
+        const rank = position(level.position);
+        return (!savedOnly || saved.has(level.id)) && (mode === "all" || (mode === "top10" && rank <= 10) || (mode === "top50" && rank <= 50) || (mode === "unranked" && rank === Infinity));
+    });
+    const overview = document.getElementById("list-overview");
+    overview.replaceChildren();
+    for (const [label, value] of [["Ranked levels", listed.filter(l => position(l.position) !== Infinity).length], ["Approved completions", recordState.status === "ready" ? records.filter(r => r.approved === true && Number(r.progress) === 100).length : "—"], ["Saved levels", listed.filter(l => saved.has(l.id)).length]]) {
+        const item = element("div"); item.append(element("strong", "", value), element("span", "", label)); overview.append(item);
+    }
     const filtered = sortLevels(matching, sort.value);
     status.textContent = `${filtered.length} of ${listed.length} levels`;
     body.replaceChildren();
@@ -101,7 +114,15 @@ function render() {
             group.append(element("dt", "", label), element("dd", className, value));
             meta.append(group);
         }
-        content.append(heading, creator, verifier, meta);
+        const actions = element("div", "level-row-actions");
+        const delta = movement(level);
+        if (delta) actions.append(element("span", delta > 0 ? "rank-up" : "rank-down", delta > 0 ? "↑ " + delta : "↓ " + Math.abs(delta)));
+        const save = element("button", "save-level", saved.has(level.id) ? "Saved" : "Save");
+        save.type = "button"; save.setAttribute("aria-pressed", String(saved.has(level.id)));
+        save.setAttribute("aria-label", "Save " + (level.name || "level"));
+        save.addEventListener("click", () => { const active = toggleSaved(level.id); if (savedOnly && !active) render(); else { save.textContent = active ? "Saved" : "Save"; save.setAttribute("aria-pressed", String(active)); overview.lastElementChild.firstElementChild.textContent = String(listed.filter(l => readSaved().has(l.id)).length); } });
+        actions.append(save, levelLink(level.id, "Details →", "row-details"));
+        content.append(heading, creator, verifier, meta, actions);
         row.append(previewLink, content); body.append(row);
     }
     syncDetails();
@@ -153,7 +174,11 @@ function showDetails(id, updateURL = false) {
         const link = externalLink(value, label);
         if (link) links.append(link);
     }
-    detail.append(links, element("h3", "", "Approved victors"));
+    const copy = element("button", "secondary-button", "Copy link");
+    copy.type = "button";
+    copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(permanent.href); copy.textContent = "Copied"; } catch { copy.textContent = "Use permanent link"; } });
+    links.append(copy);
+    detail.append(links, renderHistory(level), element("h3", "", "Approved victors"));
     if (recordState.status === "ready") {
         const names = victorNames(recordState.items, id);
         if (names.length) {
@@ -172,6 +197,8 @@ window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
+for (const id of ["rank-filter", "saved-filter"]) document.getElementById(id).addEventListener("change", render);
+document.getElementById("reset-filters").addEventListener("click", () => { search.value = ""; sort.value = "position"; document.getElementById("rank-filter").value = "all"; document.getElementById("saved-filter").checked = false; render(); search.focus(); });
 function closeDetails() {
     const url = new URL(location.href);
     url.searchParams.delete("level");

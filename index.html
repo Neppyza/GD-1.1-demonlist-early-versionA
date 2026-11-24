@@ -18,6 +18,7 @@
   <script src="theme.js"></script>
   <link rel="preload" href="fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="demonlist.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -46,6 +47,7 @@
     </section>
     <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
       <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, creator, verifier or victor" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option></select></div></div>
+      <div class="list-extras"><div id="list-overview" class="list-overview" aria-label="List statistics"></div><div class="list-filters"><label for="rank-filter">Placement</label><select id="rank-filter"><option value="all">All placements</option><option value="top10">Top 10</option><option value="top50">Top 50</option><option value="unranked">Unranked</option></select><label class="saved-filter"><input type="checkbox" id="saved-filter"> Saved only</label><button type="button" id="reset-filters" class="secondary-button">Reset</button></div></div>
       <p id="connection-status" class="muted" role="status">Connecting to rankings…</p>
       <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
       <p id="records-note" class="inline-error" role="status" hidden></p><p id="selection-status" role="status" hidden></p>

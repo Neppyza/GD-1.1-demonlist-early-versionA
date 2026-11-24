@@ -1,3 +1,4 @@
+import { positionHistory } from "./rank-history.js";
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
 import { completionKey } from "./completion-model.js";
@@ -133,7 +134,7 @@ function renderSubmission(id, data, turn) {
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw { code: "auth/requires-login" };
                 writeRanking(client, transaction, ranking, level.id, rank);
-                transaction.set(level, entry);
+                transaction.set(level, { ...entry, positionHistory: positionHistory(null, rank) });
                 transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });
             if (turn === generation) { status.textContent = "Level published."; await loadStaff(turn); }

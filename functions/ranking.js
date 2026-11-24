@@ -19,8 +19,12 @@ export async function applyConsoleInsertion(db, eventSnapshot, timestamp) {
         if (updates.length > 450 || updates.some(item => !Number.isSafeInteger(item.position + 1))) {
             throw new Error('Ranking exceeds safe automatic insertion limits; no ranks were changed.');
         }
-        for (const item of updates) transaction.update(item.ref, { position: item.position + 1 });
-        transaction.update(current.ref, { rankingApplied: true });
+        for (const item of updates) {
+            const data = snapshot.docs.find(doc => doc.id === item.ref.id).data();
+            const history = Array.isArray(data.positionHistory) ? data.positionHistory : [];
+            transaction.update(item.ref, { position: item.position + 1, positionHistory: [...history, { from: item.position, to: item.position + 1, at: new Date().toISOString() }].slice(-100) });
+        }
+        transaction.update(current.ref, { rankingApplied: true, positionHistory: [{ from: null, to: target, at: new Date().toISOString() }] });
         transaction.set(revision, { updatedAt: timestamp() });
     });
 }
