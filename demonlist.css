@@ -36,3 +36,8 @@
  #close-dialog { min-width:44px; min-height:44px; }
 }
 @media(prefers-reduced-motion:reduce) { .demon-row { transition:none; } }
+
+.insight-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;padding-block:12px;border-bottom:1px solid var(--line)}
+.insight-grid > div {display:grid;gap:4px}.insight-grid strong {font-size:1.4rem;font-variant-numeric:tabular-nums}.insight-grid span {font-size:12px}
+.insight-ranking {padding-left:24px}.insight-ranking li {display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,1fr) 40px;gap:12px;align-items:center;padding:8px 0}.insight-ranking progress {width:100%;accent-color:var(--accent)}
+@media(max-width:540px){.insight-grid {grid-template-columns:repeat(2,minmax(0,1fr))}.insight-ranking li {gap:8px}}

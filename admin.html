@@ -63,12 +63,12 @@
         <div id="admin-players"></div>
       </section>
       <section id="team-management" class="section-block" hidden>
-        <div class="section-heading"><h2>Your moderator team</h2><button id="refresh-team" type="button" class="secondary-button">Refresh team</button></div>
-        <p class="muted">Only the owner can manage moderators. Moderators can review levels and completions and manage players.</p>
+        <div class="section-heading"><h2>Staff roles</h2><button id="refresh-team" type="button" class="secondary-button">Refresh team</button></div>
+        <p class="muted">Only the owner can assign or revoke staff roles. Co-owners, admins and moderators can operate the review tools.</p>
         <form id="moderator-form" class="stack-form narrow-form">
           <label for="moderator-player">Registered player</label><select id="moderator-player" name="playerId" required><option value="">Choose a player</option></select>
           <p class="muted">Your teammate must sign in and save a player profile first. Check their player ID before granting access.</p>
-          <button type="submit">Add moderator</button><p id="moderator-status" class="form-status" role="status"></p>
+          <label for="team-role">Role</label><select id="team-role" name="role"><option value="moderator">Moderator</option><option value="admin">Admin</option><option value="co-owner">Co-owner</option></select><button type="submit">Save staff role</button><p id="moderator-status" class="form-status" role="status"></p>
         </form>
         <div id="moderator-list"></div>
       </section>

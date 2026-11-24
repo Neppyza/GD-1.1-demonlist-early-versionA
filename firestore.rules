@@ -20,7 +20,7 @@ service cloud.firestore {
     function staff() {
       return owner() || (signedIn() &&
         (exists(/databases/$(database)/documents/team/$(request.auth.uid))
-          ? get(/databases/$(database)/documents/team/$(request.auth.uid)).data.role == 'moderator'
+          ? get(/databases/$(database)/documents/team/$(request.auth.uid)).data.role in ['moderator', 'admin', 'co-owner']
             && get(/databases/$(database)/documents/team/$(request.auth.uid)).data.active == true
           : request.auth.token.get('admin', false) == true));
     }
@@ -34,7 +34,7 @@ service cloud.firestore {
       allow create, update: if owner()
         && request.resource.data.keys().hasOnly(['role', 'active', 'displayName', 'updatedBy', 'updatedAt'])
         && request.resource.data.keys().hasAll(['role', 'active', 'displayName', 'updatedBy', 'updatedAt'])
-        && request.resource.data.role == 'moderator'
+        && request.resource.data.role in ['moderator', 'admin', 'co-owner']
         && request.resource.data.active is bool
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 3 && request.resource.data.displayName.size() <= 60
