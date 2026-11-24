@@ -12,7 +12,7 @@ function publish(values) {
 }
 
 async function rolesFor(client, user, force = false) {
-    if (!user) return { owner: false, staff: false };
+    if (!user) return { owner: false, staff: false, role: null };
     const token = await client.authSDK.getIdTokenResult(user, force);
     const owner = token.claims.owner === true;
     if (owner) return { owner: true, staff: true, role: "owner" };
@@ -50,14 +50,14 @@ export function startAuth() {
                         publish({ ready: true, user, ...roles, error: "" });
                     } catch (error) {
                         if (turn !== generation) return;
-                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, error: authMessage(error) });
+                        publish({ ready: true, user: client.auth.currentUser, staff: false, owner: false, role: null, error: authMessage(error) });
                     }
                     resolve();
                 }, reject);
             });
             return client;
         } catch (error) {
-            publish({ ready: true, user: null, staff: false, owner: false, error: authMessage(error) });
+            publish({ ready: true, user: null, staff: false, owner: false, role: null, error: authMessage(error) });
             startup = null;
             return null;
         }

@@ -143,7 +143,7 @@ function renderSubmission(id, data, turn) {
                 transaction.set(level, { ...entry, positionHistory: positionHistory(null, rank) });
                 transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });
-            if (turn === generation) { await loadStaff(turn); if (turn === generation) status.textContent = "Level published successfully."; }
+            if (turn === generation) { await loadStaff(turn); if (turn === generation && !tools.hidden) status.textContent = "Level published successfully."; }
         } catch (error) {
             if (turn === generation) output.textContent = error.code === "permission-denied"
                 ? "Publishing was denied. Ask the Firebase project administrator to deploy the current firestore.rules, including rankingState access and legacy rank updates. Your submission is still pending."

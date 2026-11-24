@@ -14,17 +14,18 @@ export async function applyConsoleInsertion(db, eventSnapshot, timestamp) {
         }
         const snapshot = await transaction.get(db.collection('levels'));
         const updates = snapshot.docs.filter(doc => doc.id !== current.id)
-            .map(doc => ({ ref: doc.ref, position: Number(doc.data().position) }))
+            .map(doc => ({ ref: doc.ref, data: doc.data(), position: Number(doc.data().position) }))
             .filter(item => Number.isFinite(item.position) && item.position >= target);
         if (updates.length > 450 || updates.some(item => !Number.isSafeInteger(item.position + 1))) {
             throw new Error('Ranking exceeds safe automatic insertion limits; no ranks were changed.');
         }
+        const at = new Date().toISOString();
         for (const item of updates) {
-            const data = snapshot.docs.find(doc => doc.id === item.ref.id).data();
+            const data = item.data;
             const history = Array.isArray(data.positionHistory) ? data.positionHistory : [];
-            transaction.update(item.ref, { position: item.position + 1, positionHistory: [...history, { from: item.position, to: item.position + 1, at: new Date().toISOString() }].slice(-100) });
+            transaction.update(item.ref, { position: item.position + 1, positionHistory: [...history, { from: item.position, to: item.position + 1, at }].slice(-100) });
         }
-        transaction.update(current.ref, { rankingApplied: true, positionHistory: [{ from: null, to: target, at: new Date().toISOString() }] });
+        transaction.update(current.ref, { rankingApplied: true, positionHistory: [{ from: null, to: target, at }] });
         transaction.set(revision, { updatedAt: timestamp() });
     });
 }

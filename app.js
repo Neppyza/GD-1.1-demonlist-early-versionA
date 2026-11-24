@@ -49,7 +49,7 @@ function render() {
     const recordNote = document.getElementById("records-note");
     recordNote.hidden = recordState.status !== "error";
     recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
-    if (levelState.status !== "ready") syncDetails();
+    if (levelState.status !== "ready") { document.getElementById("list-overview").replaceChildren(); syncDetails(); }
     if (levelState.status === "loading") {
         listState( "Loading the demonlist…");
         status.textContent = "Loading levels…";
@@ -71,7 +71,7 @@ function render() {
     });
     const overview = document.getElementById("list-overview");
     overview.replaceChildren();
-    for (const [label, value] of [["Ranked levels", listed.filter(l => position(l.position) !== Infinity).length], ["Approved completions", recordState.status === "ready" ? records.filter(r => r.approved === true && Number(r.progress) === 100).length : "—"], ["Saved levels", listed.filter(l => saved.has(l.id)).length]]) {
+    for (const [label, value] of [["Ranked levels", listed.filter(l => position(l.position) !== Infinity).length], ["Approved completions", recordState.status === "ready" ? new Set(records.filter(r => r.approved === true && Number(r.progress) === 100 && r.playerId && listed.some(l => l.id === r.levelId)).map(r => JSON.stringify([r.playerId, r.levelId]))).size : "—"], ["Saved levels", listed.filter(l => saved.has(l.id)).length]]) {
         const item = element("div"); item.append(element("strong", "", value), element("span", "", label)); overview.append(item);
     }
     const filtered = sortLevels(matching, sort.value);
@@ -119,8 +119,8 @@ function render() {
         if (delta) actions.append(element("span", delta > 0 ? "rank-up" : "rank-down", delta > 0 ? "↑ " + delta : "↓ " + Math.abs(delta)));
         const save = element("button", "save-level", saved.has(level.id) ? "Saved" : "Save");
         save.type = "button"; save.setAttribute("aria-pressed", String(saved.has(level.id)));
-        save.setAttribute("aria-label", "Save " + (level.name || "level"));
-        save.addEventListener("click", () => { const active = toggleSaved(level.id); if (savedOnly && !active) render(); else { save.textContent = active ? "Saved" : "Save"; save.setAttribute("aria-pressed", String(active)); overview.lastElementChild.firstElementChild.textContent = String(listed.filter(l => readSaved().has(l.id)).length); } });
+        save.setAttribute("aria-label", (saved.has(level.id) ? "Unsave " : "Save ") + (level.name || "level"));
+        save.addEventListener("click", () => { const active = toggleSaved(level.id); if (savedOnly && !active) render(); else { save.textContent = active ? "Saved" : "Save"; save.setAttribute("aria-pressed", String(active)); save.setAttribute("aria-label", (active ? "Unsave " : "Save ") + (level.name || "level")); overview.lastElementChild.firstElementChild.textContent = String(listed.filter(l => readSaved().has(l.id)).length); } });
         actions.append(save, levelLink(level.id, "Details →", "row-details"));
         content.append(heading, creator, verifier, meta, actions);
         row.append(previewLink, content); body.append(row);

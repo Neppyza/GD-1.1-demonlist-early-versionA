@@ -235,7 +235,7 @@ async function loadTeam(turn) {
         for (const doc of team.docs.filter(doc => doc.data().active === true)) {
             const data = doc.data(); const row = element("article", "management-row moderator-row"); const info = element("div", "management-info");
             info.append(element("h3", "", data.displayName), element("p", "player-id muted", `Player ID: ${doc.id}`), element("p", "muted", ({moderator:"Moderator",admin:"Admin","co-owner":"Co-owner"})[data.role] || "Unknown role"));
-            const button = element("button", "danger-button", "Revoke access"); button.type = "button"; button.setAttribute("aria-label", `Remove moderator ${data.displayName}`);
+            const button = element("button", "danger-button", "Revoke access"); button.type = "button"; button.setAttribute("aria-label", `Revoke access for ${data.displayName}`);
             button.addEventListener("click", async () => {
                 if (row.dataset.busy === "true" || !confirm(`Revoke staff access for ${data.displayName} (${doc.id})?`)) return;
                 setBusy(row, true);

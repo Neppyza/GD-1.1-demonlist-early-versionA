@@ -237,3 +237,18 @@ test('record minimums default safely and validate every supported percentage', a
     assert.equal(shouldReplaceRecord({approved:true,progress:65},65),false);
     assert.equal(shouldReplaceRecord({approved:false,progress:100},65),true);
 });
+
+ test('position history is bounded and only tracks rank changes', async () => {
+ const {positionHistory}=await import('../rank-history.js');
+ const {movement,historyEntries}=await import('../list-extras.js');
+ let level={position:1,positionHistory:[]};
+ for(let i=2;i<=105;i++) level={position:i,positionHistory:positionHistory(level,i,'2026-01-01T00:00:00.000Z')};
+ assert.equal(level.positionHistory.length,100);assert.equal(movement(level),-1);assert.equal(historyEntries(level).length,100);
+ assert.deepEqual(positionHistory(level,105),level.positionHistory);
+ assert.deepEqual(positionHistory(null,1,'2026-01-01T00:00:00.000Z'),[{from:null,to:1,at:'2026-01-01T00:00:00.000Z'}]);
+ });
+ test('community insights deduplicate player completions and ignore unknown levels',async()=>{
+ const {communityInsights}=await import('../community-insights.js');
+ const data=communityInsights([{id:'a'},{id:'b'}],[{completed:[{id:'a'},{id:'a'},{id:'missing'}],countryCode:'FR'},{completed:[{id:'a'}],countryCode:'FR'},{completed:[],countryCode:'US'}]);
+ assert.equal(data.total,2);assert.equal(data.cleared,1);assert.equal(data.active,2);assert.equal(data.countries,2);
+ });

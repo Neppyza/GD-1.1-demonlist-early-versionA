@@ -57,6 +57,9 @@ service cloud.firestore {
       let minimum = get(/databases/$(database)/documents/levels/$(levelId)).data.get('minProgress', 100);
       return validMinimum(minimum) && validMinimum(progress) && progress >= minimum;
     }
+    function validPositionHistory(data) {
+      return !('positionHistory' in data) || (data.positionHistory is list && data.positionHistory.size() <= 100);
+    }
     function validLevel(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 80
         && data.position is int && data.position > 0
@@ -232,8 +235,8 @@ service cloud.firestore {
     }
     match /levels/{id} {
       allow read: if true;
-      allow create: if staff() && validLevel(request.resource.data);
-      allow update: if staff() && (validLevel(request.resource.data)
+      allow create: if staff() && validLevel(request.resource.data) && validPositionHistory(request.resource.data);
+      allow update: if staff() && validPositionHistory(request.resource.data) && (validLevel(request.resource.data)
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['position', 'positionHistory'])
           && request.resource.data.position is int && request.resource.data.position > 0));
       allow delete: if staff();
