@@ -169,7 +169,10 @@ function render() {
         const overlay = element("span","preview-action","View level →"); overlay.setAttribute("aria-hidden","true"); previewLink.append(overlay);
         const content = element("div", "level-summary");
         const heading = element("h2", "level-name");
-        heading.append(element("span", "level-placement", `${rankLabel(level)} – `), levelLink(level.id, String(level.name || "Unnamed level").trim()));
+        heading.append(levelLink(level.id, String(level.name || "Unnamed level").trim()));
+        const rank = element("div", "level-rank");
+        rank.append(element("span", "level-placement", rankLabel(level)));
+        if (position(level.position) === 1) rank.classList.add("rank-first");
         const creator = element("p", "level-creator");
         creator.append(document.createTextNode("Created by "), element("strong", "", level.creator || "—"));
         const verifier = element("p", "level-verifier");
@@ -193,7 +196,7 @@ function render() {
         if (proof) actions.append(proof);
         actions.append(levelLink(level.id, "Details →", "row-details"));
         content.append(heading, creator, verifier, meta, actions);
-        row.append(previewLink, content); body.append(row);
+        row.append(rank, previewLink, content); body.append(row);
     }
     syncDetails();
 }
