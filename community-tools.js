@@ -23,11 +23,19 @@ main?.prepend(notices);
 getFirebase().then(client => {
     client.storeSDK.onSnapshot(client.storeSDK.collection(client.db, "announcements"), snapshot => {
         notices.replaceChildren();
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))
             .sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
         for (const item of items) {
             const article = element("article");
-            article.append(element("h2", "", item.title || "Announcement"), element("p", "", item.body || ""));
+            const meta = element("div","announcement-meta");
+            meta.append(element("span","announcement-label","List team update"));
+            const seconds = item.updatedAt?.seconds;
+            if (Number.isFinite(seconds) && Number.isFinite(new Date(seconds * 1000).getTime())) {
+                const date = new Date(seconds * 1000);
+                const time = element("time","",date.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}));
+                time.dateTime = date.toISOString(); meta.append(time);
+            }
+            article.append(meta,element("h2", "", item.title || "Announcement"), element("p", "", item.body || ""));
             notices.append(article);
         }
         notices.hidden = !items.length;
