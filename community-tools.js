@@ -84,6 +84,24 @@ if (location.pathname.endsWith("admin.html")) {
         await client.storeSDK.setDoc(client.storeSDK.doc(client.db, "announcements", "current"),
             { title: values.title.trim(), body: values.body.trim(), updatedAt: client.storeSDK.serverTimestamp() });
     });
+    section.id = "staff-announcement"; section.hidden = true;
+    const loadCurrent = element("button", "secondary-button", "Load current announcement");
+    loadCurrent.type = "button";
+    loadCurrent.addEventListener("click", async () => {
+        const turn = generation;
+        loadCurrent.disabled = true;
+        const form = section.querySelector("form"), status = section.querySelector(".form-status");
+        try {
+            const client = await requireStaff(), sdk = client.storeSDK;
+            const snapshot = await sdk.getDoc(sdk.doc(client.db,"announcements","current"));
+            if (turn !== generation) return;
+            form.elements.title.value = snapshot.exists() ? snapshot.data().title || "" : "";
+            form.elements.body.value = snapshot.exists() ? snapshot.data().body || "" : "";
+            status.textContent = snapshot.exists() ? "Current announcement loaded for editing." : "No current announcement.";
+        } catch (error) { if (turn === generation) status.textContent = dataMessage(error,"announcement"); }
+        finally { loadCurrent.disabled = false; }
+    });
+    section.append(loadCurrent);
     const hide = element("button", "secondary-button", "Remove announcement");
     hide.type = "button";
     hide.addEventListener("click", async () => {
@@ -97,15 +115,30 @@ if (location.pathname.endsWith("admin.html")) {
     });
     section.append(hide);
     const feedback = element("section", "section-block");
+    feedback.id = "staff-feedback"; feedback.hidden = true;
     const refresh = element("button", "secondary-button", "Load feedback");
     refresh.type = "button";
     const inbox = element("div");
-    feedback.append(element("h2", "", "Feedback inbox"), refresh, inbox);
-    let generation = 0;
+    const searchLabel = element("label", "", "Search feedback");
+    const search = element("input"); search.type = "search"; search.placeholder = "Message or player ID"; searchLabel.append(search);
+    const count = element("p", "muted"); count.setAttribute("aria-live","polite");
+    function filterFeedback() {
+        const rows = [...inbox.querySelectorAll("article")], term = search.value.trim().toLowerCase();
+        let shown = 0;
+        for (const row of rows) { row.hidden = !row.textContent.toLowerCase().includes(term); if (!row.hidden) shown++; }
+        count.textContent = rows.length ? `${shown} of ${rows.length} messages` : "";
+    }
+    search.addEventListener("input",filterFeedback);
+    feedback.append(element("h2", "", "Feedback inbox"), refresh, searchLabel, count, inbox);
+    let generation = 0, identity;
     subscribeAuth(state => {
-        ++generation;
+        const key = `${state.user?.uid || ""}:${state.staff}`;
+        if (key === identity) return;
+        identity = key; ++generation;
         section.hidden = feedback.hidden = !state.staff;
-        inbox.replaceChildren();
+        section.querySelector("form").reset();
+        section.querySelector(".form-status").textContent = "";
+        search.value = ""; count.textContent = ""; inbox.replaceChildren();
     });
     refresh.addEventListener("click", async () => {
         const turn = generation;
@@ -122,6 +155,7 @@ if (location.pathname.endsWith("admin.html")) {
                 inbox.append(article);
             }
             if (!snapshot.docs.length) inbox.textContent = "No feedback yet.";
+            filterFeedback();
         } catch (error) { if (turn === generation) inbox.textContent = dataMessage(error, "feedback"); }
         finally { refresh.disabled = false; }
     });
