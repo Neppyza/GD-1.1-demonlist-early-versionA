@@ -22,7 +22,7 @@ async function connect(name) {
         if (generation !== entry.generation || !entry.listeners.size) return;
         const reference = name === "records" ? storeSDK.query(storeSDK.collection(db, name), storeSDK.where("approved", "==", true)) : storeSDK.collection(db, name);
         entry.stop = storeSDK.onSnapshot(reference, snapshot => {
-            if (generation === entry.generation) publish(entry, { status: "ready", items: snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })), error: null });
+            if (generation === entry.generation) publish(entry, { status: "ready", items: snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(item => name !== "levels" || item.rankingApplied !== false), error: null });
         }, error => {
             if (generation === entry.generation) publish(entry, { status: "error", items: [], error });
         });
