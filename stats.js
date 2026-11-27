@@ -182,7 +182,7 @@ function showPlayer(player, ranked) {
     function appendRun(container,level,progress,proofUrl) {
         const row = element("li");
         const text = element("div","profile-run-name");
-        const link = element("a","",rankLabel(level)+" · "+(level.name || "Unnamed level"));
+        const link = element("a","",listLabel(levelList(level))+" · "+rankLabel(level)+" · "+(level.name || "Unnamed level"));
         link.href = "index.html?level="+encodeURIComponent(level.id);
         text.append(link,element("span","muted",progress === 100 ? number(Number.isFinite(Number(level.points)) && Number(level.points) >= 0 ? Number(level.points) : 0)+" points · 100%" : progress+"% · No completion points"));
         const proof = externalLink(proofUrl,"Proof ↗");
