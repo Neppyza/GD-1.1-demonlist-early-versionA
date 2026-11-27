@@ -195,8 +195,10 @@ function render() {
         actions.append(save);
         if (proof) actions.append(proof);
         actions.append(levelLink(level.id, "Details →", "row-details"));
-        content.append(heading, creator, verifier, meta, actions);
-        row.append(rank, previewLink, content); body.append(row);
+        content.append(heading, creator, verifier);
+        const identity = element("div","level-identity");
+        identity.append(previewLink, content);
+        row.append(rank, identity, meta, actions); body.append(row);
     }
     syncDetails();
 }
