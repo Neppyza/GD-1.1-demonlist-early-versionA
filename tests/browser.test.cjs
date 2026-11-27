@@ -80,6 +80,22 @@ const server=http.createServer((req,res)=>{
     assert.equal(await page.evaluate(()=>window.__test.watcherCount('levels')),1);
     await page.locator('#rank-filter').selectOption('unranked');assert.equal(await page.locator('.demon-row').count(),1);await page.locator('#reset-filters').click();await page.locator('.save-level').first().click();await page.locator('#saved-filter').check();assert.equal(await page.locator('.demon-row').count(),1);await page.locator('.save-level').first().click();assert.equal(await page.locator('.demon-row').count(),0);await page.locator('#reset-filters').click();
     assert.equal(await page.evaluate(()=>window.__test.watcherCount('records')),1);
+    await page.locator('#compact-view').click();
+    assert.equal(await page.locator('#compact-view').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('#demon-table').evaluate(el=>el.classList.contains('compact-list')),true);
+    await page.locator('#compact-view').click();
+    assert.equal(await page.locator('#compact-view').getAttribute('aria-pressed'),'false');
+    await page.locator('#search').fill('#1');
+    await page.locator('#random-level').click();
+    assert.equal(await page.locator('#detail-title').innerText(),'Fixture Alpha');
+    assert.ok(await page.locator('.detail-neighbors a').count());
+    await page.locator('#close-dialog').click();
+    await page.locator('#reset-filters').click();
+    if(await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches)){
+        await page.locator('.demon-row').first().hover();
+        await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.preview-action')).opacity) > .95);
+    }
+
     for(const [term,expected]of [['creator a','Fixture Alpha'],['verifier b','Fixture Beta'],['extreme','Fixture Alpha']]){await page.locator('#search').fill(term);assert.match(await page.locator('#levels').innerText(),new RegExp(expected))}
     await page.locator('#search').fill('missing-value');assert.equal(await page.locator('.demon-row').count(),0);await page.getByRole('button',{name:'Clear search'}).click();
     await page.locator('#sort').selectOption('name');assert.match(await page.locator('.demon-row').first().innerText(),/Fixture Alpha/);
