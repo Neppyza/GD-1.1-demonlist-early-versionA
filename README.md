@@ -96,11 +96,15 @@ Corrections are stored separately from profiles and completion records; profile 
 
 ## Demonlist placements
 
-There is one demonlist. Previous list tags are ignored; all published levels and their records remain available, including through old links. Staff no longer choose a list.
+Main and Platformer have independent active placements. Legacy preserves historical positions without shifting other legacy levels. Existing levels without a recognized list tag default to Main.
 
 Publishing at #1 pushes the previous #1 to #2, #2 to #3, and so on. Moving an existing level closes its old position and makes room at the destination. Conflicting numbered positions are repaired when saving; unranked entries remain unranked. Points and completion history are preserved. Rank changes are committed atomically and concurrent saves retry against the latest rankings.
 
 Deploy the updated `firestore.rules` before using the updated admin page (`firebase deploy --only firestore:rules`). The staff-only `rankingState/main` document coordinates simultaneous placements and is created automatically. Saves that need to shift more than 450 levels are rejected without partial changes.
 
+### Staff workspace
+
+Use Admin → Add level to publish a verified level without a submission, including on Spark. Enter its list, placement, points, metadata and HTTPS proof, then confirm. The preview shows affected ranks from the last loaded data; the transaction checks current rankings. Manage levels supports searching, metadata edits and placement history. The ranking overview reports pending console inserts, invalid positions, duplicate active ranks and gaps; it does not automatically repair them. Review queues support search and oldest/newest sorting. Owner-only team permissions are unchanged.
+
 ### Direct Firebase placements
-Deploy from the repository root using `firebase deploy --only functions:shiftConsoleLevel` after selecting the correct Firebase project. The project needs Cloud Functions deployment support (typically Blaze). For direct console inserts, create a level document with a numeric positive integer position and `rankingApplied: false`. At #2, existing applied #2 becomes #3, #3 becomes #4, and so on; #1 stays unchanged. Wait until rankingApplied becomes true before inserting another level or editing placements. Do not manually set it true or manually shift other ranks. Existing document edits in the console do not trigger insertion; use the website staff level manager to move existing levels. The function does not backfill historical documents or repair old duplicates. Check function logs if the marker does not change.
+Deploy from the repository root using `firebase deploy --only functions:demonlist-ranking` after selecting the correct Firebase project. The project needs Cloud Functions deployment support (typically Blaze). For direct console inserts, create a level document with a numeric positive integer position and `rankingApplied: false`. At #2, existing applied #2 becomes #3, #3 becomes #4, and so on; #1 stays unchanged. Wait until rankingApplied becomes true before inserting another level or editing placements. Do not manually set it true or manually shift other ranks. Existing document edits in the console do not trigger insertion; use the website staff level manager to move existing levels. The function does not backfill historical documents or repair old duplicates. Check function logs if the marker does not change.
