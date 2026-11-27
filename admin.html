@@ -78,7 +78,7 @@
         <form id="level-management-form" class="stack-form narrow-form">
           <label for="managed-level">Level</label><select id="managed-level" name="levelId" required></select>
           <label for="managed-name">Level name</label><input id="managed-name" name="levelName" maxlength="80" required>
-          <label for="managed-position">Position</label><input id="managed-position" name="position" type="number" min="1" step="1" required aria-describedby="managed-position-help">
+          <label for="managed-list">Ranking list</label><select id="managed-list" name="listType"><option value="main">Main List</option><option value="legacy">Legacy List (historical position)</option><option value="platformer">Platformer List</option></select><label for="managed-position">Position</label><input id="managed-position" name="position" type="number" min="1" step="1" required aria-describedby="managed-position-help">
           <p id="managed-position-help" class="muted">Placing a level moves the affected levels automatically. For example, placing it at #1 pushes #1 to #2, #2 to #3, and so on.</p>
           <label for="managed-difficulty">Difficulty (optional)</label><input id="managed-difficulty" name="difficulty" maxlength="60" placeholder="e.g. Extreme Demon">
           <label for="managed-points">Points per completion</label><input id="managed-points" name="points" type="number" min="0" step="0.01" required>

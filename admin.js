@@ -107,7 +107,10 @@ function renderSubmission(id, data, turn) {
     reject.type = "button";
     const output = element("p", "form-status");
     output.setAttribute("role", "status");
-    form.append(approve, reject, output);
+    const listGroup=element("label","","Ranking list");
+    const listSelect=element("select"); listSelect.name="listType";
+    for(const [value,label] of [["main","Main List"],["legacy","Legacy List"],["platformer","Platformer List"]]) {const option=element("option","",label);option.value=value;listSelect.append(option);}
+    listGroup.append(listSelect);form.append(listGroup,approve,reject,output);
     form.addEventListener("submit", async event => {
         event.preventDefault();
         if (form.dataset.busy === "true") return;
@@ -135,11 +138,11 @@ function renderSubmission(id, data, turn) {
                     if (typeof saved[field] !== "string" || !saved[field].trim() || saved[field].length > limit) throw new Error(`${label} is missing or invalid in this submission. Ask the submitter to correct it.`);
                 }
                 for (const field of ["levelUrl","proofUrl"]) if (typeof saved[field] !== "string" || !saved[field].startsWith("https://") || saved[field].length > 2000 || !safeURL(saved[field])) throw new Error(`Invalid ${field} in submission; a public HTTPS link is required.`);
-                const entry = { rankingApplied: true, listType: "main", name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
+                const entry = { rankingApplied: true, listType: form.elements.listType.value, name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw { code: "auth/requires-login" };
-                writeRanking(client, transaction, ranking, level.id, rank);
+                writeRanking(client, transaction, ranking, level.id, rank, entry.listType);
                 transaction.set(level, { ...entry, positionHistory: positionHistory(null, rank) });
                 transaction.update(submission, { status: "approved", levelId: level.id, reviewedBy: client.user.uid, reviewedAt: sdk.serverTimestamp() });
             });

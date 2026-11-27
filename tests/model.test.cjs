@@ -147,8 +147,9 @@ test('owner corrections preserve completions, support reset and future scores, a
 test('retired list tags preserve every published level in the single demonlist', async () => {
     const { filterList, levelList } = await import('../list-model.js');
     const levels = [{id:'old'}, {id:'main',listType:'main'}, {id:'platform',listType:'platformer'}, {id:'legacy',listType:'legacy'}];
-    assert.deepEqual(filterList(levels), levels);
-    assert.equal(levelList(levels[2]), 'main');
+    assert.deepEqual(filterList(levels), levels.slice(0,2));
+    assert.deepEqual(filterList(levels,"legacy"),[levels[3]]);
+    assert.equal(levelList(levels[2]), 'platformer');
 });
 
 test('inserting at first or middle shifts all affected ranks without mutating input', async () => {
@@ -294,3 +295,5 @@ test('player profile metrics count unique completions and highest approved parti
     assert.equal(info.proofByLevel.get('a'),'https://example.org/proof');
     assert.deepEqual(info.partial.map(r=>[r.level.id,r.progress]),[['b',70]]);
 });
+
+test('platformer insertion and legacy transfer isolate rankings',async()=>{const {listPlacementUpdates}=await import('../list-model.js');const levels=[{id:'a',position:1},{id:'b',position:2},{id:'p',position:1,listType:'platformer'},{id:'l',position:1,listType:'legacy'}];assert.deepEqual(listPlacementUpdates(levels,'new',1,'platformer'),[{id:'p',position:2}]);assert.deepEqual(listPlacementUpdates(levels,'a',1,'legacy'),[{id:'b',position:1}]);});

@@ -1,5 +1,5 @@
 import { positionHistory } from "./rank-history.js";
-import { placementUpdates } from "./list-model.js";
+import { listPlacementUpdates } from "./list-model.js";
 
 // The shared revision serializes placements, including concurrent publications
 // into an empty list. Re-read the collection on every transaction retry.
@@ -14,9 +14,9 @@ export async function readRanking(client, transaction) {
     return { levels, revision };
 }
 
-export function writeRanking(client, transaction, ranking, levelId, target) {
+export function writeRanking(client, transaction, ranking, levelId, target, type = "main") {
     const sdk = client.storeSDK;
-    const updates = placementUpdates(ranking.levels, levelId, target);
+    const updates = listPlacementUpdates(ranking.levels, levelId, target, type);
     // Leave room for the level, submission and shared revision in one commit.
     if (updates.length > 450) throw new Error("Too many levels need moving in one save. Ask a database administrator to reorder this list.");
     for (const update of updates) transaction.update(sdk.doc(client.db, "levels", update.id), { position: update.position, positionHistory: positionHistory(ranking.levels.find(level => level.id === update.id), update.position) });

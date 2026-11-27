@@ -1,3 +1,4 @@
+const listType = data => ["legacy","platformer"].includes(data.listType) ? data.listType : "main";
 // Uses the same revision document as website publishing to serialize rank changes.
 export async function applyConsoleInsertion(db, eventSnapshot, timestamp) {
     if (!eventSnapshot || eventSnapshot.data().rankingApplied === true) return;
@@ -9,11 +10,12 @@ export async function applyConsoleInsertion(db, eventSnapshot, timestamp) {
         if (!current.exists || !current.createTime.isEqual(eventSnapshot.createTime)
             || current.data().rankingApplied === true) return;
         const target = current.data().position;
+        const type = listType(current.data());
         if (!Number.isSafeInteger(target) || target < 1) {
             throw new Error('New console levels need a positive integer position. Correct the document to allow retry.');
         }
         const snapshot = await transaction.get(db.collection('levels'));
-        const updates = snapshot.docs.filter(doc => doc.id !== current.id && doc.data().rankingApplied !== false)
+        const updates = snapshot.docs.filter(doc => doc.id !== current.id && doc.data().rankingApplied !== false && type !== "legacy" && listType(doc.data()) === type)
             .map(doc => ({ ref: doc.ref, data: doc.data(), position: Number(doc.data().position) }))
             .filter(item => Number.isSafeInteger(item.position) && item.position >= target);
         if (updates.length > 450 || updates.some(item => !Number.isSafeInteger(item.position + 1))) {

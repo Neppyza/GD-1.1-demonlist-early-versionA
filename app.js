@@ -1,5 +1,6 @@
 import { categoryOf, categories, latestPlacements, discoverySort, matchesRank, distinctCompletions, rankingActivity, adjacentLevels, randomLevel, isRecentPlacement } from "./discovery-model.js";
-import { position } from "./list-model.js";
+import { position, filterList } from "./list-model.js";
+let activeList = "main";
 import { readSaved, toggleSaved, movement, renderHistory } from "./list-extras.js";
 import { minimumProgress } from "./completion-model.js";
 import { subscribeData, retryData } from "./data.js";
@@ -54,8 +55,8 @@ function renderActivity(levels) {
     activityMore.textContent = activityExpanded ? "Show less activity" : "Show more activity (up to 30)";
     activityMore.setAttribute("aria-expanded",String(activityExpanded));
 }
-activityMode.addEventListener("change",() => { activityExpanded = false; renderActivity(levelState.items); });
-activityMore.addEventListener("click",() => { activityExpanded = !activityExpanded; renderActivity(levelState.items); });
+activityMode.addEventListener("change",() => { activityExpanded = false; renderActivity(filterList(levelState.items,activeList)); });
+activityMore.addEventListener("click",() => { activityExpanded = !activityExpanded; renderActivity(filterList(levelState.items,activeList)); });
 randomButton.addEventListener("click",() => {
     const level = randomLevel(visibleLevels);
     if (level) showDetails(level.id,true);
@@ -115,7 +116,7 @@ function render() {
         return;
     }
     const records = recordState.status === "ready" ? recordState.items : [];
-    const listed = levelState.items;
+    const listed = filterList(levelState.items,activeList);
     renderActivity(listed);
     const selectedCategory = category.value;
     const options = categories(listed);
@@ -271,6 +272,14 @@ function showDetails(id, updateURL = false) {
 
 window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
+
+for(const button of document.querySelectorAll("[data-list]")) button.addEventListener("click",()=>{
+    activeList=button.dataset.list;
+    for(const b of document.querySelectorAll("[data-list]")) b.setAttribute("aria-pressed",String(b===button));
+    activityExpanded=false;
+    category.value="";
+    render();
+});
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
 for (const id of ["rank-filter", "saved-filter", "category-filter", "completion-filter", "recent-filter"]) document.getElementById(id).addEventListener("change", render);
