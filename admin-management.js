@@ -1,3 +1,5 @@
+import { submissionTime } from "./admin-model.js";
+import { filterQueue } from "./admin-workspace.js";
 import { subscribeAuth, requireStaff, requireOwner } from "./auth.js";
 import { buildStats } from "./stats-model.js";
 import { validPlayerProfile } from "./player-profile.js";
@@ -9,6 +11,12 @@ const playerList = document.getElementById("admin-players");
 const playerStatus = document.getElementById("player-management-status");
 const completionQueue = document.getElementById("completion-queue");
 const completionStatus = document.getElementById("completion-review-status");
+const completionSearch = document.getElementById("completion-search");
+const completionOrder = document.getElementById("completion-order");
+const completionCount = document.getElementById("completion-filter-count");
+const filterCompletions = () => filterQueue(completionQueue, completionSearch, completionOrder, completionCount);
+completionSearch.addEventListener("input", filterCompletions);
+completionOrder.addEventListener("change", filterCompletions);
 const teamSection = document.getElementById("team-management");
 const moderatorList = document.getElementById("moderator-list");
 const moderatorForm = document.getElementById("moderator-form");
@@ -30,7 +38,7 @@ subscribeAuth(state => {
     identity = key; ++generation;
     staffId = state.staff ? state.user.uid : null;
     isOwner = state.owner;
-    players = []; playerList.replaceChildren(); completionQueue.replaceChildren(); moderatorList.replaceChildren();
+    players = []; playerList.replaceChildren(); completionQueue.replaceChildren(); moderatorList.replaceChildren(); completionSearch.value = ""; completionCount.textContent = "";
     for (const output of [playerStatus, completionStatus, moderatorStatus]) output.textContent = "";
     moderatorForm.reset(); moderatorForm.elements.playerId.replaceChildren(element("option", "", "Choose a player"));
     teamSection.hidden = !state.owner;
@@ -163,14 +171,17 @@ async function loadCompletions(turn) {
         completionQueue.replaceChildren();
         for (const doc of snapshot.docs) completionQueue.append(renderCompletion(doc.id, doc.data(), names.get(doc.data().levelId), turn));
         if (snapshot.empty) completionQueue.append(element("p", "muted", "There are no pending completions."));
+        filterCompletions();
         completionStatus.textContent = `${snapshot.docs.length} pending completions`;
     } catch (error) {
-        if (turn === generation && load === completionLoad) { completionQueue.replaceChildren(); completionStatus.textContent = errorText(error, "completion submissions"); }
+        if (turn === generation && load === completionLoad) { completionQueue.replaceChildren(); completionCount.textContent = ""; completionStatus.textContent = errorText(error, "completion submissions"); }
     }
 }
 
 function renderCompletion(id, data, levelName, turn) {
     const card = element("article", "review-item completion-review-item");
+    card.dataset.reviewSearch = [data.player, data.ownerUid, levelName, data.progress ?? 100, `${data.progress ?? 100}%`].join(" ");
+    card.dataset.reviewTime = String(submissionTime(data));
     card.append(element("h3", "", `${data.player || "Unknown player"} · ${levelName || "Level unavailable"}`), element("p", "player-id muted", `Player ID: ${data.ownerUid}`));
     const proof = externalLink(data.proofUrl, `Watch ${data.progress ?? 100}% proof ↗`); if (proof) card.append(proof);
     if (data.notes) card.append(element("p", "", data.notes));
@@ -214,7 +225,7 @@ function renderCompletion(id, data, levelName, turn) {
         finally { setBusy(form, false); accept.disabled = !levelName || !proof; }
     }
     form.addEventListener("submit", event => { event.preventDefault(); review(true); });
-    reject.addEventListener("click", () => review(false));
+    reject.addEventListener("click", () => { if (confirm(`Reject the completion submitted by ${data.player || "this player"}?`)) review(false); });
     return card;
 }
 document.getElementById("refresh-completions").addEventListener("click", () => loadCompletions(generation));
