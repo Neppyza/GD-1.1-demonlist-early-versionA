@@ -148,10 +148,10 @@ function render() {
     body.replaceChildren();
     if (!filtered.length) {
         listState( listed.length ? "No matching levels" : "No levels have been published in this list yet", listed.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
-        if (search.value) {
-            const clear = element("button", "secondary-button", "Clear search");
+        if (search.value || savedOnly || recentFilter.checked || category.value || completion.value!=="all" || mode!=="all") {
+            const clear = element("button", "secondary-button", "Clear filters");
             clear.type = "button";
-            clear.addEventListener("click", () => { search.value = ""; render(); search.focus(); });
+            clear.addEventListener("click", () => document.getElementById("reset-filters").click());
             body.querySelector(".list-state").append(clear);
         }
     }
@@ -207,7 +207,10 @@ function syncDetails() {
     const selectionStatus = document.getElementById("selection-status");
     selectionStatus.hidden = true;
     if (levelState.status === "ready" && selected) {
-        if (levelState.items.some(level => level.id === selected)) {
+        const selectedLevel = levelState.items.find(level => level.id === selected);
+        if (selectedLevel) {
+            const type=levelList(selectedLevel);
+            if(type!==activeList) { activeList=type; history.replaceState(history.state,"",listURL(type,selected)); render(); return; }
             showDetails(selected);
             return;
         }
