@@ -4,7 +4,7 @@ import { positionHistory } from "./rank-history.js";
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff } from "./auth.js";
 import { sortLevels, levelList, listLabel } from "./list-model.js";
-import { element, setBusy } from "./ui.js";
+import { element, setBusy, safeURL } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
 const form = document.getElementById("level-management-form");
@@ -13,7 +13,22 @@ const points = form.elements.points;
 const nameInput = form.elements.levelName;
 const positionInput = form.elements.position;
 const difficultyInput = form.elements.difficulty;
-const editableFields = ["name", "position", "difficulty", "points", "listType"];
+const metadataFields = ["creator","verifier","levelUrl","proofUrl","thumbnail"];
+const editableFields = ["name", "position", "difficulty", "points", "listType", ...metadataFields];
+const historyNode = document.getElementById("managed-history");
+function renderHistory(level) {
+    historyNode.replaceChildren();
+    const history = Array.isArray(level?.positionHistory) ? level.positionHistory : [];
+    if (!history.length) { historyNode.textContent = "No placement history recorded."; return; }
+    const list = element("ul");
+    for (const item of history.slice(-20).reverse()) {
+        if (!item || typeof item !== "object") continue;
+        const date = new Date(item.at);
+        const label = Number.isFinite(date.getTime()) ? date.toLocaleDateString() : "Unknown date";
+        list.append(element("li", "", `${label} · ${item.from == null ? "Entered" : "#" + item.from} → #${item.to}`));
+    }
+    historyNode.append(list);
+}
 const search = document.getElementById("managed-search");
 const listFilter = document.getElementById("managed-filter");
 const preview = document.getElementById("managed-preview");
@@ -44,7 +59,7 @@ subscribeAuth(state => {
     if (identity === key) return;
     identity = key; ++generation; ++request;
     staffId = state.staff ? state.user.uid : null;
-    levels = []; form.reset(); search.value = ""; listFilter.value = "all"; select.replaceChildren(); victors.replaceChildren(); output.textContent = ""; updatePreview();
+    levels = []; form.reset(); search.value = ""; listFilter.value = "all"; select.replaceChildren(); victors.replaceChildren(); output.textContent = ""; updatePreview(); renderHistory(null);
     if (state.staff) load(generation);
 });
 
@@ -73,6 +88,8 @@ async function showLevel(turn) {
     nameInput.value = level?.name ?? "";
     positionInput.value = level?.position ?? "";
     difficultyInput.value = level?.difficulty ?? "";
+    for (const field of metadataFields) form.elements[field].value = level?.[field] ?? "";
+    renderHistory(level);
     updatePreview();
     victors.replaceChildren();
     if (!level) return;
@@ -151,8 +168,15 @@ form.addEventListener("submit", async event => {
     if (!Number.isSafeInteger(changes.position) || changes.position < 1) { output.textContent = "Enter a positive whole-number position."; return; }
     if (changes.difficulty.length > 60) { output.textContent = "Keep difficulty to 60 characters or fewer, or leave it empty."; return; }
     if (!points.value.trim() || !Number.isFinite(changes.points) || changes.points < 0) { output.textContent = "Enter non-negative points."; return; }
+    for (const field of metadataFields) {
+        const value = form.elements[field].value.trim();
+        if (value === String(level[field] ?? "")) continue;
+        if (["creator","verifier"].includes(field) && (!value || value.length > 60)) { output.textContent = "Creator and verifier must contain 1–60 characters."; return; }
+        if (["levelUrl","proofUrl","thumbnail"].includes(field) && !(field === "thumbnail" && !value) && (!value.startsWith("https://") || !safeURL(value) || value.length > 2000)) { output.textContent = "Use valid public HTTPS links for level, proof and thumbnail."; return; }
+        changes[field] = value;
+    }
     const before = Object.fromEntries(editableFields.map(field => [field, level[field]]));
-    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nList: ${changes.listType}\nPosition: ${changes.position} (active lists shift automatically)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}`)) return;
+    if (!confirm(`Save changes to ${level.name}?\nName: ${changes.name}\nList: ${changes.listType}\nPosition: ${changes.position} (active lists shift automatically)\nDifficulty: ${changes.difficulty || "Not set"}\nPoints per victor: ${changes.points}\nMetadata changes: ${metadataFields.filter(field => field in changes).join(", ") || "None"}`)) return;
     setBusy(form, true); output.textContent = "Saving level changes…";
     try {
         const client = await requireStaff(); if (!current(client, turn)) return;
@@ -164,9 +188,10 @@ form.addEventListener("submit", async event => {
             if (editableFields.some(field => saved.data()[field] !== before[field])) throw new Error("This level changed since you loaded it. Refresh levels and try again.");
             if (!current(client, turn)) throw { code: "auth/requires-login" };
             const updates = writeRanking(client, transaction, ranking, levelId, changes.position, changes.listType);
-            transaction.update(ref, { ...changes, positionHistory: positionHistory(saved.data(), changes.position) });
+            const history = positionHistory(saved.data(), changes.position);
+            transaction.update(ref, { ...changes, positionHistory: history });
             const positions = new Map(updates.map(item => [item.id, item.position]));
-            return ranking.levels.map(item => item.id === levelId ? { ...item, ...changes } : { ...item, position: positions.get(item.id) ?? item.position });
+            return ranking.levels.map(item => item.id === levelId ? { ...item, ...changes, positionHistory: history } : { ...item, position: positions.get(item.id) ?? item.position });
         });
         if (current(client, turn)) {
             levels = result;
@@ -174,6 +199,7 @@ form.addEventListener("submit", async event => {
             if (listFilter.value !== "all" && listFilter.value !== levelList(moved)) listFilter.value = "all";
             search.value = "";
             renderOptions(levelId);
+            renderHistory(moved);
             updatePreview();
             document.getElementById("refresh-overview").click();
             output.textContent = `${changes.name} saved at position ${changes.position}. Level details and leaderboard scores update automatically.`;
