@@ -1,3 +1,5 @@
+import { queueMatches } from "./admin-model.js";
+import { renderPlacementPreview } from "./admin-workspace.js";
 import { positionHistory } from "./rank-history.js";
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff } from "./auth.js";
@@ -12,14 +14,23 @@ const nameInput = form.elements.levelName;
 const positionInput = form.elements.position;
 const difficultyInput = form.elements.difficulty;
 const editableFields = ["name", "position", "difficulty", "points", "listType"];
+const search = document.getElementById("managed-search");
+const listFilter = document.getElementById("managed-filter");
+const preview = document.getElementById("managed-preview");
+function updatePreview() {
+    if (!select.value) { preview.textContent = "Choose a level to preview rank changes."; return; }
+    renderPlacementPreview(preview, levels, select.value, Number(positionInput.value), form.elements.listType.value);
+}
 
 function renderOptions(selected = select.value) {
     const placeholder = element("option", "", "Choose a level"); placeholder.value = "";
     select.replaceChildren(placeholder);
     for (const level of sortLevels(levels)) {
-        const option = element("option", "", `${level.name || "Unnamed level"} · ${listLabel(levelList(level))}`); option.value = level.id; select.append(option);
+        if (listFilter.value !== "all" && levelList(level) !== listFilter.value) continue;
+        if (!queueMatches([level.name, level.creator, level.verifier, "#" + level.position, level.id], search.value)) continue;
+        const option = element("option", "", `#${level.position ?? "—"} · ${level.name || "Unnamed level"} · ${listLabel(levelList(level))}`); option.value = level.id; select.append(option);
     }
-    if (levels.some(level => level.id === selected)) select.value = selected;
+    if ([...select.options].some(option => option.value === selected)) select.value = selected;
 }
 const output = document.getElementById("level-management-status");
 const victors = document.getElementById("managed-victors");
@@ -33,7 +44,7 @@ subscribeAuth(state => {
     if (identity === key) return;
     identity = key; ++generation; ++request;
     staffId = state.staff ? state.user.uid : null;
-    levels = []; form.reset(); select.replaceChildren(); victors.replaceChildren(); output.textContent = "";
+    levels = []; form.reset(); search.value = ""; listFilter.value = "all"; select.replaceChildren(); victors.replaceChildren(); output.textContent = ""; updatePreview();
     if (state.staff) load(generation);
 });
 
@@ -62,6 +73,7 @@ async function showLevel(turn) {
     nameInput.value = level?.name ?? "";
     positionInput.value = level?.position ?? "";
     difficultyInput.value = level?.difficulty ?? "";
+    updatePreview();
     victors.replaceChildren();
     if (!level) return;
     victors.append(element("p", "muted", "Loading victors…"));
@@ -118,6 +130,15 @@ async function showLevel(turn) {
     }
 }
 select.addEventListener("change", () => { output.textContent = ""; showLevel(generation); });
+function filterOptions() {
+    const previous = select.value;
+    renderOptions(previous);
+    if (select.value !== previous) showLevel(generation);
+}
+search.addEventListener("input", filterOptions);
+listFilter.addEventListener("change", filterOptions);
+positionInput.addEventListener("input", updatePreview);
+form.elements.listType.addEventListener("change", updatePreview);
 document.getElementById("refresh-levels").addEventListener("click", () => load(generation));
 form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -149,7 +170,12 @@ form.addEventListener("submit", async event => {
         });
         if (current(client, turn)) {
             levels = result;
-            renderOptions();
+            const moved = levels.find(item => item.id === levelId);
+            if (listFilter.value !== "all" && listFilter.value !== levelList(moved)) listFilter.value = "all";
+            search.value = "";
+            renderOptions(levelId);
+            updatePreview();
+            document.getElementById("refresh-overview").click();
             output.textContent = `${changes.name} saved at position ${changes.position}. Level details and leaderboard scores update automatically.`;
         }
     } catch (error) { if (turn === generation) output.textContent = message(error); }
