@@ -1,5 +1,5 @@
 import { subscribeData, retryData } from "./data.js";
-import { position, sortLevels } from "./list-model.js";
+import { position, sortLevels, levelList, listLabel } from "./list-model.js";
 import { element, externalLink, stateRow } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
@@ -22,12 +22,12 @@ function render() {
     const map = new Map(levels.items.map(level => [level.id, level]));
     filter.replaceChildren();
     const all = element("option", "", "All levels"); all.value = ""; filter.append(all);
-    for (const level of sortLevels(levels.items)) { const option = element("option", "", String(level.name || "Unnamed level").trim()); option.value = level.id; filter.append(option); }
+    for (const level of sortLevels(levels.items)) { const option = element("option", "", String(level.name || "Unnamed level").trim()+" · "+listLabel(levelList(level))); option.value = level.id; filter.append(option); }
     if (selection && !map.has(selection)) selection = "";
     filter.value = selection;
     const term = search.value.toLowerCase().trim();
     const approved = records.items.filter(record => record.approved === true);
-    const filtered = approved.filter(record => (!selection || record.levelId === selection) && [record.player, map.get(record.levelId)?.name].some(value => String(value || "").toLowerCase().includes(term)));
+    const filtered = approved.filter(record => (!selection || record.levelId === selection) && [record.player, map.get(record.levelId)?.name, map.has(record.levelId) ? listLabel(levelList(map.get(record.levelId))) : ""].some(value => String(value || "").toLowerCase().includes(term)));
     filtered.sort((a,b) => sort.value === "player" ? String(a.player || "").localeCompare(String(b.player || "")) : position(map.get(a.levelId)?.position) - position(map.get(b.levelId)?.position) || String(a.player || "").localeCompare(String(b.player || "")));
     body.replaceChildren();
     status.textContent = `${filtered.length} of ${approved.length} approved records`;
@@ -35,7 +35,7 @@ function render() {
         const level = map.get(record.levelId);
         const row = element("tr");
         const name = element("td", "level-name");
-        if (level) { const link = element("a", "", String(level.name || "Unnamed level").trim()); link.href = `index.html?level=${encodeURIComponent(level.id)}`; name.append(link); }
+        if (level) { const link = element("a", "", String(level.name || "Unnamed level").trim()); link.href = `index.html?level=${encodeURIComponent(level.id)}`; name.append(link,element("small","record-list-label muted",listLabel(levelList(level)))); }
         else name.textContent = "Level no longer available";
         const proof = element("td");
         proof.append(externalLink(record.proofUrl, "Watch proof ↗") || element("span", "muted", "—"));
@@ -45,7 +45,7 @@ function render() {
     if (!filtered.length) stateRow(body, 6, approved.length ? "No matching records" : "No approved records yet", approved.length ? "Try another player, level, or filter." : "Approved completions will appear here after staff review.");
 }
 search.addEventListener("input", render);
-filter.addEventListener("change", () => { selection = filter.value; render(); });
+filter.addEventListener("change", () => { selection = filter.value; const url=new URL(location.href); if(selection) url.searchParams.set("level",selection); else url.searchParams.delete("level"); history.replaceState(history.state,"",url); render(); });
 sort.addEventListener("change", render);
 subscribeData("levels", value => { levels = value; render(); });
 subscribeData("records", value => { records = value; render(); });
