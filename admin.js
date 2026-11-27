@@ -50,6 +50,7 @@ function updateOverview(levels) {
     healthStatus.textContent = "Last refreshed " + new Date().toLocaleTimeString();
     if (!directForm.elements.position.value) directForm.elements.position.value = String(suggestedRanks[directForm.elements.listType.value]);
     directPreview();
+    for (const input of queue.querySelectorAll("input[name=position]")) input.dispatchEvent(new Event("input"));
 }
 directForm.elements.listType.addEventListener("change", () => {
     directForm.elements.position.value = String(suggestedRanks[directForm.elements.listType.value]); directPreview();
@@ -292,7 +293,7 @@ directForm.addEventListener("submit", async event => {
         await sdk.runTransaction(client.db, async transaction => {
             const ranking = await readRanking(client, transaction);
             if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw {code:"auth/requires-login"};
-            if (ranking.levels.some(level => level.name?.trim().toLowerCase() === entry.name.toLowerCase() && levelList(level) === entry.listType)) throw new Error("A level with this name already exists in this list. Use Manage levels to edit it.");
+            if (ranking.levels.some(level => String(level.name ?? "").trim().toLowerCase() === entry.name.toLowerCase() && levelList(level) === entry.listType)) throw new Error("A level with this name already exists in this list. Use Manage levels to edit it.");
             writeRanking(client, transaction, ranking, ref.id, entry.position, entry.listType);
             transaction.set(ref, {...entry, positionHistory:positionHistory(null,entry.position)});
         });
@@ -300,7 +301,7 @@ directForm.addEventListener("submit", async event => {
             directForm.reset();
             directStatus.textContent = `${entry.name} published successfully.`;
             await loadStaff(turn);
-            document.getElementById("refresh-levels").click();
+            if (turn === generation) document.getElementById("refresh-levels").click();
         }
     } catch (error) {
         if (turn === generation) directStatus.textContent = error.code ? dataMessage(error,"direct publishing") : error.message || "Could not publish the level.";
