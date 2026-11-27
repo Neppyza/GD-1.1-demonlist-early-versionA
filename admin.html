@@ -49,7 +49,7 @@
     <button id="staff-retry" class="secondary-button" type="button">Retry access check</button>
     <p class="admin-access-help muted">If you own this site, follow the <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#staff-access" target="_blank" rel="noopener noreferrer">owner setup instructions ↗</a> once, then retry access.</p>
     <div id="staff-tools" hidden>
-      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Stats viewer</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a href="#direct-publish">Add level</a><a href="#manual-completion">Manual record</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
+      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Stats viewer</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a href="#direct-publish">Add level</a><a href="#manual-completion">Manual record</a><a href="#staff-announcement">Announcement</a><a href="#staff-feedback">Feedback</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
       <section id="staff-overview" class="section-block">
         <div class="section-heading"><h2>Ranking overview</h2><button type="button" class="secondary-button" id="refresh-overview">Refresh overview</button></div>
         <div id="ranking-health" class="staff-metrics" aria-live="polite"></div>
@@ -91,10 +91,18 @@
           <p id="managed-position-help" class="muted">Placing a level moves the affected levels automatically. For example, placing it at #1 pushes #1 to #2, #2 to #3, and so on.</p>
           <label for="managed-difficulty">Difficulty (optional)</label><input id="managed-difficulty" name="difficulty" maxlength="60" placeholder="e.g. Extreme Demon">
           <label for="managed-points">Points per completion</label><input id="managed-points" name="points" type="number" min="0" step="0.01" required>
+          <details class="staff-metadata"><summary>Creator, verifier and links</summary>
+            <label>Creator<input name="creator" maxlength="60"></label>
+            <label>Verifier<input name="verifier" maxlength="60"></label>
+            <label>Level URL<input name="levelUrl" type="url" maxlength="2000"></label>
+            <label>Proof URL<input name="proofUrl" type="url" maxlength="2000"></label>
+            <label>Thumbnail URL<input name="thumbnail" type="url" maxlength="2000"></label>
+          </details>
           <div id="managed-preview" class="staff-preview" aria-live="polite"></div>
           <button type="submit">Save level changes</button>
         </form>
         <p id="level-management-status" class="form-status" role="status"></p>
+        <details class="staff-metadata"><summary>Placement history</summary><div id="managed-history"></div></details>
         <h3>Approved victors</h3><div id="managed-victors"></div>
       </section>
       <section id="level-review" class="section-block"><div class="section-heading"><h2>Pending level submissions</h2><button id="refresh-queue" type="button" class="secondary-button">Refresh queue</button></div><p class="muted">Set the placement, points and optional thumbnail image before publishing. <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#add-levels-and-thumbnails" target="_blank" rel="noopener noreferrer">How to add levels and thumbnails ↗</a></p><div class="staff-filter"><label>Search submissions<input type="search" id="level-queue-search" placeholder="Level, creator, verifier or submitter"></label><label>Order<select id="level-queue-order"><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label></div><p id="level-queue-count" class="muted" aria-live="polite"></p><div id="review-queue"></div></section>
