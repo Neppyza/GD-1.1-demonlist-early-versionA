@@ -1,0 +1,102 @@
+/* Ranking home: compact editorial layout, with a single visual accent. */
+.ranking-home {--paper:#fff;--background:#f3f5f7;--soft:#edf2f5;--line:#d9e0e5;--ink:#1c2933;--muted:#52616e;--accent:#176d98;--button-ink:#fff}
+[data-theme="dark"] .ranking-home {--paper:#1b2027;--background:#14181e;--soft:#252d36;--line:#343e49;--ink:#edf0f3;--muted:#a8b4c1;--accent:#93c7e8;--button-ink:#14212b}
+.ranking-home .header-inner {max-width:1320px;min-height:68px}
+.ranking-home .header-inner nav a.active {background:transparent}
+.ranking-home .list-page {max-width:1320px;background:transparent;padding:34px 28px 40px}
+.ranking-home .list-heading {margin:0;padding:0 0 24px;border:0;gap:24px}
+.ranking-home .list-heading .eyebrow {font-size:10px;letter-spacing:1.4px;color:var(--accent);margin:0 0 8px}
+.ranking-home .list-heading h1 {font-size:clamp(32px,4vw,52px);line-height:1.1;letter-spacing:-1.7px;margin:0 0 10px}
+.ranking-home .list-heading h1 span {color:var(--ink)}
+.ranking-home .hero-intro {max-width:unset;margin:0 0 16px}
+.ranking-home .hero-guide {flex-basis:260px}
+.ranking-home .button-link {border-radius:4px}
+.ranking-home .list-overview {background:var(--paper);border:1px solid var(--line);padding:16px 20px;margin:0 0 28px;border-radius:6px}
+.ranking-home .list-overview:empty {display:none}
+.ranking-home .list-overview strong {font-size:24px;line-height:1.2}
+.ranking-home .list-overview > div {padding-inline:20px}
+.ranking-home .list-overview > div:first-child {padding-left:0}
+.ranking-home .demon-layout {grid-template-columns:minmax(0,1fr) 310px;grid-template-rows:auto 1fr;gap:20px 26px}
+.ranking-home .list-content {grid-column:1;grid-row:1 / span 2;min-width:0}
+.rankings-heading {display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 14px}
+.rankings-heading h2 {margin:0;font-size:21px;letter-spacing:-.4px}
+.rankings-heading span {color:var(--muted);font-size:11px}
+.ranking-home .list-content .list-toolbar {max-width:none;background:var(--paper);border:1px solid var(--line);border-bottom:0;border-radius:6px 6px 0 0;padding:14px;grid-template-columns:minmax(0,1fr) 168px}
+.ranking-home .list-extras,.ranking-home .browse-actions {background:var(--paper);border-inline:1px solid var(--line);padding:0 14px}
+.ranking-home .list-filters {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 10px;padding:0 0 10px}
+.ranking-home .list-filters label:not(.saved-filter) {grid-row:1;color:var(--muted);font-size:11px}
+.ranking-home .list-filters select {grid-row:2;width:100%}
+.ranking-home .list-filters .saved-filter {grid-column:1 / span 2}
+.ranking-home #reset-filters {grid-column:3}
+.ranking-home .browse-actions {border-bottom:1px solid var(--line);border-radius:0 0 6px 6px;padding-bottom:12px;gap:8px}
+.ranking-home .browse-actions button,.ranking-home #reset-filters {min-height:38px;font-size:11px;padding:7px 10px}
+.ranking-home #connection-status,.ranking-home #result-count {font-size:11px;margin:12px 0}
+.ranking-home #result-count {font-weight:650}
+.ranking-home .list-page .demon-row {grid-template-columns:64px minmax(110px,185px) minmax(0,1fr);gap:14px;padding:15px 14px;margin:0;border:1px solid var(--line);border-radius:0;background:var(--paper);align-items:center}
+.ranking-home .demon-row + .demon-row {border-top:0}
+.ranking-home .demon-row:first-child {border-radius:6px 6px 0 0}
+.ranking-home .demon-row:last-child {border-radius:0 0 6px 6px}
+.ranking-home .demon-row:only-child {border-radius:6px}
+.level-rank {align-self:center;text-align:center;min-width:0}
+.level-rank .level-placement {font-size:23px;font-weight:700;letter-spacing:-.8px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
+.level-rank.rank-first .level-placement {color:var(--accent);font-size:29px}
+.ranking-home .level-name {font-size:19px;line-height:1.3;margin:0 0 5px}
+.ranking-home .level-creator,.ranking-home .level-verifier {font-size:11px;line-height:1.5;margin:0 0 3px}
+.ranking-home .row-meta {margin-top:9px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 14px}
+.ranking-home .row-meta dd {overflow-wrap:anywhere}
+.ranking-home .level-row-actions {margin-top:9px;gap:10px}
+.ranking-home .level-row-actions a {font-size:11px}
+.ranking-home .save-level {min-height:32px;padding:4px 10px;font-size:11px}
+.ranking-home .placement-feed {grid-column:2;grid-row:1;margin:0;padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:6px;min-width:0}
+.ranking-home .activity-heading {display:block;margin-bottom:10px}
+.ranking-home .activity-heading h2 {font-size:16px;line-height:1.4}
+.ranking-home .activity-controls {margin-top:12px}
+.ranking-home .activity-controls select {min-height:38px}
+.ranking-home .placement-feed-list {grid-template-columns:minmax(0,1fr);gap:0}
+.ranking-home .placement-item {grid-template-columns:68px minmax(0,1fr) 12px;padding:12px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;gap:5px 9px}
+.ranking-home .placement-item:last-child {border-bottom:0}
+.ranking-home .placement-copy strong {font-size:12px;line-height:1.4}
+.ranking-home .placement-copy .muted,.ranking-home .placement-item time {font-size:10px}
+.ranking-home .list-sidebar {grid-column:2;grid-row:2;display:block;min-width:0}
+.ranking-home .sidebar-section {padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:6px;margin:0 0 14px}
+.ranking-home .sidebar-section h2 {font-size:15px;margin:0 0 5px}
+.ranking-home .sidebar-section > p {margin:0 0 9px}
+.ranking-home .community-card {color:var(--ink);background:var(--paper)}
+.ranking-home .community-card > p {color:var(--muted)}
+.ranking-home .community-card a {color:var(--accent)}
+.ranking-home .list-page .compact-list .demon-row {grid-template-columns:56px 105px minmax(0,1fr);padding:10px 12px}
+.ranking-home .compact-list .row-meta {display:none}
+.ranking-home .list-page .demon-row:focus-within {border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
+@media(hover:hover) and (pointer:fine) {
+ .ranking-home .list-page .demon-row:hover {background:var(--soft);border-bottom-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
+ .ranking-home .placement-item:hover {background:var(--soft);box-shadow:none}
+}
+@media(max-width:900px) {
+ .ranking-home .demon-layout {grid-template-columns:minmax(0,1fr);grid-template-rows:auto}
+ .ranking-home .list-content,.ranking-home .placement-feed,.ranking-home .list-sidebar {grid-column:1;grid-row:auto}
+ .ranking-home .placement-feed {order:-1}
+ .ranking-home .placement-feed-list {grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+ .ranking-home .list-sidebar {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .ranking-home .sidebar-section {margin:0}
+}
+@media(max-width:540px) {
+ .ranking-home .list-page {padding:20px 14px 28px}
+ .ranking-home .list-heading {padding-bottom:20px}
+ .ranking-home .list-overview {margin-bottom:18px;padding:12px 10px}
+ .ranking-home .list-overview > div {padding-inline:8px}
+ .ranking-home .list-overview strong {font-size:20px}
+ .ranking-home .placement-feed-list,.ranking-home .list-sidebar {grid-template-columns:minmax(0,1fr)}
+ .ranking-home .list-content .list-toolbar {grid-template-columns:minmax(0,1fr)}
+ .ranking-home .list-filters {display:flex;flex-wrap:wrap;gap:6px}
+ .ranking-home .list-filters label:not(.saved-filter) {width:64px}
+ .ranking-home .list-filters select {flex:1 1 calc(100% - 80px);max-width:calc(100% - 74px)}
+ .ranking-home .list-page .demon-row {grid-template-columns:45px minmax(0,1fr);gap:10px;padding:12px}
+ .ranking-home .level-rank {grid-row:1;align-self:start}
+ .ranking-home .level-rank .level-placement {font-size:18px}
+ .ranking-home .level-preview {grid-column:2}
+ .ranking-home .level-summary {grid-column:2}
+ .ranking-home .list-page .compact-list .demon-row {grid-template-columns:40px 68px minmax(0,1fr);gap:8px;padding:10px}
+ .ranking-home .compact-list .level-summary {grid-column:3}
+ .ranking-home .save-level,.ranking-home .level-row-actions a {min-height:44px}
+ .ranking-home .level-name {font-size:17px}
+}
