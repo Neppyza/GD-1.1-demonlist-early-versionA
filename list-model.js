@@ -1,6 +1,6 @@
 export function position(value) {
     const number = Number(value);
-    return Number.isFinite(number) && number > 0 ? number : Infinity;
+    return Number.isSafeInteger(number) && number > 0 ? number : Infinity;
 }
 
 export function sortLevels(levels, order = "position") {
@@ -30,15 +30,18 @@ export function filterLevels(levels, records, term) {
 
 export const listTypes = ["main","legacy","platformer"];
 export function levelList(level) { return listTypes.includes(level?.listType) ? level.listType : "main"; }
+export const listLabel = type => ({main:"Main List",legacy:"Legacy List",platformer:"Platformer List"})[type] || "Main List";
 export function filterList(levels,type="main") { return levels.filter(level=>levelList(level)===type); }
 export function listPlacementUpdates(levels,id,target,type="main") {
-    const old=levels.find(l=>l.id===id);
+    if (!listTypes.includes(type) || !Number.isSafeInteger(target) || target < 1) throw new Error("Choose a valid list and positive whole-number placement.");
+    levels=levels.filter(l=>l.id===id || l.rankingApplied!==false);
+    const old=levels.find(l=>l.id===id && l.rankingApplied!==false);
     const source=levelList(old);
     const updates=[];
     if(old && source!==type && source!=="legacy" && position(old.position)!==Infinity) {
         for(const l of filterList(levels,source)) if(l.id!==id && position(l.position)!==Infinity && position(l.position)>position(old.position)) updates.push({id:l.id,position:position(l.position)-1});
     }
-    if(type!=="legacy") updates.push(...placementUpdates(filterList(levels,type),id,target));
+    if(type!=="legacy") updates.push(...placementUpdates(filterList(levels,type).filter(l=>l.rankingApplied!==false),id,target));
     return updates;
 }
 
