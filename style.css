@@ -460,3 +460,9 @@ button, input, select, textarea, .button-link { border-radius: 3px; }
  .announcements article:hover::before {opacity:1}
 }
 @media(prefers-reduced-motion:reduce){.announcements article,.announcements article::before,.announcements .announcement-label {transition:none!important}}
+
+/* Small usability improvements without changing the original visual identity. */
+.record-list-label{display:block;font-size:11px;font-weight:400;margin-top:3px}
+:where(a,button,input,select,textarea):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.thumbnail img{display:block}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

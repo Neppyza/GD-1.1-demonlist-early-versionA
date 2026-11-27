@@ -144,7 +144,7 @@ test('owner corrections preserve completions, support reset and future scores, a
     assert.equal(buildStats([],[],[],[{id:'ghost',delta:99}]).length,0);
 });
 
-test('retired list tags preserve every published level in the single demonlist', async () => {
+test('recognized list tags select independent rankings', async () => {
     const { filterList, levelList } = await import('../list-model.js');
     const levels = [{id:'old'}, {id:'main',listType:'main'}, {id:'platform',listType:'platformer'}, {id:'legacy',listType:'legacy'}];
     assert.deepEqual(filterList(levels), levels.slice(0,2));
@@ -297,3 +297,20 @@ test('player profile metrics count unique completions and highest approved parti
 });
 
 test('platformer insertion and legacy transfer isolate rankings',async()=>{const {listPlacementUpdates}=await import('../list-model.js');const levels=[{id:'a',position:1},{id:'b',position:2},{id:'p',position:1,listType:'platformer'},{id:'l',position:1,listType:'legacy'}];assert.deepEqual(listPlacementUpdates(levels,'new',1,'platformer'),[{id:'p',position:2}]);assert.deepEqual(listPlacementUpdates(levels,'a',1,'legacy'),[{id:'b',position:1}]);});
+
+test('pending placements do not shift published ranks and invalid targets are rejected',async()=>{
+    const {listPlacementUpdates}=await import('../list-model.js');
+    const levels=[{id:'a',position:1},{id:'pending',position:1,rankingApplied:false},{id:'p',position:1,listType:'platformer'}];
+    assert.deepEqual(listPlacementUpdates(levels,'new',1,'main'),[{id:'a',position:2}]);
+    assert.deepEqual(listPlacementUpdates(levels,'pending',1,'main'),[{id:'a',position:2}]);
+    assert.throws(()=>listPlacementUpdates(levels,'new',1,'unknown'));
+    assert.throws(()=>listPlacementUpdates(levels,'new',0,'legacy'));
+});
+test('profile coverage does not compare main and platformer ranks',async()=>{
+    const {playerDetails}=await import('../stats-model.js');
+    const levels=[{id:'a',position:5},{id:'p',position:1,listType:'platformer'},{id:'l',position:1,listType:'legacy'}];
+    const player={id:'x',completed:[levels[1],levels[0]],basePoints:20};
+    const info=playerDetails(player,levels,[],[player]);
+    assert.equal(info.hardest.id,'a');assert.equal(info.hardestPlatformer.id,'p');
+    assert.deepEqual(info.top10,{completed:1,total:1});assert.deepEqual(info.legacy,{completed:0,total:1});
+});

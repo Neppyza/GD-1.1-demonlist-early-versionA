@@ -1,6 +1,8 @@
 import { categoryOf, categories, latestPlacements, discoverySort, matchesRank, distinctCompletions, rankingActivity, adjacentLevels, randomLevel, isRecentPlacement } from "./discovery-model.js";
-import { position, filterList } from "./list-model.js";
-let activeList = "main";
+import { position, filterList, levelList, listTypes, listLabel } from "./list-model.js";
+const listFromURL = () => { const type = new URLSearchParams(location.search).get("list"); return listTypes.includes(type) ? type : "main"; };
+let activeList = listFromURL();
+const listURL = (type,id) => { const url = new URL(location.href); url.searchParams.delete("level"); if(type === "main") url.searchParams.delete("list"); else url.searchParams.set("list",type); if(id) url.searchParams.set("level",id); return url; };
 import { readSaved, toggleSaved, movement, renderHistory } from "./list-extras.js";
 import { minimumProgress } from "./completion-model.js";
 import { subscribeData, retryData } from "./data.js";
@@ -88,7 +90,7 @@ function listState(title, message, retry) {
 
 function levelLink(id, label, className = "") {
     const link = element("a", className, label);
-    link.href = `?level=${encodeURIComponent(id)}`;
+    link.href = listURL(levelList(levelState.items.find(l=>l.id===id)),id).href;
     link.addEventListener("click", event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
@@ -117,6 +119,7 @@ function render() {
     }
     const records = recordState.status === "ready" ? recordState.items : [];
     const listed = filterList(levelState.items,activeList);
+    for(const button of document.querySelectorAll("[data-list]")) { button.setAttribute("aria-pressed",String(button.dataset.list===activeList)); button.textContent=listLabel(button.dataset.list)+" ("+filterList(levelState.items,button.dataset.list).length+")"; }
     renderActivity(listed);
     const selectedCategory = category.value;
     const options = categories(listed);
@@ -141,14 +144,14 @@ function render() {
     }
     const filtered = discoverySort(matching, sort.value, records);
     visibleLevels = filtered; randomButton.disabled = !filtered.length;
-    status.textContent = `${filtered.length} of ${listed.length} levels`;
+    status.textContent = `${listLabel(activeList)} · ${filtered.length} of ${listed.length} levels`;
     body.replaceChildren();
     if (!filtered.length) {
         listState( listed.length ? "No matching levels" : "No levels have been published in this list yet", listed.length ? "Try another name, creator, verifier, or victor." : "Approved levels will appear here.");
-        if (search.value) {
-            const clear = element("button", "secondary-button", "Clear search");
+        if (search.value || savedOnly || recentFilter.checked || category.value || completion.value!=="all" || mode!=="all") {
+            const clear = element("button", "secondary-button", "Clear filters");
             clear.type = "button";
-            clear.addEventListener("click", () => { search.value = ""; render(); search.focus(); });
+            clear.addEventListener("click", () => document.getElementById("reset-filters").click());
             body.querySelector(".list-state").append(clear);
         }
     }
@@ -204,7 +207,10 @@ function syncDetails() {
     const selectionStatus = document.getElementById("selection-status");
     selectionStatus.hidden = true;
     if (levelState.status === "ready" && selected) {
-        if (levelState.items.some(level => level.id === selected)) {
+        const selectedLevel = levelState.items.find(level => level.id === selected);
+        if (selectedLevel) {
+            const type=levelList(selectedLevel);
+            if(type!==activeList) { activeList=type; history.replaceState(history.state,"",listURL(type,selected)); render(); return; }
             showDetails(selected);
             return;
         }
@@ -221,7 +227,7 @@ function showDetails(id, updateURL = false) {
         const url = new URL(location.href);
         if (url.searchParams.get("level") !== id) {
             url.searchParams.set("level", id);
-            url.searchParams.delete("list");
+            if(levelList(level)==="main") url.searchParams.delete("list"); else url.searchParams.set("list",levelList(level));
             history.pushState(null, "", url);
         }
     }
@@ -235,11 +241,11 @@ function showDetails(id, updateURL = false) {
         group.append(element("dt", "", label), element("dd", "", value ?? "—"));
         meta.append(group);
     }
-    detail.replaceChildren(element("p", "eyebrow", rankLabel(level)), title, thumbnail(level), meta);
+    detail.replaceChildren(element("p", "eyebrow", listLabel(levelList(level))+" · "+rankLabel(level)), title, thumbnail(level), meta);
     if (level.description) detail.append(element("p", "level-description", level.description));
     const links = element("div", "detail-actions");
     const permanent = element("a", "", "Permanent link");
-    permanent.href = `?level=${encodeURIComponent(id)}`;
+    permanent.href = listURL(levelList(level),id).href;
     links.append(permanent);
     for (const [value, label] of [[level.levelUrl, "Open level ↗"], [level.proofUrl, "Watch verification ↗"]]) {
         const link = externalLink(value, label);
@@ -251,7 +257,7 @@ function showDetails(id, updateURL = false) {
     links.append(copy);
     const neighbors = element("nav","detail-neighbors");
     neighbors.setAttribute("aria-label","Adjacent rankings");
-    const [previous,next] = adjacentLevels(levelState.items,id);
+    const [previous,next] = adjacentLevels(filterList(levelState.items,levelList(level)),id);
     if (previous) neighbors.append(levelLink(previous.id,"← " + rankLabel(previous) + " " + (previous.name || "Unnamed level")));
     if (next) neighbors.append(levelLink(next.id,rankLabel(next) + " " + (next.name || "Unnamed level") + " →"));
     detail.append(links, neighbors, renderHistory(level), element("h3", "", "Approved victors"));
@@ -274,7 +280,9 @@ window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 
 for(const button of document.querySelectorAll("[data-list]")) button.addEventListener("click",()=>{
+    if(activeList===button.dataset.list) return;
     activeList=button.dataset.list;
+    history.pushState(null,"",listURL(activeList));
     for(const b of document.querySelectorAll("[data-list]")) b.setAttribute("aria-pressed",String(b===button));
     activityExpanded=false;
     category.value="";
@@ -289,13 +297,14 @@ function closeDetails() {
     url.searchParams.delete("level");
     history.replaceState(history.state, "", url);
     if (dialog.open) dialog.close();
+    if(activeList!==listFromURL()) {activeList=listFromURL();render();}
 }
 document.getElementById("close-dialog").addEventListener("click", closeDetails);
 dialog.addEventListener("cancel", event => {
     event.preventDefault();
     closeDetails();
 });
-window.addEventListener("popstate", syncDetails);
+window.addEventListener("popstate", () => { activeList=listFromURL(); activityExpanded=false; render(); });
 dialog.addEventListener("click", event => {
     if (event.target !== dialog) return;
     const bounds = dialog.getBoundingClientRect();

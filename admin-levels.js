@@ -1,7 +1,7 @@
 import { positionHistory } from "./rank-history.js";
 import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff } from "./auth.js";
-import { sortLevels, levelList } from "./list-model.js";
+import { sortLevels, levelList, listLabel } from "./list-model.js";
 import { element, setBusy } from "./ui.js";
 import { dataMessage } from "./messages.js";
 
@@ -17,7 +17,7 @@ function renderOptions(selected = select.value) {
     const placeholder = element("option", "", "Choose a level"); placeholder.value = "";
     select.replaceChildren(placeholder);
     for (const level of sortLevels(levels)) {
-        const option = element("option", "", level.name || "Unnamed level"); option.value = level.id; select.append(option);
+        const option = element("option", "", `${level.name || "Unnamed level"} · ${listLabel(levelList(level))}`); option.value = level.id; select.append(option);
     }
     if (levels.some(level => level.id === selected)) select.value = selected;
 }

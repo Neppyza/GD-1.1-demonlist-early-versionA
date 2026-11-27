@@ -1,4 +1,4 @@
-import { position, sortLevels } from "./list-model.js";
+import { position, sortLevels, levelList } from "./list-model.js";
 import { validPlayerProfile } from "./player-profile.js";
 
 export function buildStats(levels, records, profiles = [], adjustments = []) {
@@ -33,7 +33,9 @@ export function buildStats(levels, records, profiles = [], adjustments = []) {
 
 export function playerDetails(player, levels, records, ranked) {
     const done = new Set(player.completed.map(l => l.id));
-    const rankedLevels = levels.filter(l => position(l.position) !== Infinity);
+    const rankedLevels = levels.filter(l => position(l.position) !== Infinity && levelList(l)==="main");
+    const platformers = levels.filter(l => position(l.position)!==Infinity && levelList(l)==="platformer");
+    const legacy = levels.filter(l => levelList(l)==="legacy");
     const coverage = limit => {
         const subset = rankedLevels.filter(l => position(l.position) <= limit);
         return {completed:subset.filter(l => done.has(l.id)).length,total:subset.length};
@@ -53,7 +55,9 @@ export function playerDetails(player, levels, records, ranked) {
     const countryPlayers = player.countryCode ? ranked.filter(p => p.countryCode === player.countryCode) : [];
     const countryIndex = countryPlayers.findIndex(p => p.id === player.id);
     return {
-        hardest:player.completed.find(l => position(l.position) !== Infinity) || null,
+        hardest:player.completed.find(l => position(l.position) !== Infinity && levelList(l)==="main") || null,
+        hardestPlatformer:player.completed.find(l => position(l.position)!==Infinity && levelList(l)==="platformer") || null,
+        platformer:{completed:platformers.filter(l=>done.has(l.id)).length,total:platformers.length},legacy:{completed:legacy.filter(l=>done.has(l.id)).length,total:legacy.length},
         ranked:coverage(Infinity),top10:coverage(10),top50:coverage(50),
         countryRank:countryIndex < 0 ? null : countryIndex+1,countryTotal:countryPlayers.length,
         average:player.completed.length ? player.basePoints/player.completed.length : null,
