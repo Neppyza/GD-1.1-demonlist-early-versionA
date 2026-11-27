@@ -40,28 +40,27 @@
     <section class="list-heading" aria-labelledby="list-title">
       <div class="hero-copy">
         <p class="eyebrow">GEOMETRY DASH 1.1 / ROBLOX</p>
-        <h1 id="list-title">The <span>Demonlist</span></h1>
-        <p class="hero-intro">The community-maintained ranking of the hardest verified levels.</p>
+        <h1 id="list-title"><span>Demonlist</span></h1>
+        <p class="hero-intro">The hardest verified levels in Geometry Dash 1.1.</p>
         <div class="hero-actions"><a class="button-link" href="submit.html">Submit a level <span aria-hidden="true">↗</span></a><a href="records.html">Explore records <span aria-hidden="true">→</span></a></div>
       </div>
-      <div class="hero-guide"><span class="community-label"><span aria-hidden="true"></span>Community maintained</span><p>Placements, verifications and completion records, reviewed by the list team.</p><a href="rules.html">Submission guidelines →</a></div>
-    </section>
-    <div id="list-overview" class="list-overview" aria-label="List statistics"></div>
-    <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
-      <div class="rankings-heading"><h2>Ranked levels</h2><span>Official list</span></div>
-      <div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, player or #rank" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option><option value="recent">Recently placed</option><option value="victors">Most victors</option></select></div></div>
-      <div class="list-extras"><div class="list-filters"><label for="rank-filter">Placement</label><select id="rank-filter"><option value="all">All placements</option><option value="top10">Top 10</option><option value="top50">Top 50</option><option value="unranked">Unranked</option></select><label for="category-filter">Category</label><select id="category-filter"><option value="">All categories</option></select><label for="completion-filter">Victors</label><select id="completion-filter"><option value="all">All levels</option><option value="with">With victors</option><option value="without">No victors</option></select><label class="saved-filter"><input type="checkbox" id="saved-filter"> Saved only</label><button type="button" id="reset-filters" class="secondary-button">Reset</button></div></div>
-      <div class="browse-actions"><button type="button" class="secondary-button" id="random-level" disabled>Random level</button><button type="button" class="secondary-button" id="compact-view" aria-pressed="false">Compact view</button><label class="saved-filter"><input type="checkbox" id="recent-filter"> Placed this week</label></div>
-      <p id="connection-status" class="muted" role="status">Connecting to rankings…</p>
-      <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p>
-      <p id="records-note" class="inline-error" role="status" hidden></p><button id="retry-records" type="button" class="secondary-button" hidden>Retry approved records</button><p id="selection-status" role="status" hidden></p>
-      <div id="demon-table" class="demon-list" aria-busy="true"><div id="levels"><div class="list-state">Loading the demonlist…</div></div></div>
-      <p class="list-footnote">Placements and level information come from the official database. Entries without a placement appear as unranked.</p>
+      <div id="list-overview" class="list-overview" aria-label="List statistics"></div>
     </section>
     <section id="placement-feed" class="placement-feed" aria-labelledby="activity-title" hidden>
       <div class="activity-heading"><div><h2 id="activity-title">Ranking activity</h2><p class="muted">New placements and rank changes.</p></div><div class="activity-controls"><label for="activity-mode">Show</label><select id="activity-mode"><option value="all">All activity</option><option value="new">New placements</option><option value="moves">Rank changes</option></select></div></div>
       <div id="activity-items" class="placement-feed-list" role="region" aria-label="Ranking activity entries" tabindex="0"></div>
       <button id="activity-more" class="secondary-button" type="button" aria-controls="activity-items" aria-expanded="false" hidden>Show more activity</button>
+    </section>
+    <div class="demon-layout"><section class="list-content" aria-label="Demon rankings">
+      <div class="rankings-heading"><h2>Ranked levels</h2><span>Official list</span></div>
+      <div class="ranking-controls"><div class="list-toolbar"><div class="search-control"><label for="search">Filter the list</label><input id="search" type="search" placeholder="Level, player or #rank" autocomplete="off" aria-controls="demon-table"></div><div><label for="sort">Sort by</label><select id="sort"><option value="position">Placement</option><option value="name">Level name A–Z</option><option value="points">Points, high to low</option><option value="recent">Recently placed</option><option value="victors">Most victors</option></select></div></div>
+      <div class="list-extras"><div class="list-filters"><label for="rank-filter">Placement</label><select id="rank-filter"><option value="all">All placements</option><option value="top10">Top 10</option><option value="top50">Top 50</option><option value="unranked">Unranked</option></select><label for="category-filter">Category</label><select id="category-filter"><option value="">All categories</option></select><label for="completion-filter">Victors</label><select id="completion-filter"><option value="all">All levels</option><option value="with">With victors</option><option value="without">No victors</option></select><label class="saved-filter"><input type="checkbox" id="saved-filter"> Saved only</label><button type="button" id="reset-filters" class="secondary-button">Reset</button></div></div>
+      <div class="browse-actions"><button type="button" class="secondary-button" id="random-level" disabled>Random level</button><button type="button" class="secondary-button" id="compact-view" aria-pressed="false">Compact view</button><label class="saved-filter"><input type="checkbox" id="recent-filter"> Placed this week</label></div></div>
+      <div class="ranking-status"><p id="connection-status" class="muted" role="status">Connecting to rankings…</p>
+      <p id="result-count" class="result-count" role="status" aria-live="polite">Loading levels…</p></div>
+      <p id="records-note" class="inline-error" role="status" hidden></p><button id="retry-records" type="button" class="secondary-button" hidden>Retry approved records</button><p id="selection-status" role="status" hidden></p>
+      <div id="demon-table" class="demon-list" aria-busy="true"><div class="ranking-columns" aria-hidden="true"><span>Rank</span><span>Level / verifier</span><span>Record</span><span>Points</span><span>Category</span><span>Victors</span><span>Actions</span></div><div id="levels"><div class="list-state">Loading the demonlist…</div></div></div>
+      <p class="list-footnote">Placements and level information come from the official database. Entries without a placement appear as unranked.</p>
     </section>
     <aside class="list-sidebar" aria-label="List information">
       <section class="sidebar-section"><h2>Quick navigation</h2><p>Jump to any level.</p><ol id="ranking-index" class="ranking-index"><li class="muted">Loading rankings…</li></ol></section>
