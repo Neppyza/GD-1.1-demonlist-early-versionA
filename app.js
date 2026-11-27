@@ -1,4 +1,4 @@
-import { categoryOf, categories, latestPlacements, discoverySort, matchesRank, distinctCompletions } from "./discovery-model.js";
+import { categoryOf, categories, latestPlacements, discoverySort, matchesRank, distinctCompletions, rankingActivity, adjacentLevels, randomLevel, isRecentPlacement } from "./discovery-model.js";
 import { position } from "./list-model.js";
 import { readSaved, toggleSaved, movement, renderHistory } from "./list-extras.js";
 import { minimumProgress } from "./completion-model.js";
@@ -23,23 +23,55 @@ const ranking = document.getElementById("ranking-index");
 const category = document.getElementById("category-filter");
 const completion = document.getElementById("completion-filter");
 const activity = document.getElementById("placement-feed");
+const activityMode = document.getElementById("activity-mode");
+const activityItems = document.getElementById("activity-items");
+const activityMore = document.getElementById("activity-more");
+const randomButton = document.getElementById("random-level");
+const compactButton = document.getElementById("compact-view");
+const recentFilter = document.getElementById("recent-filter");
+const retryRecords = document.getElementById("retry-records");
+let visibleLevels = [], activityExpanded = false, activityKey = "";
 function renderActivity(levels) {
-    activity.replaceChildren();
-    const entries = latestPlacements(levels).slice(0,5);
-    if (!entries.length) { activity.hidden = true; return; }
+    const entries = rankingActivity(levels,activityMode.value);
+    const shown = entries.slice(0,activityExpanded ? 30 : 4);
+    const key = JSON.stringify([activityMode.value,activityExpanded,entries.length,shown.map(({level,rank,from,at}) => [level.id,level.name,level.verifier,level.thumbnail,rank,from,at])]);
     activity.hidden = false;
-    activity.append(element("h2","","Latest placements"),element("p","muted","New entries with recorded placement history."));
-    const list = element("div","placement-feed-list");
-    for (const {level,rank,at} of entries) {
+    if (key === activityKey) return;
+    activityKey = key;
+    activityItems.replaceChildren();
+    for (const {level,rank,from,at} of shown) {
         const link = levelLink(level.id,"","placement-item");
         const copy = element("div","placement-copy");
-        copy.append(element("span","placement-kicker","Entered at #" + rank),element("strong","",level.name || "Unnamed level"),element("span","muted","Verified by " + (level.verifier || "—")));
+        const label = from === null ? "Entered at #" + rank : "#" + from + " → #" + rank;
+        copy.append(element("span","placement-kicker",label),element("strong","",level.name || "Unnamed level"),element("span","muted","Verified by " + (level.verifier || "—")));
         const date = element("time","",new Date(at).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})); date.dateTime = at;
-        link.append(thumbnail(level),copy,date,element("span","placement-arrow","→"));
-        list.append(link);
+        const arrow = element("span","placement-arrow","→"); arrow.setAttribute("aria-hidden","true");
+        link.append(thumbnail(level),copy,date,arrow);
+        activityItems.append(link);
     }
-    activity.append(list);
+    if (!shown.length) activityItems.append(element("p","muted","No recorded activity in this view."));
+    activityMore.hidden = entries.length <= 4;
+    activityMore.textContent = activityExpanded ? "Show less activity" : "Show more activity (up to 30)";
+    activityMore.setAttribute("aria-expanded",String(activityExpanded));
 }
+activityMode.addEventListener("change",() => { activityExpanded = false; renderActivity(levelState.items); });
+activityMore.addEventListener("click",() => { activityExpanded = !activityExpanded; renderActivity(levelState.items); });
+randomButton.addEventListener("click",() => {
+    const level = randomLevel(visibleLevels);
+    if (level) showDetails(level.id,true);
+});
+function setCompact(active) {
+    table.classList.toggle("compact-list",active);
+    compactButton.setAttribute("aria-pressed",String(active));
+    compactButton.textContent = active ? "Detailed view" : "Compact view";
+}
+try { setCompact(localStorage.getItem("gd11.compact") === "true"); } catch {}
+compactButton.addEventListener("click",() => {
+    const active = compactButton.getAttribute("aria-pressed") !== "true";
+    setCompact(active);
+    try { localStorage.setItem("gd11.compact",String(active)); } catch {}
+});
+retryRecords.addEventListener("click",() => retryData("records"));
 
 function listState(title, message, retry) {
     const box = element("div", "list-state");
@@ -69,8 +101,9 @@ function render() {
     table.setAttribute("aria-busy", String(levelState.status === "loading"));
     const recordNote = document.getElementById("records-note");
     recordNote.hidden = recordState.status !== "error";
+    retryRecords.hidden = recordState.status !== "error";
     recordNote.textContent = recordState.status === "error" ? dataMessage(recordState.error, "approved records") : "";
-    if (levelState.status !== "ready") { document.getElementById("list-overview").replaceChildren(); activity.hidden = true; syncDetails(); }
+    if (levelState.status !== "ready") { document.getElementById("list-overview").replaceChildren(); activity.hidden = true; visibleLevels = []; randomButton.disabled = true; syncDetails(); }
     if (levelState.status === "loading") {
         listState( "Loading the demonlist…");
         status.textContent = "Loading levels…";
@@ -98,7 +131,7 @@ function render() {
     const savedOnly = document.getElementById("saved-filter").checked;
     const matching = (matchesRank({},search.value) === null ? filterLevels(listed, records, search.value) : listed.filter(l => matchesRank(l,search.value))).filter(level => {
         const rank = position(level.position);
-        return (!category.value || categoryOf(level) === category.value) && (completion.value === "all" || (completion.value === "with" ? counts.get(level.id) > 0 : counts.get(level.id) === 0)) && (!savedOnly || saved.has(level.id)) && (mode === "all" || (mode === "top10" && rank <= 10) || (mode === "top50" && rank <= 50) || (mode === "unranked" && rank === Infinity));
+        return (!recentFilter.checked || isRecentPlacement(level)) && (!category.value || categoryOf(level) === category.value) && (completion.value === "all" || (completion.value === "with" ? counts.get(level.id) > 0 : counts.get(level.id) === 0)) && (!savedOnly || saved.has(level.id)) && (mode === "all" || (mode === "top10" && rank <= 10) || (mode === "top50" && rank <= 50) || (mode === "unranked" && rank === Infinity));
     });
     const overview = document.getElementById("list-overview");
     overview.replaceChildren();
@@ -106,6 +139,7 @@ function render() {
         const item = element("div"); item.append(element("strong", "", value), element("span", "", label)); overview.append(item);
     }
     const filtered = discoverySort(matching, sort.value, records);
+    visibleLevels = filtered; randomButton.disabled = !filtered.length;
     status.textContent = `${filtered.length} of ${listed.length} levels`;
     body.replaceChildren();
     if (!filtered.length) {
@@ -132,6 +166,7 @@ function render() {
         const previewLink = levelLink(level.id, "", "level-preview");
         previewLink.setAttribute("aria-label", `Details for ${String(level.name || "Unnamed level").trim()}`);
         previewLink.append(thumbnail(level));
+        const overlay = element("span","preview-action","View level →"); overlay.setAttribute("aria-hidden","true"); previewLink.append(overlay);
         const content = element("div", "level-summary");
         const heading = element("h2", "level-name");
         heading.append(element("span", "level-placement", `${rankLabel(level)} – `), levelLink(level.id, String(level.name || "Unnamed level").trim()));
@@ -146,6 +181,7 @@ function render() {
             meta.append(group);
         }
         const actions = element("div", "level-row-actions");
+        if (isRecentPlacement(level)) actions.append(element("span","recent-placement","New placement"));
         const delta = movement(level);
         if (delta) actions.append(element("span", delta > 0 ? "rank-up" : "rank-down", delta > 0 ? "↑ " + delta : "↓ " + Math.abs(delta)));
         const save = element("button", "save-level", saved.has(level.id) ? "Saved" : "Save");
@@ -212,7 +248,13 @@ function showDetails(id, updateURL = false) {
     copy.type = "button";
     copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(permanent.href); copy.textContent = "Copied"; } catch { copy.textContent = "Use permanent link"; } });
     links.append(copy);
-    detail.append(links, renderHistory(level), element("h3", "", "Approved victors"));
+    const neighbors = element("nav","detail-neighbors");
+    neighbors.setAttribute("aria-label","Adjacent rankings");
+    const [previous,next] = adjacentLevels(levelState.items,id);
+    if (previous) neighbors.append(levelLink(previous.id,"← " + rankLabel(previous) + " " + (previous.name || "Unnamed level")));
+    if (next) neighbors.append(levelLink(next.id,rankLabel(next) + " " + (next.name || "Unnamed level") + " →"));
+    detail.append(links, neighbors, renderHistory(level), element("h3", "", "Approved victors"));
+    if (updateURL) dialog.scrollTop = 0;
     if (recordState.status === "ready") {
         const names = victorNames(recordState.items, id);
         if (names.length) {
@@ -231,8 +273,8 @@ window.addEventListener("offline", connectionStatus);
 window.addEventListener("online", () => { connectionStatus(); retryData("levels"); retryData("records"); });
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
-for (const id of ["rank-filter", "saved-filter", "category-filter", "completion-filter"]) document.getElementById(id).addEventListener("change", render);
-document.getElementById("reset-filters").addEventListener("click", () => { search.value = ""; sort.value = "position"; document.getElementById("rank-filter").value = "all"; document.getElementById("saved-filter").checked = false; category.value = ""; completion.value = "all"; render(); search.focus(); });
+for (const id of ["rank-filter", "saved-filter", "category-filter", "completion-filter", "recent-filter"]) document.getElementById(id).addEventListener("change", render);
+document.getElementById("reset-filters").addEventListener("click", () => { search.value = ""; sort.value = "position"; document.getElementById("rank-filter").value = "all"; document.getElementById("saved-filter").checked = false; category.value = ""; completion.value = "all"; recentFilter.checked = false; render(); search.focus(); });
 function closeDetails() {
     const url = new URL(location.href);
     url.searchParams.delete("level");
