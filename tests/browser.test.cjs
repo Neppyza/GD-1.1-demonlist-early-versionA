@@ -97,7 +97,7 @@ const server=http.createServer((req,res)=>{
     }
 
     for(const [term,expected]of [['creator a','Fixture Alpha'],['verifier b','Fixture Beta'],['extreme','Fixture Alpha']]){await page.locator('#search').fill(term);assert.match(await page.locator('#levels').innerText(),new RegExp(expected))}
-    await page.locator('#search').fill('missing-value');assert.equal(await page.locator('.demon-row').count(),0);await page.getByRole('button',{name:'Clear search'}).click();
+    await page.locator('#search').fill('missing-value');assert.equal(await page.locator('.demon-row').count(),0);await page.getByRole('button',{name:'Clear filters'}).click();
     await page.locator('#sort').selectOption('name');assert.match(await page.locator('.demon-row').first().innerText(),/Fixture Alpha/);
     assert.equal(await page.locator('.level-percentage').first().innerText(),'3%');
     assert.equal(await page.locator('.level-percentage').last().innerText(),'100%');
@@ -141,13 +141,17 @@ const server=http.createServer((req,res)=>{
     await page.getByRole('button',{name:'Try again'}).click();
     await page.locator('.demon-row').first().waitFor();
     await page.evaluate(()=>{window.__test.data.levels.beta.listType='platformer';window.__test.data.levels.incomplete.listType='legacy';window.__test.emit('levels')});
-    assert.equal(await page.locator('.demon-row').count(),3);
-    assert.equal(await page.locator('[data-list]').count(),0);
+    assert.equal(await page.locator('.demon-row').count(),1);
+    assert.equal(await page.locator('[data-list]').count(),3);
     for (const [type,title] of [['platformer','Fixture Beta'],['legacy','Incomplete entry']]) {
-        await page.evaluate(type=>{history.pushState(null,'','?list='+type);dispatchEvent(new PopStateEvent('popstate'))},type);
-        assert.equal(await page.locator('.demon-row').count(),3);
+        await page.locator('[data-list="'+type+'"]').click();
+        assert.equal(new URL(page.url()).searchParams.get('list'),type);
+        assert.equal(await page.locator('.demon-row').count(),1);
         assert.ok((await page.locator('#levels').innerText()).includes(title));
     }
+    await page.goBack();
+    assert.equal(await page.locator('[data-list="platformer"]').getAttribute('aria-pressed'),'true');
+    await page.locator('[data-list="main"]').click();
     await page.evaluate(()=>{delete window.__test.data.levels.beta.listType;delete window.__test.data.levels.incomplete.listType;history.replaceState(null,'','/');window.__test.emit('levels')});
     assert.equal(await page.locator('.demon-row').count(),3);
     console.log('PASS list: database snapshots, sorting, all search fields, deduplicated victors, details, shareable URLs, browser Back/Forward, deep links, retry and single listeners.');
