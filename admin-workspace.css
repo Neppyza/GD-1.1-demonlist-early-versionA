@@ -1,0 +1,28 @@
+/* Staff workspace only; use the site's existing palette and typography. */
+#staff-tools [hidden] { display: none !important; }
+#staff-tools .section-block { scroll-margin-top: 110px; }
+#staff-tools .admin-sections { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+#staff-tools .admin-sections a { display: inline-flex; align-items: center; min-height: 44px; }
+.staff-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.staff-metric { border: 1px solid var(--line); border-radius: 7px; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.staff-metric strong { font-size: 26px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.staff-metric span, .staff-metric p { font-size: 12px; margin: 0; overflow-wrap: anywhere; }
+.staff-metric p { margin-top: 4px; }
+.staff-filter { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 12px; margin: 16px 0; max-width: 720px; }
+.staff-filter input, .staff-filter select, .staff-direct-form label > input:not([type=checkbox]), .staff-direct-form label > select { margin-top: 5px; }
+.staff-direct-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; max-width: 800px; }
+.staff-direct-form label { min-width: 0; }
+.staff-wide, .staff-preview { grid-column: 1 / -1; }
+.staff-preview { padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--soft); font-size: 12px; overflow-wrap: anywhere; }
+.staff-preview ul { padding-left: 18px; margin: 8px 0; }
+.staff-preview small { display: block; margin-top: 6px; }
+.staff-preview p { margin: 6px 0; }
+#staff-tools .review-item { transition: border-color 140ms ease; }
+#staff-tools .review-item:focus-within { border-color: var(--accent); }
+#staff-tools .review-item:hover { border-color: var(--accent); }
+@media (max-width: 600px) {
+    .staff-metrics, .staff-filter, .staff-direct-form { grid-template-columns: minmax(0,1fr); }
+    .staff-metric { padding: 12px; }
+    #staff-tools .section-block { scroll-margin-top: 150px; }
+}
+@media (prefers-reduced-motion: reduce) { #staff-tools .review-item { transition: none; } }
