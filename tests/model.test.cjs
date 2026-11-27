@@ -252,3 +252,20 @@ test('record minimums default safely and validate every supported percentage', a
  const data=communityInsights([{id:'a'},{id:'b'}],[{completed:[{id:'a'},{id:'a'},{id:'missing'}],countryCode:'FR'},{completed:[{id:'a'}],countryCode:'FR'},{completed:[],countryCode:'US'}]);
  assert.equal(data.total,2);assert.equal(data.cleared,1);assert.equal(data.active,2);assert.equal(data.countries,2);
  });
+
+test('activity feed distinguishes new placements and real movements and ignores invalid events', async () => {
+    const {rankingActivity,isRecentPlacement,adjacentLevels,randomLevel}=await import('../discovery-model.js');
+    const at='2026-11-25T12:00:00Z';
+    const a={id:'a',position:1,positionHistory:[{from:null,to:2,at},{from:2,to:1,at:'2026-11-26T12:00:00Z'},{from:1,to:1,at},{from:1,to:0,at}]};
+    const b={id:'b',position:2};
+    assert.deepEqual(rankingActivity([a,b]).map(e=>[e.from,e.rank]),[[2,1],[null,2]]);
+    assert.equal(rankingActivity([a,b],'new').length,1);
+    assert.equal(rankingActivity([a,b],'moves').length,1);
+    assert.equal(isRecentPlacement(a,Date.parse('2026-11-27T00:00:00Z')),true);
+    assert.equal(isRecentPlacement(a,Date.parse('2026-11-24T00:00:00Z')),false);
+    assert.equal(isRecentPlacement(a,Date.parse('2026-12-05T00:00:00Z')),false);
+    assert.deepEqual(adjacentLevels([b,a],'a'),[null,b]);
+    assert.deepEqual(adjacentLevels([b,a],'b'),[a,null]);
+    assert.equal(randomLevel([],()=>0),null);
+    assert.equal(randomLevel([a,b],()=>0.9),b);
+});
