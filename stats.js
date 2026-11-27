@@ -3,7 +3,7 @@ import { subscribeData, retryData } from "./data.js";
 import { buildStats, playerDetails } from "./stats-model.js";
 import { element, stateRow, countryIndicator, externalLink } from "./ui.js";
 import { getCountry } from "./countries.js";
-import { position, rankLabel } from "./list-model.js";
+import { position, rankLabel, levelList, listLabel } from "./list-model.js";
 import { dataMessage } from "./messages.js";
 
 const body = document.getElementById("players");
@@ -151,17 +151,19 @@ function showPlayer(player, ranked) {
     detail.append(metrics);
     if (adjustments.status !== "ready") detail.append(element("p","muted","Points and ranks are provisional until point corrections load."));
     if (player.pointCorrection) detail.append(element("p","muted","Completion points: "+number(player.basePoints)+" · Staff correction: "+(player.pointCorrection > 0 ? "+" : "")+number(player.pointCorrection)+" · Total cannot fall below zero."));
+    for (const [label,level] of [["Hardest Main List completion",info.hardest],["Hardest Platformer completion",info.hardestPlatformer]]) {
     const hardest = element("div","profile-hardest");
-    hardest.append(element("h3","","Hardest ranked completion"));
-    if (info.hardest) {
-        const link = element("a","",rankLabel(info.hardest)+" · "+(info.hardest.name || "Unnamed level"));
-        link.href = "index.html?level="+encodeURIComponent(info.hardest.id);
+    hardest.append(element("h3","",label));
+    if (level) {
+        const link = element("a","",listLabel(levelList(level))+" · "+rankLabel(level)+" · "+(level.name || "Unnamed level"));
+        link.href = "index.html?level="+encodeURIComponent(level.id);
         hardest.append(link);
     } else hardest.append(element("p","muted","No ranked completion yet."));
     detail.append(hardest);
+    }
     const coverage = element("section","profile-section");
     coverage.append(element("h3","","List progress"));
-    for (const [label,value] of [["Ranked list",info.ranked],["Top 10",info.top10],["Top 50",info.top50]]) {
+    for (const [label,value] of [["Main List",info.ranked],["Main Top 10",info.top10],["Main Top 50",info.top50],["Platformer List",info.platformer],["Legacy List",info.legacy]]) {
         const group = element("div","profile-progress");
         const count = value.completed+"/"+value.total;
         const caption = element("div","profile-progress-label");
