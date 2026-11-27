@@ -32,3 +32,28 @@ export function distinctCompletions(levels, records) {
     const ids = new Set(levels.map(l => l.id));
     return new Set(records.filter(r => r.approved === true && Number(r.progress) === 100 && r.playerId && typeof r.player === "string" && r.player.trim() && ids.has(r.levelId)).map(r => JSON.stringify([r.playerId,r.levelId]))).size;
 }
+
+export function rankingActivity(levels, mode = "all") {
+    const entries = levels.flatMap(level => {
+        const events = Array.isArray(level.positionHistory) ? level.positionHistory : [];
+        return events.filter(e => e && Number.isSafeInteger(e.to) && e.to > 0 &&
+            (e.from === null || (Number.isSafeInteger(e.from) && e.from > 0 && e.from !== e.to)) &&
+            typeof e.at === "string" && Number.isFinite(Date.parse(e.at)))
+            .map(e => ({level, from:e.from, rank:e.to, at:e.at}));
+    });
+    return entries.filter(e => mode === "all" || (mode === "new" ? e.from === null : e.from !== null))
+        .sort((a,b) => Date.parse(b.at)-Date.parse(a.at) || a.rank-b.rank || String(a.level.id).localeCompare(String(b.level.id)));
+}
+export function adjacentLevels(levels, id) {
+    const ranked = sortLevels(levels);
+    const index = ranked.findIndex(level => level.id === id);
+    return index < 0 ? [null,null] : [ranked[index-1] || null,ranked[index+1] || null];
+}
+export function randomLevel(levels, random = Math.random) {
+    return levels.length ? levels[Math.min(levels.length-1,Math.max(0,Math.floor(random()*levels.length)))] : null;
+}
+export function isRecentPlacement(level, now = Date.now(), days = 7) {
+    const date = latestPlacements([level])[0]?.at;
+    const age = date ? now-Date.parse(date) : Infinity;
+    return age >= 0 && age <= days*86400000;
+}
