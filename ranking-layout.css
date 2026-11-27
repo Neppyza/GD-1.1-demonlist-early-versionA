@@ -111,3 +111,7 @@
  .ranking-home .save-level,.ranking-home .level-row-actions a{min-height:44px;display:inline-flex;align-items:center}
  .ranking-home .list-sidebar{grid-template-columns:1fr}
 }
+
+.ranking-home .browse-actions #reset-filters{margin-left:auto}
+.ranking-home .ranking-columns span:first-child{text-align:center}
+.ranking-home .list-content,.ranking-home .ranking-controls,.ranking-home .placement-feed-list{min-width:0}
