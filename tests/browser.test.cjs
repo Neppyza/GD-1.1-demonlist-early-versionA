@@ -207,7 +207,7 @@ const server=http.createServer((req,res)=>{
     await page.getByRole('button',{name:'Save level changes',exact:true}).click();
     await page.waitForFunction(()=>window.__test.data.levels.alpha.points===0);
     assert.deepEqual(await page.evaluate(()=>{const l=window.__test.data.levels.alpha;return [l.name,l.position,l.difficulty,l.levelUrl,l.creator,window.__test.data.levels.beta.position]}),['Renamed Alpha',4,'Insane Demon','https://example.org/alpha','Creator A',1]);
-    assert.equal(await page.locator('#managed-level option:checked').innerText(),'Renamed Alpha');
+    assert.match(await page.locator('#managed-level option:checked').innerText(),/Renamed Alpha/);
     assert.equal(await page.locator('#managed-level').inputValue(),'alpha');
     // Concurrent staff edits are not silently overwritten.
     await page.locator('#managed-position').fill('1');
@@ -362,7 +362,12 @@ const server=http.createServer((req,res)=>{
     await management.waitForFunction(()=>window.__test.data.completionSubmissions.duplicate.status==='approved');
     assert.equal(await management.evaluate(()=>Object.keys(window.__test.data.records).length),1);
     assert.equal(await management.evaluate(id=>window.__test.data.records[id].proofUrl,approvedId),'https://example.org/first-proof');
+    await management.locator('#completion-search').fill('missing');
+    assert.match(await management.locator('#completion-filter-count').innerText(),/0 of/);
+    await management.locator('#completion-search').fill('Fixture Beta');
+    management.once('dialog',dialog=>dialog.accept());
     await management.locator('.completion-review-item').filter({hasText:'Fixture Beta'}).getByRole('button',{name:'Reject completion',exact:true}).click();
+    await management.locator('#completion-search').fill('');
     await management.waitForFunction(()=>window.__test.data.completionSubmissions.rejected.status==='rejected');
     await management.evaluate(()=>window.__test.setUser({uid:'staff-user',displayName:'Owner',claims:{owner:true}}));
     await management.getByRole('button',{name:'Remove player Saved Player',exact:true}).waitFor();
@@ -392,6 +397,15 @@ const server=http.createServer((req,res)=>{
     await management.setViewportSize({width:1440,height:950});await management.screenshot({path:path.join(output,'owner-panel.png'),fullPage:true});
     const font=await management.evaluate(async()=>{await document.fonts.load('400 16px Montserrat');return{loaded:[...document.fonts].some(face=>face.family==='Montserrat'&&face.status==='loaded'),weight:getComputedStyle(document.body).fontWeight}});
     assert.equal(font.loaded,true);assert.equal(font.weight,'400');
+    const direct=management.locator('#direct-level-form');
+    await direct.waitFor();
+    for (const [name,value] of Object.entries({levelName:'Direct fixture',creator:'Creator',verifier:'Verifier',levelUrl:'https://example.org/direct',proofUrl:'https://example.org/proof',position:'1',points:'20'})) await direct.locator(`[name="${name}"]`).fill(value);
+    assert.match(await management.locator('#direct-preview').innerText(),/will move/);
+    await direct.locator('[name=checkedProof]').check();
+    management.once('dialog',dialog=>dialog.accept());
+    await direct.getByRole('button',{name:'Publish level',exact:true}).click();
+    await management.waitForFunction(()=>Object.values(window.__test.data.levels).some(level=>level.name==='Direct fixture' && level.position===1 && level.rankingApplied===true));
+    assert.equal(await management.evaluate(()=>window.__test.data.levels.alpha.position),2);
     await management.locator('.auth-panel [data-auth-logout]').click();await management.locator('#staff-tools').waitFor({state:'hidden'});assert.equal(await management.locator('#admin-players').innerText(),'');assert.equal(await management.locator('#moderator-list').innerText(),'');
     await management.close();
     console.log('PASS completion submission/review/rejection, denied-write recovery, duplicate-proof preservation, owner-only team management, live access refresh, revoked admin claims, player removal/restoration, history retention, font loading and owner-panel responsive layout.');

@@ -314,3 +314,27 @@ test('profile coverage does not compare main and platformer ranks',async()=>{
     assert.equal(info.hardest.id,'a');assert.equal(info.hardestPlatformer.id,'p');
     assert.deepEqual(info.top10,{completed:1,total:1});assert.deepEqual(info.legacy,{completed:0,total:1});
 });
+
+test('staff preview shows exact shifts across independent lists and ignores pending console inserts', async () => {
+    const {placementPreview}=await import('../admin-model.js');
+    const levels=[{id:'a',name:'Alpha',position:1},{id:'b',name:'Beta',position:2},{id:'p',name:'Platform',position:1,listType:'platformer'},{id:'pending',name:'Pending',position:1,rankingApplied:false}];
+    assert.deepEqual(placementPreview(levels,'',1,'main'),[{name:'Alpha',list:'Main List',from:1,to:2},{name:'Beta',list:'Main List',from:2,to:3}]);
+    assert.deepEqual(placementPreview(levels,'a',1,'legacy'),[{name:'Beta',list:'Main List',from:2,to:1}]);
+    assert.deepEqual(placementPreview(levels,'',1,'platformer'),[{name:'Platform',list:'Platformer List',from:1,to:2}]);
+    assert.throws(()=>placementPreview(levels,'',0,'main'),/positive/);
+});
+test('staff ranking diagnostics flag active duplicates, gaps and pending inserts but not historical legacy gaps', async () => {
+    const {rankingHealth}=await import('../admin-model.js');
+    const health=rankingHealth([{position:1},{position:1},{position:4},{position:'bad'},{position:2,rankingApplied:false},{position:7,listType:'legacy'},{position:7,listType:'legacy'}]);
+    assert.deepEqual(health[0],{type:'main',count:4,pending:1,invalid:1,duplicates:[1],gaps:2});
+    assert.deepEqual(health[1],{type:'legacy',count:2,pending:0,invalid:0,duplicates:[],gaps:0});
+    assert.equal(health[2].count,0);
+});
+test('staff queue search handles multiple terms and timestamps safely', async () => {
+    const {queueMatches,submissionTime}=await import('../admin-model.js');
+    assert.equal(queueMatches(['Alpha','Player One','100%'],'alpha 100%'),true);
+    assert.equal(queueMatches(['Alpha','Player One'],'alpha missing'),false);
+    assert.equal(queueMatches([null],' '),true);
+    assert.equal(submissionTime({submittedAt:{toMillis:()=>123}}),123);
+    assert.equal(submissionTime({submittedAt:'bad'}),0);
+});
