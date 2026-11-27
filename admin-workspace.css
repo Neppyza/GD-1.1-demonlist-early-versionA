@@ -26,3 +26,13 @@
     #staff-tools .section-block { scroll-margin-top: 150px; }
 }
 @media (prefers-reduced-motion: reduce) { #staff-tools .review-item { transition: none; } }
+
+.staff-metadata { border: 1px solid var(--line); border-radius: 7px; padding: 12px; font-size: 13px; margin: 12px 0; }
+.staff-metadata summary { cursor: pointer; font-weight: 600; }
+.staff-metadata label { margin-top: 10px; }
+.staff-metadata ul { padding-left: 18px; }
+#staff-announcement, #staff-feedback { scroll-margin-top: 110px; }
+#staff-announcement > button { margin: 8px 8px 0 0; }
+#staff-feedback label { max-width: 480px; margin-top: 12px; }
+#staff-feedback [hidden], #staff-feedback[hidden], #staff-announcement[hidden] { display: none !important; }
+#staff-feedback article { overflow-wrap: anywhere; min-width: 0; }
