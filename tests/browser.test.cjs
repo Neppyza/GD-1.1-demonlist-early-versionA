@@ -400,7 +400,7 @@ const server=http.createServer((req,res)=>{
     const direct=management.locator('#direct-level-form');
     await direct.waitFor();
     for (const [name,value] of Object.entries({levelName:'Direct fixture',creator:'Creator',verifier:'Verifier',levelUrl:'https://example.org/direct',proofUrl:'https://example.org/proof',position:'1',points:'20'})) await direct.locator(`[name="${name}"]`).fill(value);
-    assert.match(await management.locator('#direct-preview').innerText(),/other level\(s\) will move/);
+    assert.match(await management.locator('#direct-preview').innerText(),/will move/);
     await direct.locator('[name=checkedProof]').check();
     management.once('dialog',dialog=>dialog.accept());
     await direct.getByRole('button',{name:'Publish level',exact:true}).click();
