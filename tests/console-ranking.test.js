@@ -69,3 +69,12 @@ test('inserting at #2 shifts existing #2 and lower but not explicitly pending en
     assert.deepEqual([f.data.first.position,f.data.new.position,f.data.second.position,f.data.third.position],[1,2,3,4]);
     assert.equal(f.data.pending.position,2);
 });
+
+test('platformer insertion does not shift main or legacy and legacy insertion never shifts',async()=>{
+    const f=fixture({main:{position:1},platformer:{position:1,listType:'platformer'},legacy:{position:1,listType:'legacy'},new:{position:1,listType:'platformer'}});
+    await applyConsoleInsertion(f.db,f.event,()=>0);
+    assert.equal(f.data.main.position,1);assert.equal(f.data.platformer.position,2);assert.equal(f.data.legacy.position,1);
+    const g=fixture({main:{position:1},legacy:{position:1,listType:'legacy'},new:{position:1,listType:'legacy'}});
+    await applyConsoleInsertion(g.db,g.event,()=>0);
+    assert.equal(g.data.main.position,1);assert.equal(g.data.legacy.position,1);assert.equal(g.data.new.rankingApplied,true);
+});
