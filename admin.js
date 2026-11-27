@@ -3,7 +3,7 @@ import { readRanking, writeRanking } from "./level-ranking.js";
 import { subscribeAuth, requireStaff, refreshStaffAccess } from "./auth.js";
 import { completionKey } from "./completion-model.js";
 import { dataMessage } from "./messages.js";
-import { sortLevels } from "./list-model.js";
+import { sortLevels, levelList, listLabel, listTypes } from "./list-model.js";
 import { element, externalLink, safeURL, setBusy } from "./ui.js";
 
 const tools = document.getElementById("staff-tools");
@@ -13,7 +13,7 @@ const select = document.getElementById("victor-level");
 let identity;
 let generation = 0;
 let staffId = null;
-let suggestedRank = 1;
+let suggestedRanks = {main:1,legacy:1,platformer:1};
 
 subscribeAuth(state => {
     if (!state.ready) return;
@@ -50,11 +50,11 @@ async function loadStaff(turn) {
         placeholder.value = "";
         select.append(placeholder);
         for (const level of sortLevels(results[0].docs.map(doc => ({ ...doc.data(), id: doc.id })))) {
-            const option = element("option", "", level.name || "Unnamed level");
+            const option = element("option", "", `${level.name || "Unnamed level"} · ${listLabel(levelList(level))}`);
             option.value = level.id;
             select.append(option);
         }
-        suggestedRank = results[0].docs.reduce((max, doc) => { const rank = Number(doc.data().position); return Number.isSafeInteger(rank) && rank > max ? rank : max; }, 0) + 1;
+        suggestedRanks = Object.fromEntries(listTypes.map(type=>[type,results[0].docs.reduce((max,doc)=>{const level=doc.data(),rank=Number(level.position);return levelList(level)===type && level.rankingApplied!==false && Number.isSafeInteger(rank) && rank>max ? rank:max;},0)+1]));
         queue.replaceChildren();
         for (const doc of results[1].docs) queue.append(renderSubmission(doc.id, doc.data(), turn));
         if (results[1].empty) queue.append(element("p", "muted", "There are no pending submissions."));
@@ -94,11 +94,11 @@ function renderSubmission(id, data, turn) {
         const group = element("label", "", label);
         const input = element("input");
         input.name = name; input.type = type;
-        if (type === "number") { input.value = name === "position" ? String(suggestedRank) : "0"; input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
+        if (type === "number") { input.value = name === "position" ? String(suggestedRanks.main) : "0"; input.min = name === "position" ? "1" : "0"; input.step = name === "position" ? "1" : "0.01"; input.required = true; }
         else if (type === "url") { input.maxLength = 2000; input.placeholder = "https://example.com/thumbnail.jpg"; }
         else input.maxLength = 60;
         group.append(input);
-        if (name === "position") group.append(element("small", "muted", "Levels at this position and below move down automatically. For example: adding #3 moves the old #3 to #4, #4 to #5, and so on."));
+        if (name === "position") group.append(element("small", "muted", "Active rankings shift within the selected list. Legacy positions are historical and do not shift."));
         form.append(group);
     }
     const approve = element("button", "", "Approve and publish");
@@ -110,11 +110,13 @@ function renderSubmission(id, data, turn) {
     const listGroup=element("label","","Ranking list");
     const listSelect=element("select"); listSelect.name="listType";
     for(const [value,label] of [["main","Main List"],["legacy","Legacy List"],["platformer","Platformer List"]]) {const option=element("option","",label);option.value=value;listSelect.append(option);}
-    listGroup.append(listSelect);form.append(listGroup,approve,reject,output);
+    listGroup.append(listSelect);form.prepend(listGroup);form.append(approve,reject,output);
+    listSelect.addEventListener("change",()=>{form.elements.position.value=String(suggestedRanks[listSelect.value]);});
     form.addEventListener("submit", async event => {
         event.preventDefault();
         if (form.dataset.busy === "true") return;
         const rank = Number(form.elements.position.value);
+        const type = form.elements.listType.value;
         const points = Number(form.elements.points.value);
         const difficulty = form.elements.difficulty.value.trim();
         const thumbnailURL = form.elements.thumbnail.value.trim();
@@ -138,7 +140,7 @@ function renderSubmission(id, data, turn) {
                     if (typeof saved[field] !== "string" || !saved[field].trim() || saved[field].length > limit) throw new Error(`${label} is missing or invalid in this submission. Ask the submitter to correct it.`);
                 }
                 for (const field of ["levelUrl","proofUrl"]) if (typeof saved[field] !== "string" || !saved[field].startsWith("https://") || saved[field].length > 2000 || !safeURL(saved[field])) throw new Error(`Invalid ${field} in submission; a public HTTPS link is required.`);
-                const entry = { rankingApplied: true, listType: form.elements.listType.value, name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
+                const entry = { rankingApplied: true, listType: type, name: saved.levelName, position: rank, points, creator: saved.creator, verifier: saved.verifier, levelUrl: saved.levelUrl, proofUrl: saved.proofUrl };
                 if (difficulty) entry.difficulty = difficulty;
                 if (thumbnailURL) entry.thumbnail = thumbnailURL;
                 if (turn !== generation || client.auth.currentUser?.uid !== staffId) throw { code: "auth/requires-login" };
