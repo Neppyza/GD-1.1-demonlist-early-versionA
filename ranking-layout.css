@@ -100,3 +100,19 @@
  .ranking-home .save-level,.ranking-home .level-row-actions a {min-height:44px}
  .ranking-home .level-name {font-size:17px}
 }
+
+/* Prioritize the rankings above the fold; the mobile activity rail is swipeable. */
+@media(min-width:1100px) {
+ .ranking-home .row-meta {grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+ .ranking-home .list-filters #reset-filters {justify-self:end}
+ .ranking-home .list-page .demon-row {grid-template-columns:64px minmax(140px,218px) minmax(0,1fr)}
+ .ranking-home .list-page .compact-list .demon-row {grid-template-columns:56px 105px minmax(0,1fr)}
+}
+@media(max-width:540px) {
+ .ranking-home .placement-feed-list {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,84%);grid-template-columns:none;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:8px}
+ .ranking-home .placement-item {scroll-snap-align:start;border:1px solid var(--line);padding:9px;border-radius:4px}
+ .ranking-home .placement-item:last-child {border-bottom:1px solid var(--line)}
+ .ranking-home .activity-heading {display:flex;align-items:start;gap:6px}
+ .ranking-home .activity-controls {flex-basis:100%;margin-top:0}
+ .ranking-home .list-filters #reset-filters {margin-left:auto}
+}
