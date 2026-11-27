@@ -1,0 +1,42 @@
+/* Player profile: match the rankings' typography and theme, not a separate dashboard. */
+#player-dialog { width:min(720px,calc(100% - 32px)); max-width:720px; padding:28px; border-radius:10px; overscroll-behavior:contain; }
+body:has(#player-dialog[open]) { overflow:hidden; }
+#player-dialog .close-button {width:44px;min-height:44px;top:8px;right:8px;z-index:1;}
+#player-details {min-width:0;overflow-wrap:anywhere;}
+#player-details > .eyebrow {margin:0 48px 6px 0;}
+.player-dialog-name {margin:0 48px 8px 0;font-size:clamp(1.4rem,4vw,2rem);line-height:1.3;}
+#player-details > .player-tags {margin:0;}
+#player-details > .player-country {margin:12px 0;}
+#player-details .player-bio {font-size:14px;line-height:1.6;}
+.profile-metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:20px 0;border-block:1px solid var(--line);}
+.profile-metrics > div {padding:14px 12px;min-width:0;}
+.profile-metrics dt {font-size:11px;color:var(--muted);}
+.profile-metrics dd {margin:3px 0 0;font-size:clamp(1rem,3vw,1.4rem);font-weight:650;font-variant-numeric:tabular-nums;}
+.profile-hardest {padding:14px 16px;border-left:3px solid var(--accent);background:var(--soft);}
+.profile-hardest h3 {font-size:12px;color:var(--muted);margin:0 0 6px;}
+.profile-hardest a {font-size:16px;font-weight:700;}
+.profile-hardest p {margin:0;font-size:13px;}
+.profile-section {border-top:1px solid var(--line);padding-top:16px;margin-top:20px;}
+.profile-section h3 {margin:0 0 12px;font-size:15px;}
+.profile-progress {margin:12px 0;}
+.profile-progress-label {display:flex;justify-content:space-between;gap:8px;font-size:12px;}
+.profile-progress progress {display:block;width:100%;height:8px;margin-top:6px;accent-color:var(--accent);}
+.profile-runs {max-width:none;margin:0;}
+.profile-runs li {align-items:center;gap:12px;}
+.profile-run-name {display:grid;gap:4px;min-width:0;}
+.profile-run-name .muted {font-size:12px;}
+.profile-runs li > a {flex:0 0 auto;min-height:44px;display:flex;align-items:center;}
+.profile-footer {display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px;margin-top:20px;font-size:12px;}
+.profile-note {font-size:11px;}
+#player-dialog p.muted {font-size:12px;}
+#players a[aria-haspopup="dialog"] {text-underline-offset:3px;transition:color .16s;}
+@media(hover:hover) and (pointer:fine) {#players a[aria-haspopup="dialog"]:hover {text-decoration:underline;}}
+@media(max-width:540px) {
+ #player-dialog {width:100%;max-width:none;max-height:92dvh;margin:auto 0 0;padding:22px 16px;border-radius:12px 12px 0 0;}
+ .profile-metrics {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .profile-metrics > div {padding:12px 8px;}
+}
+@media(prefers-reduced-motion:no-preference) {
+ #player-dialog[open] {animation:profile-in .16s ease-out;}
+ @keyframes profile-in {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+}

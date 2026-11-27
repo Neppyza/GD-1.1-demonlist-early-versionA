@@ -269,3 +269,28 @@ test('activity feed distinguishes new placements and real movements and ignores 
     assert.equal(randomLevel([],()=>0),null);
     assert.equal(randomLevel([a,b],()=>0.9),b);
 });
+
+test('player profile metrics count unique completions and highest approved partials', async () => {
+    const {buildStats,playerDetails}=await import('../stats-model.js');
+    const levels=[{id:'a',position:2,points:50},{id:'b',position:15,points:20},{id:'c',position:60,points:10},{id:'d',position:-1,points:5}];
+    const records=[
+        {playerId:'p',player:'Player',levelId:'a',progress:100,approved:true,proofUrl:'https://example.org/proof'},
+        {playerId:'p',player:'Player',levelId:'a',progress:100,approved:true},
+        {playerId:'p',player:'Player',levelId:'b',progress:40,approved:true},
+        {playerId:'p',player:'Player',levelId:'b',progress:70,approved:true},
+        {playerId:'p',player:'Player',levelId:'b',progress:90,approved:false},
+        {playerId:'p',player:'Player',levelId:'d',progress:100,approved:true}
+    ];
+    const profiles=[{id:'p',displayName:'Player',bio:'',countryCode:'FR',tags:['Player']},{id:'q',displayName:'Other',bio:'',countryCode:'FR',tags:['Player']}];
+    const ranked=buildStats(levels,records,profiles);
+    const info=playerDetails(ranked[0],levels,records,ranked);
+    assert.equal(info.hardest.id,'a');
+    assert.deepEqual(info.ranked,{completed:1,total:3});
+    assert.deepEqual(info.top10,{completed:1,total:1});
+    assert.deepEqual(info.top50,{completed:1,total:2});
+    assert.equal(info.countryRank,1);
+    assert.equal(info.countryTotal,2);
+    assert.equal(info.average,27.5);
+    assert.equal(info.proofByLevel.get('a'),'https://example.org/proof');
+    assert.deepEqual(info.partial.map(r=>[r.level.id,r.progress]),[['b',70]]);
+});
