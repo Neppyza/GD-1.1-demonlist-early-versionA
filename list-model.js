@@ -28,10 +28,19 @@ export function filterLevels(levels, records, term) {
     return levels.filter(level => [level.name, level.creator, level.verifier, level.difficulty, level.category, ...(names.get(level.id) || [])].some(value => String(value ?? "").toLowerCase().includes(query)));
 }
 
-// Old list tags are ignored so published levels remain accessible.
-export const listTypes = ["main"];
-export function levelList() { return "main"; }
-export function filterList(levels) { return [...levels]; }
+export const listTypes = ["main","legacy","platformer"];
+export function levelList(level) { return listTypes.includes(level?.listType) ? level.listType : "main"; }
+export function filterList(levels,type="main") { return levels.filter(level=>levelList(level)===type); }
+export function listPlacementUpdates(levels,id,target,type="main") {
+    const old=levels.find(l=>l.id===id);
+    const source=levelList(old);
+    const updates=[];
+    if(old && source!==type && source!=="legacy" && position(old.position)!==Infinity) {
+        for(const l of filterList(levels,source)) if(l.id!==id && position(l.position)!==Infinity && position(l.position)>position(old.position)) updates.push({id:l.id,position:position(l.position)-1});
+    }
+    if(type!=="legacy") updates.push(...placementUpdates(filterList(levels,type),id,target));
+    return updates;
+}
 
 // Remove the old placement, then insert the level and make room below it.
 export function placementUpdates(levels, levelId, target) {
