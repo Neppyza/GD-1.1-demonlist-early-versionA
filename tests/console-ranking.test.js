@@ -62,3 +62,10 @@ test('invalid positions and overflowing ranks produce no partial writes', async 
     await assert.rejects(applyConsoleInsertion(f.db,f.event,()=>0));
     assert.equal(f.writes(),0);
 });
+
+test('inserting at #2 shifts existing #2 and lower but not explicitly pending entries', async () => {
+    const f=fixture({first:{position:1},second:{position:2},third:{position:3},pending:{position:2,rankingApplied:false},new:{position:2}});
+    await applyConsoleInsertion(f.db,f.event,()=>0);
+    assert.deepEqual([f.data.first.position,f.data.new.position,f.data.second.position,f.data.third.position],[1,2,3,4]);
+    assert.equal(f.data.pending.position,2);
+});

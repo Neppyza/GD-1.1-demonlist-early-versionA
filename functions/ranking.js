@@ -13,9 +13,9 @@ export async function applyConsoleInsertion(db, eventSnapshot, timestamp) {
             throw new Error('New console levels need a positive integer position. Correct the document to allow retry.');
         }
         const snapshot = await transaction.get(db.collection('levels'));
-        const updates = snapshot.docs.filter(doc => doc.id !== current.id)
+        const updates = snapshot.docs.filter(doc => doc.id !== current.id && doc.data().rankingApplied !== false)
             .map(doc => ({ ref: doc.ref, data: doc.data(), position: Number(doc.data().position) }))
-            .filter(item => Number.isFinite(item.position) && item.position >= target);
+            .filter(item => Number.isSafeInteger(item.position) && item.position >= target);
         if (updates.length > 450 || updates.some(item => !Number.isSafeInteger(item.position + 1))) {
             throw new Error('Ranking exceeds safe automatic insertion limits; no ranks were changed.');
         }

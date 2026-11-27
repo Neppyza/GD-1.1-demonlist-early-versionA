@@ -441,3 +441,11 @@ button, input, select, textarea, .button-link { border-radius: 3px; }
     .header-inner .account-nav { grid-column: 1 / -1; grid-row: 2; padding-top: 8px; }
     .header-inner nav { grid-column: 1 / -1; grid-row: 3; }
 }
+
+.announcements {border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--paper);padding:0 18px;margin-bottom:24px}
+.announcements article {padding:14px 0;transition:background-color .18s}
+.announcements article+article {border-top:1px solid var(--line)}
+.announcements .announcement-meta {display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-bottom:6px}
+.announcements .announcement-label {color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+@media(hover:hover) and (pointer:fine){.announcements article:hover{background:var(--soft)}}
+@media(prefers-reduced-motion:reduce){.announcements article{transition:none}}

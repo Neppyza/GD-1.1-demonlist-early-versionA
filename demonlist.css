@@ -44,3 +44,27 @@
 
 .list-page .demon-row .thumbnail img {width:100%;height:100%;object-fit:cover;}
 .insight-grid > div,.insight-ranking a {min-width:0;overflow-wrap:anywhere;}
+
+/* Restrained motion: thumbnails and links respond without shifting the layout. */
+.placement-feed { margin:0 0 28px; padding:20px 0; border-block:1px solid var(--line); }
+.placement-feed h2 {font-size:18px;margin:0}
+.placement-feed > p {font-size:12px;margin:4px 0 12px}
+.placement-feed-list {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 20px}
+.placement-item {display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);color:var(--ink);transition:background-color .18s,color .18s}
+.placement-item .thumbnail {aspect-ratio:16/9;border-radius:3px}
+.placement-copy {display:grid;min-width:0;gap:2px;overflow-wrap:anywhere}
+.placement-copy strong {font-size:14px}
+.placement-kicker,.placement-item time,.placement-copy .muted {font-size:11px}
+.placement-kicker {color:var(--accent);font-weight:700}
+.placement-item time {color:var(--muted);grid-column:2}
+.placement-arrow {grid-column:3;grid-row:1;color:var(--accent);transition:translate .18s}
+.demon-row .thumbnail img,.placement-item .thumbnail img {transition:transform .25s ease}
+.demon-row {transition:background-color .18s,border-color .18s,box-shadow .18s}
+@media(hover:hover) and (pointer:fine) {
+ .list-page .demon-row:hover {background:var(--soft);border-bottom-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
+ .demon-row:hover .thumbnail img,.placement-item:hover .thumbnail img {transform:scale(1.045)}
+ .placement-item:hover {background:var(--soft);text-decoration:none}
+ .placement-item:hover .placement-arrow {translate:3px 0}
+}
+@media(max-width:720px){.placement-feed-list {grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.demon-row,.demon-row .thumbnail img,.placement-item,.placement-item .thumbnail img,.placement-arrow{transition:none!important;transform:none!important;translate:none!important}}
