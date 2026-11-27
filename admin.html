@@ -19,6 +19,7 @@
   <script src="theme.js"></script>
   <link rel="preload" href="fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin-workspace.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -48,12 +49,19 @@
     <button id="staff-retry" class="secondary-button" type="button">Retry access check</button>
     <p class="admin-access-help muted">If you own this site, follow the <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#staff-access" target="_blank" rel="noopener noreferrer">owner setup instructions ↗</a> once, then retry access.</p>
     <div id="staff-tools" hidden>
-      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Stats viewer</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
+      <nav class="admin-sections" aria-label="Admin sections"><a href="#completion-review">Completions</a><a href="#player-management">Stats viewer</a><a href="#level-management">Manage levels</a><a href="#level-review">Level queue</a><a href="#direct-publish">Add level</a><a href="#manual-completion">Manual record</a><a id="team-nav" href="#team-management" hidden>Team</a></nav>
+      <section id="staff-overview" class="section-block">
+        <div class="section-heading"><h2>Ranking overview</h2><button type="button" class="secondary-button" id="refresh-overview">Refresh overview</button></div>
+        <div id="ranking-health" class="staff-metrics" aria-live="polite"></div>
+        <p id="ranking-health-status" class="form-status" role="status"></p>
+        <p class="muted">Duplicate ranks and gaps are flagged in active lists only. Legacy positions are historical. Pending console inserts are counted separately.</p>
+      </section>
       <section id="completion-review" class="section-block">
         <div class="section-heading"><h2>Pending completions</h2><button id="refresh-completions" type="button" class="secondary-button">Refresh completions</button></div>
         <p class="muted">Watch the submitted proof and verify its claimed percentage before accepting a record.</p>
         <p id="completion-review-status" class="form-status" role="status"></p>
-        <div id="completion-queue"></div>
+        <div class="staff-filter"><label>Search pending completions<input type="search" id="completion-search" placeholder="Player, level or percentage"></label><label>Order<select id="completion-order"><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label></div>
+        <p id="completion-filter-count" class="muted" aria-live="polite"></p><div id="completion-queue"></div>
       </section>
       <section id="player-management" class="section-block">
         <div class="section-heading"><h2>Manage players</h2><button id="refresh-players" type="button" class="secondary-button">Refresh players</button></div>
@@ -75,6 +83,7 @@
       <section id="level-management" class="section-block">
         <div class="section-heading"><h2>Manage levels and victors</h2><button id="refresh-levels" type="button" class="secondary-button">Refresh levels</button></div>
         <p class="muted">Edit a level's name, position, difficulty, and points. Set points to 0 to remove this level's score. Removing a victor revokes their completion while keeping the record and proof.</p>
+        <div class="staff-filter"><label>Find a level<input type="search" id="managed-search" placeholder="Name, creator, verifier or #rank"></label><label>Filter list<select id="managed-filter"><option value="all">All lists</option><option value="main">Main List</option><option value="legacy">Legacy List</option><option value="platformer">Platformer List</option></select></label></div>
         <form id="level-management-form" class="stack-form narrow-form">
           <label for="managed-level">Level</label><select id="managed-level" name="levelId" required></select>
           <label for="managed-name">Level name</label><input id="managed-name" name="levelName" maxlength="80" required>
@@ -82,13 +91,32 @@
           <p id="managed-position-help" class="muted">Placing a level moves the affected levels automatically. For example, placing it at #1 pushes #1 to #2, #2 to #3, and so on.</p>
           <label for="managed-difficulty">Difficulty (optional)</label><input id="managed-difficulty" name="difficulty" maxlength="60" placeholder="e.g. Extreme Demon">
           <label for="managed-points">Points per completion</label><input id="managed-points" name="points" type="number" min="0" step="0.01" required>
+          <div id="managed-preview" class="staff-preview" aria-live="polite"></div>
           <button type="submit">Save level changes</button>
         </form>
         <p id="level-management-status" class="form-status" role="status"></p>
         <h3>Approved victors</h3><div id="managed-victors"></div>
       </section>
-      <section id="level-review" class="section-block"><div class="section-heading"><h2>Pending level submissions</h2><button id="refresh-queue" type="button" class="secondary-button">Refresh queue</button></div><p class="muted">Set the placement, points and optional thumbnail image before publishing. <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#add-levels-and-thumbnails" target="_blank" rel="noopener noreferrer">How to add levels and thumbnails ↗</a></p><div id="review-queue"></div></section>
-      <section class="section-block narrow-form">
+      <section id="level-review" class="section-block"><div class="section-heading"><h2>Pending level submissions</h2><button id="refresh-queue" type="button" class="secondary-button">Refresh queue</button></div><p class="muted">Set the placement, points and optional thumbnail image before publishing. <a href="https://github.com/Neppyza/GD-1.1-demonlist-early-versionA/blob/main/OWNER_SETUP.md#add-levels-and-thumbnails" target="_blank" rel="noopener noreferrer">How to add levels and thumbnails ↗</a></p><div class="staff-filter"><label>Search submissions<input type="search" id="level-queue-search" placeholder="Level, creator, verifier or submitter"></label><label>Order<select id="level-queue-order"><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label></div><p id="level-queue-count" class="muted" aria-live="polite"></p><div id="review-queue"></div></section>
+      <section id="direct-publish" class="section-block">
+        <h2>Add a level directly</h2><p class="muted">Publish a verified level without a submission. Active placements shift automatically; no Cloud Function is needed.</p>
+        <form id="direct-level-form" class="stack-form staff-direct-form">
+          <label>Level name<input name="levelName" maxlength="80" required></label>
+          <label>Creator<input name="creator" maxlength="60" required></label>
+          <label>Verifier<input name="verifier" maxlength="60" required></label>
+          <label>Level URL<input name="levelUrl" type="url" maxlength="2000" required></label>
+          <label>Verification proof URL<input name="proofUrl" type="url" maxlength="2000" required></label>
+          <label>Thumbnail URL (optional)<input name="thumbnail" type="url" maxlength="2000"></label>
+          <label>Ranking list<select name="listType"><option value="main">Main List</option><option value="legacy">Legacy List</option><option value="platformer">Platformer List</option></select></label>
+          <label>Position<input name="position" type="number" min="1" step="1" required></label>
+          <label>Points<input name="points" type="number" min="0" step="0.01" value="0" required></label>
+          <label>Difficulty (optional)<input name="difficulty" maxlength="60"></label>
+          <div id="direct-preview" class="staff-preview staff-wide" aria-live="polite"></div>
+          <label class="check-row staff-wide"><input type="checkbox" name="checkedProof" required><span>I verified the level and its proof.</span></label>
+          <button type="submit">Publish level</button><p id="direct-level-status" class="form-status staff-wide" role="status"></p>
+        </form>
+      </section>
+      <section id="manual-completion" class="section-block narrow-form">
         <h2>Approve a completion manually</h2><p class="muted">Check the player's 100% proof. Use their player ID shown in Account, or keep the existing ID for a legacy player.</p>
         <form id="victor-form" class="stack-form">
           <label for="victor-level">Level</label><select id="victor-level" name="levelId" required></select>
